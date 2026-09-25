@@ -19,7 +19,7 @@ Next.js, TypeScript, Tailwind CSS e SQLite nativo do Node (`node:sqlite`). Playw
 
 ## Rodar localmente
 
-Pré-requisitos: Node.js 20+ e npm.
+Pré-requisitos: Node.js 22.5+ (recomendado Node.js 24+) e npm.
 
 ```bash
 copy .env.example .env
