@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #10243e;
+  --navy: #102f50;
+  --blue: #1d5b8f;
+  --mist: #eef5f9;
+  --line: #d7e2ea;
+  --muted: #5b6e80;
+}
+
+* { box-sizing: border-box; }
+
+html { background: #f8fbfd; }
+
+body {
+  margin: 0;
+  background: #f8fbfd;
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+button, a, input, select { font: inherit; }
+
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(27, 113, 168, .35);
+  outline-offset: 3px;
+}
+
+::selection { background: #cfe6f5; color: var(--ink); }
+
+@layer components {
+  .shell { @apply mx-auto w-full max-w-[1180px] px-5 sm:px-8; }
+  .eyebrow { @apply text-[11px] font-bold uppercase tracking-[.16em] text-blue; }
+  .panel { @apply rounded-panel border border-line bg-white shadow-soft; }
+  .subtle-link { @apply text-sm font-semibold text-blue underline-offset-4 hover:underline; }
+  .button-primary { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-navy px-5 py-3 text-sm font-bold text-white transition hover:bg-blue disabled:cursor-not-allowed disabled:opacity-50; }
+  .button-secondary { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-5 py-3 text-sm font-bold text-navy transition hover:border-blue hover:text-blue; }
+  .button-quiet { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-blue transition hover:bg-mist; }
+  .body-copy { @apply text-[15px] leading-7 text-[#516477]; }
+}
