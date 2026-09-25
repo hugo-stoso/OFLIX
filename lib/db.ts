@@ -11,9 +11,54 @@ type Row = Record<string, unknown>;
 type DatabaseLike = { exec: (sql: string) => void; prepare: (sql: string) => { all: (...params: unknown[]) => Row[]; get: (...params: unknown[]) => Row | undefined; run: (...params: unknown[]) => unknown } };
 const globalForDb = globalThis as unknown as { oflixDb?: DatabaseLike; oflixInitialized?: boolean };
 
+function runtimeDatabasePath() {
+  if (process.env.VERCEL) {
+    const deploymentId = (process.env.VERCEL_DEPLOYMENT_ID ?? "runtime").replace(/[^a-zA-Z0-9_-]/g, "-");
+    const temporaryRoot = process.env.TMPDIR ?? process.env.TEMP ?? "/tmp";
+    return path.join(temporaryRoot, `oflix-${deploymentId}.db`);
+  }
+  return path.join(process.cwd(), "prisma", "dev.db");
+}
+
+function seedDemoData(db: DatabaseLike) {
+  const profileCount = Number(db.prepare("SELECT COUNT(*) total FROM profiles").get()?.total ?? 0);
+  if (profileCount > 0) return;
+
+  const insert = (sql: string, ...params: string[]) => db.prepare(sql).run(...params);
+  const locations = [
+    ["loc-aracaju-centro", "SE", "Aracaju", "Centro"],
+    ["loc-aracaju-bugio", "SE", "Aracaju", "Bugio"],
+    ["loc-aracaju-sao-jose", "SE", "Aracaju", "São José"],
+    ["loc-lagarto-centro", "SE", "Lagarto", "Centro"],
+    ["loc-lagarto-cidade-nova", "SE", "Lagarto", "Cidade Nova"],
+    ["loc-socorro-taicoca", "SE", "Nossa Senhora do Socorro", "Taiçoca"],
+  ];
+  for (const row of locations) insert("INSERT INTO locations (id, state, municipality, district) VALUES (?, ?, ?, ?)", ...row);
+
+  const profiles = [
+    ["profile-ana", "Ana Ribeiro", "PERSON", "Pessoa em busca de oportunidades e conexões locais.", "Candidata formal · Voluntária", "loc-aracaju-centro"],
+    ["profile-coletivo", "Coletivo Horizonte (demonstração)", "ORGANIZATION", "Organização fictícia para demonstrar publicação de oportunidades.", "Empresa · Ações comunitárias", "loc-aracaju-sao-jose"],
+    ["profile-instituto", "Instituto Ponte Aberta (demonstração)", "ORGANIZATION", "Organização fictícia com atuação em desenvolvimento territorial.", "Organização sem fins lucrativos · Voluntariado", "loc-lagarto-cidade-nova"],
+    ["profile-rafael", "Rafael Santos (demonstração)", "PERSON", "Profissional autônomo que atende demandas residenciais.", "Manutenção residencial · Serviços autônomos", "loc-lagarto-centro"],
+    ["profile-analista", "Observatório Território Aberto (demonstração)", "INSTITUTIONAL_ANALYST", "Persona fictícia para leitura agregada do território.", "Inteligência territorial · Análise agregada", "loc-aracaju-centro"],
+  ];
+  for (const row of profiles) insert("INSERT INTO profiles (id, name, type, summary, capabilities, location_id) VALUES (?, ?, ?, ?, ?, ?)", ...row);
+
+  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id) VALUES (?, ?, ?, ?, ?, ?)", "formal-operations", "Assistente de operações locais", "Apoio à organização de rotas, estoque e relacionamento com parceiros do território.", "Operações", "profile-coletivo", "loc-aracaju-centro");
+  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id) VALUES (?, ?, ?, ?, ?, ?)", "formal-attendance", "Técnico de atendimento", "Atendimento presencial e remoto para uma rede de serviços em expansão.", "Atendimento", "profile-coletivo", "loc-socorro-taicoca");
+  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-maintenance", "Manutenção residencial", "Pequenos reparos elétricos, hidráulicos e ajustes de rotina em residências.", "Manutenção", "profile-rafael", "loc-lagarto-centro", "Agenda combinada pelo território");
+  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-design", "Design e conteúdo local", "Identidade visual simples e peças digitais para pequenos negócios e iniciativas locais.", "Comunicação", "profile-coletivo", "loc-aracaju-sao-jose", "Atendimento remoto ou em Aracaju");
+  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule) VALUES (?, ?, ?, ?, ?, ?, ?)", "volunteer-reading", "Mutirão de leitura comunitária", "Encontros de leitura para crianças e adolescentes em um espaço comunitário do bairro.", "Educação", "profile-instituto", "loc-aracaju-bugio", "Sábados, pela manhã");
+  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule) VALUES (?, ?, ?, ?, ?, ?, ?)", "volunteer-health", "Apoio à feira de saúde", "Recepção e organização de fluxo em uma ação comunitária de orientação e prevenção.", "Saúde", "profile-instituto", "loc-lagarto-cidade-nova", "Uma manhã, com escala prévia");
+  insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-1", "profile-ana", "FORMAL", "formal-operations", "APPLY");
+  insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-2", "profile-ana", "VOLUNTEER", "volunteer-reading", "VOLUNTEER_INTEREST");
+  insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-3", "profile-rafael", "SERVICE", "service-design", "CONTACT_REQUEST");
+  insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-4", "profile-ana", "SERVICE", "service-maintenance", "CONTACT_REQUEST");
+}
+
 function database() {
   if (!globalForDb.oflixDb) {
-    const dbPath = path.join(process.cwd(), "prisma", "dev.db");
+    const dbPath = runtimeDatabasePath();
     mkdirSync(path.dirname(dbPath), { recursive: true });
     globalForDb.oflixDb = new DatabaseSync(dbPath) as DatabaseLike;
   }
@@ -31,6 +76,7 @@ function database() {
       CREATE INDEX IF NOT EXISTS idx_interactions_target ON interactions(target_type, target_id);
     `);
     globalForDb.oflixInitialized = true;
+    seedDemoData(db);
   }
   return db;
 }

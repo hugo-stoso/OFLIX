@@ -9,6 +9,7 @@
 - Ações contextuais funcionais com persistência e feedback de sucesso/duplicidade.
 - Visão territorial inicial derivada de dados operacionais.
 - Documentação permanente e smoke tests do percurso principal.
+- Deploy de produção da demo no Vercel com seed DEMO em armazenamento efêmero do runtime.
 
 ## VALIDAÇÃO NECESSÁRIA
 
@@ -23,7 +24,7 @@
 
 ## PENDENTE
 
-- Deploy e observabilidade.
+- Observabilidade contínua e persistência compartilhada de produção.
 - Fluxos de cadastro, autenticação e recuperação de acesso.
 - Criação, edição, revisão e encerramento de oportunidades.
 
