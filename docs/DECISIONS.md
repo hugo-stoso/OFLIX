@@ -27,3 +27,9 @@ CLT e Estágio são atributos explícitos de oportunidades formais. Trabalhadore
 ## Desvios e limites
 
 O fluxo de publicação, a base de talentos e o chat foram adicionados como experiências demonstráveis, mas continuam sem autorização, persistência compartilhada, moderação ou entrega de mensagens. O link do Google Agenda usa um template confirmável pelo usuário, sem OAuth. A UI apresenta organizações na descoberta, mas separa gestão, candidatos e oportunidades ofertadas em blocos próprios.
+
+## Oferta, demanda e banco de talentos
+
+Oferta de trabalho pertence à pessoa que apresenta sua força de trabalho; demanda pertence à empresa, instituição ou outro contratante. O mural aplica essa distinção por perfil: contratantes nunca recebem as demandas de outras organizações. Pessoas podem compartilhar voluntariamente um perfil de talento para que organizações pesquisem ofertas de trabalho, inclusive CLT, estágio, serviços autônomos e voluntariado.
+
+O currículo segue o modelo fornecido pelo produto e fica obrigatório antes do opt-in do banco de talentos. Na demo, o arquivo `.docx` é lido e guardado como dado local do navegador para permitir o download pela organização no mesmo percurso. Isso é uma simulação de armazenamento: produção deve validar o template no servidor e usar armazenamento de arquivos com consentimento e controles de acesso.

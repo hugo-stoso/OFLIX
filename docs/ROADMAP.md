@@ -11,6 +11,8 @@
 - [x] Preferências de atividades e lembretes de voluntariado com template do Google Agenda.
 - [x] Área demo de publicação, minhas oportunidades, base de talentos e conversa iniciada pelo demandante.
 - [x] Gráfico de empregos formais por região.
+- [x] Separação semântica entre oferta de pessoas e demanda de contratantes, com isolamento das demandas entre organizações.
+- [x] Filtros de banco de talentos por escolaridade e tipo de curso, além de currículo baseado no modelo fornecido.
 
 ## MVP
 
@@ -19,6 +21,7 @@
 - [ ] Publicação, edição, moderação e encerramento de oportunidades persistentes.
 - [ ] Busca, filtros e estados de demanda com autorização real.
 - [ ] Governança de dados, consentimento e políticas de retenção.
+- [ ] Armazenamento seguro e compartilhado de currículos, com validação server-side do modelo e download autorizado.
 
 ## Pós-MVP
 
