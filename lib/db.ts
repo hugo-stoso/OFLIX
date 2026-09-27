@@ -159,5 +159,71 @@ export function territoryData() {
   return { fronts: [{ key: "formal", label: "Trabalho formal", total: formal }, { key: "service", label: "Serviços autônomos", total: service }, { key: "volunteer", label: "Voluntariado", total: volunteer }], totalOpportunities: formal + service + volunteer, interactions, territorial, categories, employmentByRegion };
 }
 
+function emptyInterestTerritoryData(activities: string[]) {
+  return {
+    scope: "interests" as const,
+    activities,
+    matchedOpportunityCount: 0,
+    fronts: [{ key: "formal", label: "Trabalho formal", total: 0 }, { key: "service", label: "Serviços autônomos", total: 0 }, { key: "volunteer", label: "Voluntariado", total: 0 }],
+    totalOpportunities: 0,
+    interactions: 0,
+    territorial: [] as { municipality: string; district: string; total: number }[],
+    categories: [] as { front: string; category: string; total: number }[],
+    employmentByRegion: [] as { municipality: string; district: string; employmentType: FormalEmploymentType; total: number }[],
+  };
+}
+
+export function interestTerritoryData(activities: string[]) {
+  const normalized = Array.from(new Set(activities.map((activity) => activity.trim()).filter(Boolean)));
+  if (!normalized.length) return emptyInterestTerritoryData(normalized);
+
+  const placeholders = normalized.map(() => "?").join(", ");
+  const db = database();
+  const formal = db.prepare(`SELECT o.id, o.category, o.employment_type, l.municipality, l.district FROM formal_opportunities o JOIN locations l ON l.id = o.location_id WHERE o.category IN (${placeholders})`).all(...normalized);
+  const service = db.prepare(`SELECT o.id, o.category, l.municipality, l.district FROM service_offers o JOIN locations l ON l.id = o.location_id WHERE o.category IN (${placeholders})`).all(...normalized);
+  type InterestMatch = Row & { front: string; targetType: string; id: string; category: string; municipality: string; district: string; employment_type?: string };
+  const matches: InterestMatch[] = [...formal.map((row) => ({ ...row, front: "formal", targetType: "FORMAL" }) as InterestMatch), ...service.map((row) => ({ ...row, front: "service", targetType: "SERVICE" }) as InterestMatch)];
+  const territorialMap = new Map<string, { municipality: string; district: string; total: number }>();
+  const categoryMap = new Map<string, { front: string; category: string; total: number }>();
+  const employmentMap = new Map<string, { municipality: string; district: string; employmentType: FormalEmploymentType; total: number }>();
+  for (const match of matches) {
+    const municipality = String(match.municipality);
+    const district = String(match.district);
+    const territoryKey = `${municipality}-${district}`;
+    const territory = territorialMap.get(territoryKey) ?? { municipality, district, total: 0 };
+    territory.total += 1;
+    territorialMap.set(territoryKey, territory);
+    const category = String(match.category);
+    const categoryKey = `${match.front}-${category}`;
+    const categoryValue = categoryMap.get(categoryKey) ?? { front: String(match.front), category, total: 0 };
+    categoryValue.total += 1;
+    categoryMap.set(categoryKey, categoryValue);
+    if (match.front === "formal") {
+      const employmentType = String(match.employment_type) as FormalEmploymentType;
+      const employmentKey = `${territoryKey}-${employmentType}`;
+      const employment = employmentMap.get(employmentKey) ?? { municipality, district, employmentType, total: 0 };
+      employment.total += 1;
+      employmentMap.set(employmentKey, employment);
+    }
+  }
+
+  const formalIds = formal.map((row) => String(row.id));
+  const serviceIds = service.map((row) => String(row.id));
+  const interactionConditions: string[] = [];
+  const interactionParams: string[] = [];
+  if (formalIds.length) { interactionConditions.push(`(target_type = 'FORMAL' AND target_id IN (${formalIds.map(() => "?").join(", ")}))`); interactionParams.push(...formalIds); }
+  if (serviceIds.length) { interactionConditions.push(`(target_type = 'SERVICE' AND target_id IN (${serviceIds.map(() => "?").join(", ")}))`); interactionParams.push(...serviceIds); }
+  const interactions = interactionConditions.length ? Number(db.prepare(`SELECT COUNT(*) total FROM interactions WHERE ${interactionConditions.join(" OR ")}`).get(...interactionParams)?.total ?? 0) : 0;
+  const fronts = [{ key: "formal", label: "Trabalho formal", total: formal.length }, { key: "service", label: "Serviços autônomos", total: service.length }, { key: "volunteer", label: "Voluntariado", total: 0 }];
+  return { scope: "interests" as const, activities: normalized, matchedOpportunityCount: matches.length, fronts, totalOpportunities: matches.length, interactions, territorial: Array.from(territorialMap.values()).sort((a, b) => b.total - a.total || a.municipality.localeCompare(b.municipality)), categories: Array.from(categoryMap.values()).sort((a, b) => a.front.localeCompare(b.front) || a.category.localeCompare(b.category)), employmentByRegion: Array.from(employmentMap.values()).sort((a, b) => a.municipality.localeCompare(b.municipality) || a.district.localeCompare(b.district) || a.employmentType.localeCompare(b.employmentType)) };
+}
+
+export function territoryDataForProfile(profileId: string, activities: string[]) {
+  const profile = database().prepare("SELECT type FROM profiles WHERE id = ?").get(profileId);
+  if (!profile) return null;
+  if (profile.type === "INSTITUTIONAL_ANALYST") return { scope: "general" as const, ...territoryData() };
+  return interestTerritoryData(activities);
+}
+
 export function resetDatabase() { database().exec("DELETE FROM interactions; DELETE FROM formal_opportunities; DELETE FROM service_offers; DELETE FROM volunteer_opportunities; DELETE FROM profiles; DELETE FROM locations;"); }
 export function seedRow(sql: string, ...params: string[]) { database().prepare(sql).run(...params); }

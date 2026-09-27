@@ -18,6 +18,7 @@ export function InterestSelector({ profileId, matches }: { profileId: string; ma
   function toggle(activity: string) {
     const next = selected.includes(activity) ? selected.filter((item) => item !== activity) : [...selected, activity];
     setSelected(next); window.localStorage.setItem(`oflix-interests-${profileId}`, JSON.stringify(next));
+    window.dispatchEvent(new Event("oflix-interests-changed"));
   }
   async function enableNotifications() {
     if (typeof Notification !== "undefined" && Notification.permission === "default") await Notification.requestPermission();

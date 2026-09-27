@@ -17,6 +17,7 @@
 - Área demo de “Enviar oportunidade”, “Minhas oportunidades” e base de talentos com início de conversa pelo demandante.
 - Lembretes de voluntariado, link de criação de evento no Google Agenda e gráfico de empregos por região.
 - Bloqueio de auto candidatura aplicado na interface e na API.
+- Visão territorial geral restrita ao Observatório Território Aberto (demonstração), com recorte territorial de vagas/serviços por atividades de interesse para pessoas.
 
 ## VALIDAÇÃO NECESSÁRIA
 
@@ -29,12 +30,12 @@
 - Publicação e “Minhas oportunidades” funcionam como fluxo da demonstração; ainda não há persistência real de autoria, edição, moderação ou autorização.
 - Favoritos, atividades e lembretes ficam no `localStorage`; a permissão do navegador é demonstrada, mas não existe push agendado em segundo plano.
 - Base de talentos e chat demonstram o próximo passo com dados fictícios, sem currículo completo, autenticação ou canal de mensagens real.
-- Inteligência territorial prova o caminho de dados e o gráfico de empregos, mas ainda não modela demanda não atendida nem séries históricas.
+- Inteligência territorial prova o caminho de dados e o gráfico de empregos; a autorização geral e o recorte por interesse estão implementados na demo, mas ainda não há demanda não atendida nem séries históricas.
 
 ## PENDENTE
 
 - Observabilidade contínua e persistência compartilhada de produção.
-- Fluxos de cadastro, autenticação e recuperação de acesso.
+- Fluxos de cadastro, autenticação real, autorização persistente e recuperação de acesso.
 - Criação, edição, revisão e encerramento de oportunidades persistentes.
 - Notificações server-side e integração OAuth com Google Agenda.
 

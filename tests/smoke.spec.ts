@@ -10,6 +10,8 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
   await expect(page.getByRole("heading", { name: "O que está se movendo perto de você." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Atividades que você quer acompanhar" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Oportunidades relacionadas aos seus interesses" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /visão territorial geral/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "CLT", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Estágio", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Estágio", exact: true }).click();
@@ -20,9 +22,31 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await page.getByRole("button", { name: "Candidatar-se" }).click();
   await expect(page.getByText(/candidatura foi registrada|já estava registrada/)).toBeVisible();
   await page.goto("/demo/analyst");
+  await expect(page.getByRole("heading", { name: "Visão territorial geral restrita" })).toBeVisible();
+  await page.goto("/demo");
+  await page.getByRole("button", { name: "Trocar perfil" }).click();
+  await page.getByRole("button", { name: /Observatório Território Aberto/ }).click();
+  await page.waitForURL("**/demo/analyst");
   await expect(page.getByRole("heading", { name: "O que as conexões começam a revelar." })).toBeVisible();
   await expect(page.getByText("Distribuição por frente")).toBeVisible();
   await expect(page.getByText("Empregos na região")).toBeVisible();
+});
+
+test("API territorial entrega somente o escopo autorizado", async ({ request }) => {
+  const missingProfile = await request.get("/api/territory");
+  expect(missingProfile.status()).toBe(401);
+
+  const scopedResponse = await request.get("/api/territory?profileId=profile-ana&activities=Comunicação");
+  expect(scopedResponse.ok()).toBe(true);
+  const scoped = await scopedResponse.json();
+  expect(scoped.scope).toBe("interests");
+  expect(scoped.matchedOpportunityCount).toBeGreaterThan(0);
+
+  const generalResponse = await request.get("/api/territory?profileId=profile-analista");
+  expect(generalResponse.ok()).toBe(true);
+  const general = await generalResponse.json();
+  expect(general.scope).toBe("general");
+  expect(general.totalOpportunities).toBeGreaterThan(scoped.totalOpportunities);
 });
 
 test("mobile não cria overflow horizontal na landing", async ({ page }) => {

@@ -2,7 +2,7 @@
 
 ## Aplicação
 
-Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing está em `/`; a experiência demo em `/demo`; a visão agregada em `/demo/analyst`; e os detalhes em `/opportunity/[id]?kind=formal|service|volunteer`.
+Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing está em `/`; a experiência demo em `/demo`; a visão agregada geral em `/demo/analyst`; o recorte territorial por interesses aparece na própria experiência de pessoas; e os detalhes ficam em `/opportunity/[id]?kind=formal|service|volunteer`.
 
 ## Persistência
 
@@ -14,7 +14,7 @@ SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL sep
 - `GET /api/opportunities`: oportunidades separadas por frente.
 - `GET /api/talents`: interesses registrados por candidatos, relacionados à oportunidade e à organização proprietária.
 - `POST /api/interactions`: valida com Zod, persiste e trata duplicidade por perfil, tipo e alvo.
-- `GET /api/territory`: calcula contagens, agrupamentos territoriais e empregos formais por município/região e tipo de vínculo.
+- `GET /api/territory?profileId=...`: entrega a visão geral somente quando o perfil demo é `profile-analista`; para outros perfis exige atividades e retorna apenas o recorte de vagas/serviços compatíveis com esses interesses. Sem perfil, responde `401`.
 
 ## Experiência de perfil
 
@@ -28,4 +28,4 @@ A interface usa layout editorial, azul-marinho, azul institucional, neutros frio
 
 ## Limites reais
 
-Não há autenticação de produção, autorização de papéis, moderação, persistência compartilhada para publicações demo, push agendado, OAuth do Google, coordenadas ou geocodificação nesta execução.
+Não há autenticação de produção, autorização de papéis real, moderação, persistência compartilhada para publicações demo, push agendado, OAuth do Google, coordenadas ou geocodificação nesta execução. A restrição territorial desta demo usa o perfil selecionado no navegador: o agregado geral é exclusivo da persona Observatório Território Aberto; pessoas recebem somente o recorte das atividades salvas localmente.
