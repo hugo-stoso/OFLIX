@@ -2,7 +2,7 @@
 
 ## Aplicação
 
-Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing está em `/`; a experiência demo em `/demo`; a visão agregada geral em `/demo/analyst`; o recorte territorial por interesses aparece na própria experiência de pessoas; e os detalhes ficam em `/opportunity/[id]?kind=formal|service|volunteer`.
+Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing está em `/`; a experiência demo em `/demo`; o perfil detalhado em `/profile`; as preferências da demo em `/settings`; a visão agregada geral em `/demo/analyst`; o recorte territorial por interesses aparece na própria experiência de pessoas; e os detalhes ficam em `/opportunity/[id]?kind=formal|service|volunteer`.
 
 ## Persistência
 
@@ -20,7 +20,7 @@ SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL sep
 
 ## Experiência de perfil
 
-O perfil escolhido é salvo em `localStorage` com a chave `oflix-demo-profile`. A interface mostra permanentemente que é um perfil de demonstração. Isso não representa autenticação, sessão segura ou controle de acesso.
+O perfil escolhido é salvo em `localStorage` com a chave `oflix-demo-profile`. O `DemoHeader` carrega a persona selecionada e oferece um menu acessível com Meu perfil, Configurações e Sair. A página `/profile` apresenta resumo, tipo de participação, competências e território demonstrativo; `/settings` salva preferências locais de notificações. Isso não representa autenticação, sessão segura ou controle de acesso.
 
 Favoritos, atividades de interesse, alertas de novas demandas autônomas e lembretes voluntários usam chaves separadas no `localStorage` para manter a demonstração navegável sem introduzir uma conta falsa. Ao publicar uma demanda autônoma na demo, a organização registra localmente as atividades selecionadas; ao trocar para uma persona de trabalhador no mesmo navegador, os interesses compatíveis são destacados. O link do Google Agenda é um template de evento; não há OAuth nem escrita automática na agenda. A API também impede que o proprietário de uma oportunidade crie uma interação consigo mesmo.
 

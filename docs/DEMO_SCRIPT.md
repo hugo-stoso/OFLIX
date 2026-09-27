@@ -10,3 +10,4 @@
 8. Mostrar que as atividades aparecem em **Minhas oportunidades** e que a publicação fica disponível para destacar interesses compatíveis no mesmo navegador.
 9. Trocar para **Observatório Território Aberto (demonstração)** e acessar a visão territorial geral, agregada por frente, categoria e território.
 10. Reforçar que o painel não exibe nomes e que os dados desta execução são fictícios.
+11. Abrir o menu com o nome da persona no canto superior direito e mostrar **Meu perfil**, **Configurações** e **Sair**; em Meu perfil, destacar resumo, competências e território demonstrativo.

@@ -54,6 +54,27 @@ test("API territorial entrega somente o escopo autorizado", async ({ request }) 
   expect(opportunities.services.find((opportunity: { id: string }) => opportunity.id === "service-electrical").requiredActivities).toEqual(["Eletricista", "Manutenção"]);
 });
 
+test("menu da conta abre perfil, configurações e saída", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
+  await page.getByRole("button", { name: "Abrir menu de Ana Ribeiro" }).click();
+  await expect(page.getByRole("menu", { name: "Menu da conta" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "Meu perfil" }).click();
+  await page.waitForURL("**/profile");
+  await expect(page.getByRole("heading", { name: "Ana Ribeiro" })).toBeVisible();
+  await expect(page.getByText("Pessoa em busca de oportunidades e conexões locais.")).toBeVisible();
+  await page.getByRole("button", { name: "Abrir menu de Ana Ribeiro" }).click();
+  await page.getByRole("menuitem", { name: "Configurações" }).click();
+  await page.waitForURL("**/settings");
+  await expect(page.getByRole("heading", { name: "Ajuste sua experiência." })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Receber avisos de oportunidades relacionadas" })).toBeVisible();
+  await page.getByRole("button", { name: "Abrir menu de Ana Ribeiro" }).click();
+  await page.getByRole("menuitem", { name: "Sair" }).click();
+  await page.waitForURL("**/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible();
+});
+
 test("organização publica demanda autônoma com múltiplas atividades", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
