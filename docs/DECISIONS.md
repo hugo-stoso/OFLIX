@@ -20,6 +20,10 @@ O modelo usa UF, município e bairro/região. Não há API de mapas, geocodifica
 
 A landing é curta. A descoberta usa listas densas e legíveis. Cada frente usa seu próprio verbo de ação. A visão de analista evita nomes e números inventados; seus agregados vêm do seed e das interações.
 
+## Demonstração de matching e gestão
+
+CLT e Estágio são atributos explícitos de oportunidades formais. Trabalhadores escolhem múltiplas atividades de interesse e recebem destaque local quando há correspondência; organizações visualizam suas ofertas e os perfis que demonstraram interesse em uma base de talentos. Favoritos, preferências e lembretes são locais à demonstração. O chat é intencionalmente um protótipo do fluxo: a organização inicia a conversa, sem transmissão de dados pessoais.
+
 ## Desvios e limites
 
-Não foi criado fluxo de publicação nem autenticação real porque o objetivo desta execução é uma fundação navegável. A UI apresenta organizações no mesmo fluxo de descoberta, mas suas capacidades de criação ainda são parciais.
+O fluxo de publicação, a base de talentos e o chat foram adicionados como experiências demonstráveis, mas continuam sem autorização, persistência compartilhada, moderação ou entrega de mensagens. O link do Google Agenda usa um template confirmável pelo usuário, sem OAuth. A UI apresenta organizações na descoberta, mas separa gestão, candidatos e oportunidades ofertadas em blocos próprios.

@@ -22,10 +22,10 @@ export default function HomePage() {
         <div>
           <p className="eyebrow">Uma plataforma territorial</p>
           <h1 className="mt-5 max-w-[680px] text-5xl font-black leading-[1.03] tracking-[-.055em] text-navy sm:text-6xl">
-            Trabalho que encontra o território.
+            O trabalho certo, no lugar certo.
           </h1>
           <p className="body-copy mt-7 max-w-[590px] text-lg leading-8">
-            O OFLIX conecta trabalho formal, serviços autônomos e voluntariado em Sergipe — com espaço para transformar conexões em inteligência territorial.
+            Plataforma completa para instituições e trabalhadores encontrarem as melhores oportunidades no mercado de trabalho.
           </p>
           <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <Link className="button-primary" href="/demo">

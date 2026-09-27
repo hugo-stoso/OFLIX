@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { InteractionAction } from "@/components/InteractionAction";
 import { DemoHeader } from "@/components/DemoHeader";
 import { OpportunityIcon } from "@/components/OpportunityIcon";
+import { VolunteerReminder } from "@/components/VolunteerReminder";
 import { opportunityMeta, type OpportunityKind } from "@/lib/domain";
 import { findOpportunity } from "@/lib/db";
 
@@ -33,13 +34,15 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
               <div><dt className="eyebrow">Onde acontece</dt><dd className="mt-2 inline-flex items-center gap-2 font-bold text-navy"><MapPin size={16} className="text-blue" /> {record.location.municipality} · {record.location.district}</dd></div>
               {record.availability && <div><dt className="eyebrow">Disponibilidade</dt><dd className="mt-2 font-bold text-navy">{record.availability}</dd></div>}
               {record.schedule && <div><dt className="eyebrow">Quando</dt><dd className="mt-2 font-bold text-navy">{record.schedule}</dd></div>}
+              {record.employmentType && <div><dt className="eyebrow">Vínculo</dt><dd className="mt-2 font-bold text-navy">{record.employmentType === "INTERNSHIP" ? "Estágio" : "CLT"}</dd></div>}
             </dl>
+            {kind === "volunteer" && record.schedule && <VolunteerReminder opportunityId={record.id} title={record.title} description={record.description} schedule={record.schedule} eventDate={record.eventDate} location={`${record.location.municipality} · ${record.location.district}`} />}
           </article>
           <aside className="panel h-fit p-6 sm:p-7">
             <p className="eyebrow">Próximo passo</p>
             <h2 className="mt-3 text-xl font-bold tracking-[-.02em] text-navy">{meta.action}</h2>
             <p className="mt-3 text-sm leading-6 text-[#607286]">A ação fica registrada como uma interação da demonstração e ajuda a compor a leitura agregada do território.</p>
-            <div className="mt-6"><InteractionAction targetId={record.id} kind={kind} /></div>
+            <div className="mt-6"><InteractionAction targetId={record.id} kind={kind} ownerId={record.owner.id} /></div>
             <p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-[#788995]">Perfil de demonstração · sem contato real ou autenticação de produção.</p>
           </aside>
         </div>

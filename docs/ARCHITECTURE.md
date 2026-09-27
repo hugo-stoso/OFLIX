@@ -12,12 +12,15 @@ SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL sep
 
 - `GET /api/profiles`: perfis demo com território.
 - `GET /api/opportunities`: oportunidades separadas por frente.
+- `GET /api/talents`: interesses registrados por candidatos, relacionados à oportunidade e à organização proprietária.
 - `POST /api/interactions`: valida com Zod, persiste e trata duplicidade por perfil, tipo e alvo.
-- `GET /api/territory`: calcula contagens e agrupamentos a partir das oportunidades/interações persistidas.
+- `GET /api/territory`: calcula contagens, agrupamentos territoriais e empregos formais por município/região e tipo de vínculo.
 
 ## Experiência de perfil
 
 O perfil escolhido é salvo em `localStorage` com a chave `oflix-demo-profile`. A interface mostra permanentemente que é um perfil de demonstração. Isso não representa autenticação, sessão segura ou controle de acesso.
+
+Favoritos, atividades de interesse e lembretes voluntários usam chaves separadas no `localStorage` para manter a demonstração navegável sem introduzir uma conta falsa. O link do Google Agenda é um template de evento; não há OAuth nem escrita automática na agenda. A API também impede que o proprietário de uma oportunidade crie uma interação consigo mesmo.
 
 ## UI e responsividade
 
@@ -25,4 +28,4 @@ A interface usa layout editorial, azul-marinho, azul institucional, neutros frio
 
 ## Limites reais
 
-Não há autenticação, autorização, publicação, moderação, busca, integração externa, notificações, coordenadas ou deploy nesta execução.
+Não há autenticação de produção, autorização de papéis, moderação, persistência compartilhada para publicações demo, push agendado, OAuth do Google, coordenadas ou geocodificação nesta execução.

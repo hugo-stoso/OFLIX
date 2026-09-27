@@ -11,11 +11,16 @@ export function DemoHeader() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    const selectedId = window.localStorage.getItem("oflix-demo-profile");
-    if (!selectedId) return;
-    fetch("/api/profiles").then((response) => response.json()).then((profiles: Profile[]) => {
-      setProfile(profiles.find((candidate) => candidate.id === selectedId) ?? null);
-    }).catch(() => setProfile(null));
+    function loadProfile() {
+      const selectedId = window.localStorage.getItem("oflix-demo-profile");
+      if (!selectedId) { setProfile(null); return; }
+      fetch("/api/profiles").then((response) => response.json()).then((profiles: Profile[]) => {
+        setProfile(profiles.find((candidate) => candidate.id === selectedId) ?? null);
+      }).catch(() => setProfile(null));
+    }
+    loadProfile();
+    window.addEventListener("oflix-profile-changed", loadProfile);
+    return () => window.removeEventListener("oflix-profile-changed", loadProfile);
   }, []);
 
   return (

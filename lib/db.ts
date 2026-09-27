@@ -5,7 +5,8 @@ import type { OpportunityKind } from "@/lib/domain";
 
 export type Location = { id: string; state: string; municipality: string; district: string };
 export type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; isDemo: boolean; location: Location };
-export type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; owner: { id: string; name: string }; location: Location; availability?: string; schedule?: string };
+export type FormalEmploymentType = "CLT" | "INTERNSHIP";
+export type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; owner: { id: string; name: string }; location: Location; availability?: string; schedule?: string; eventDate?: string; employmentType?: FormalEmploymentType };
 
 type Row = Record<string, unknown>;
 type DatabaseLike = { exec: (sql: string) => void; prepare: (sql: string) => { all: (...params: unknown[]) => Row[]; get: (...params: unknown[]) => Row | undefined; run: (...params: unknown[]) => unknown } };
@@ -44,12 +45,20 @@ function seedDemoData(db: DatabaseLike) {
   ];
   for (const row of profiles) insert("INSERT INTO profiles (id, name, type, summary, capabilities, location_id) VALUES (?, ?, ?, ?, ?, ?)", ...row);
 
-  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id) VALUES (?, ?, ?, ?, ?, ?)", "formal-operations", "Assistente de operações locais", "Apoio à organização de rotas, estoque e relacionamento com parceiros do território.", "Operações", "profile-coletivo", "loc-aracaju-centro");
-  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id) VALUES (?, ?, ?, ?, ?, ?)", "formal-attendance", "Técnico de atendimento", "Atendimento presencial e remoto para uma rede de serviços em expansão.", "Atendimento", "profile-coletivo", "loc-socorro-taicoca");
-  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-maintenance", "Manutenção residencial", "Pequenos reparos elétricos, hidráulicos e ajustes de rotina em residências.", "Manutenção", "profile-rafael", "loc-lagarto-centro", "Agenda combinada pelo território");
-  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-design", "Design e conteúdo local", "Identidade visual simples e peças digitais para pequenos negócios e iniciativas locais.", "Comunicação", "profile-coletivo", "loc-aracaju-sao-jose", "Atendimento remoto ou em Aracaju");
-  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule) VALUES (?, ?, ?, ?, ?, ?, ?)", "volunteer-reading", "Mutirão de leitura comunitária", "Encontros de leitura para crianças e adolescentes em um espaço comunitário do bairro.", "Educação", "profile-instituto", "loc-aracaju-bugio", "Sábados, pela manhã");
-  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule) VALUES (?, ?, ?, ?, ?, ?, ?)", "volunteer-health", "Apoio à feira de saúde", "Recepção e organização de fluxo em uma ação comunitária de orientação e prevenção.", "Saúde", "profile-instituto", "loc-lagarto-cidade-nova", "Uma manhã, com escala prévia");
+  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-operations", "Assistente de operações locais", "A pessoa apoiará a organização de rotas, conferência de estoque, contato com parceiros e registro de indicadores simples da operação. A rotina combina trabalho em equipe, acompanhamento de prazos e presença no território.", "Operações", "profile-coletivo", "loc-aracaju-centro", "CLT");
+  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-attendance", "Técnico de atendimento", "Atendimento presencial e remoto para uma rede de serviços em expansão, com acolhimento de solicitações, organização de agenda e encaminhamento para as áreas responsáveis. Buscamos comunicação clara e escuta ativa.", "Atendimento", "profile-coletivo", "loc-socorro-taicoca", "CLT");
+  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-logistics", "Auxiliar de logística comunitária", "Apoio ao recebimento de materiais, separação de pedidos, inventário e planejamento de entregas para iniciativas locais. A oportunidade é indicada para quem gosta de organização, rotina operacional e contato com diferentes bairros.", "Logística", "profile-coletivo", "loc-lagarto-centro", "CLT");
+  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-communications-intern", "Estágio em comunicação territorial", "Apoio à produção de textos, calendário editorial, registros de ações e organização de informações para redes sociais. O estágio oferece acompanhamento de uma pessoa responsável e espaço para desenvolver portfólio.", "Comunicação", "profile-coletivo", "loc-aracaju-sao-jose", "INTERNSHIP");
+  insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-education-intern", "Estágio em projetos educativos", "Apoio ao planejamento de oficinas, preparação de materiais e acompanhamento de atividades com crianças e adolescentes. É uma oportunidade para quem estuda pedagogia, licenciaturas ou áreas relacionadas e quer aprender com uma equipe comunitária.", "Educação", "profile-instituto", "loc-lagarto-cidade-nova", "INTERNSHIP");
+  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-maintenance", "Manutenção residencial", "Atendimento para pequenos reparos elétricos, hidráulicos, instalação de suportes e ajustes de rotina em residências. O serviço começa com uma conversa sobre a demanda, avaliação do local e combinação transparente de prazo e materiais.", "Manutenção", "profile-rafael", "loc-lagarto-centro", "Agenda combinada pelo território");
+  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-design", "Design e conteúdo local", "Criação de identidade visual simples, peças digitais, cardápios e textos para pequenos negócios e iniciativas locais. O trabalho inclui briefing, primeira proposta e rodada combinada de ajustes.", "Comunicação", "profile-coletivo", "loc-aracaju-sao-jose", "Atendimento remoto ou em Aracaju");
+  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-electrical", "Instalações elétricas residenciais", "Serviço de manutenção preventiva, troca de tomadas e interruptores, instalação de luminárias e identificação de pequenos problemas elétricos. O atendimento é combinado conforme o bairro e a complexidade da demanda.", "Eletricista", "profile-rafael", "loc-aracaju-centro", "Segunda a sexta, com horário combinado");
+  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-food", "Alimentação para eventos locais", "Planejamento e produção de lanches, coffee breaks e refeições para encontros de pequeno e médio porte. A proposta considera quantidade de pessoas, restrições informadas e logística de entrega.", "Alimentação", "profile-rafael", "loc-socorro-taicoca", "Reservas com antecedência");
+  insert("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability) VALUES (?, ?, ?, ?, ?, ?, ?)", "service-tutoring", "Aulas de reforço escolar", "Acompanhamento individual ou em pequenos grupos para organização de estudos, leitura e matemática. O plano é ajustado à idade, ao objetivo da família e à rotina disponível.", "Educação", "profile-coletivo", "loc-aracaju-bugio", "Tardes e início da noite");
+  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", "volunteer-reading", "Mutirão de leitura comunitária", "Encontros de leitura para crianças e adolescentes em um espaço comunitário do bairro, com preparação de atividades, acolhimento das famílias e registro das histórias compartilhadas. Não é necessário ter experiência prévia: a equipe orienta as pessoas voluntárias.", "Educação", "profile-instituto", "loc-aracaju-bugio", "Sábados, pela manhã", "2026-10-03T09:00:00-03:00");
+  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", "volunteer-health", "Apoio à feira de saúde", "Recepção, organização de fluxo e apoio à comunicação em uma ação comunitária de orientação e prevenção. A pessoa voluntária recebe um roteiro de atividades e atua sempre junto da equipe responsável pela feira.", "Saúde", "profile-instituto", "loc-lagarto-cidade-nova", "Uma manhã, com escala prévia", "2026-10-10T08:00:00-03:00");
+  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", "volunteer-park", "Cuidado coletivo da praça", "Mobilização para limpeza leve, plantio de mudas e pintura de sinalização em uma praça do bairro. A iniciativa oferece materiais, divisão de tarefas e uma conversa final sobre manutenção do espaço comum.", "Meio ambiente", "profile-instituto", "loc-aracaju-sao-jose", "Domingo, das 8h às 11h", "2026-10-18T08:00:00-03:00");
+  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", "volunteer-digital", "Oficina de inclusão digital", "Apoio a pessoas idosas durante uma oficina prática sobre celular, serviços públicos digitais e segurança básica. É possível atuar no acolhimento, na orientação individual ou na organização do espaço.", "Inclusão digital", "profile-instituto", "loc-lagarto-centro", "Quartas-feiras, no fim da tarde", "2026-10-21T17:30:00-03:00");
   insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-1", "profile-ana", "FORMAL", "formal-operations", "APPLY");
   insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-2", "profile-ana", "VOLUNTEER", "volunteer-reading", "VOLUNTEER_INTEREST");
   insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-3", "profile-rafael", "SERVICE", "service-design", "CONTACT_REQUEST");
@@ -68,13 +77,15 @@ function database() {
       PRAGMA foreign_keys = ON;
       CREATE TABLE IF NOT EXISTS locations (id TEXT PRIMARY KEY, state TEXT NOT NULL, municipality TEXT NOT NULL, district TEXT NOT NULL, UNIQUE(state, municipality, district));
       CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, summary TEXT NOT NULL, capabilities TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 1, location_id TEXT NOT NULL REFERENCES locations(id));
-      CREATE TABLE IF NOT EXISTS formal_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organization_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), status TEXT NOT NULL DEFAULT 'OPEN');
+      CREATE TABLE IF NOT EXISTS formal_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organization_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), status TEXT NOT NULL DEFAULT 'OPEN', employment_type TEXT NOT NULL DEFAULT 'CLT');
       CREATE TABLE IF NOT EXISTS service_offers (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, provider_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), availability TEXT NOT NULL);
-      CREATE TABLE IF NOT EXISTS volunteer_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organizer_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), schedule TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS volunteer_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organizer_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), schedule TEXT NOT NULL, event_date TEXT);
       CREATE TABLE IF NOT EXISTS interactions (id TEXT PRIMARY KEY, actor_profile_id TEXT NOT NULL REFERENCES profiles(id), target_type TEXT NOT NULL, target_id TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(actor_profile_id, target_type, target_id));
       CREATE INDEX IF NOT EXISTS idx_profiles_type ON profiles(type);
       CREATE INDEX IF NOT EXISTS idx_interactions_target ON interactions(target_type, target_id);
     `);
+    try { db.exec("ALTER TABLE formal_opportunities ADD COLUMN employment_type TEXT NOT NULL DEFAULT 'CLT'"); } catch { /* coluna já existe */ }
+    try { db.exec("ALTER TABLE volunteer_opportunities ADD COLUMN event_date TEXT"); } catch { /* coluna já existe */ }
     globalForDb.oflixInitialized = true;
     seedDemoData(db);
   }
@@ -89,7 +100,7 @@ const profileSelect = `SELECT p.id, p.name, p.type, p.summary, p.capabilities, p
 export function listProfiles() { return database().prepare(`${profileSelect} ORDER BY p.type, p.name`).all().map(profileFrom); }
 
 function opportunityFrom(row: Row, kind: OpportunityKind): Opportunity {
-  return { id: String(row.id), title: String(row.title), description: String(row.description), category: String(row.category), kind, owner: { id: String(row.owner_id), name: String(row.owner_name) }, location: locationFrom(row), ...(row.availability ? { availability: String(row.availability) } : {}), ...(row.schedule ? { schedule: String(row.schedule) } : {}) };
+  return { id: String(row.id), title: String(row.title), description: String(row.description), category: String(row.category), kind, owner: { id: String(row.owner_id), name: String(row.owner_name) }, location: locationFrom(row), ...(row.availability ? { availability: String(row.availability) } : {}), ...(row.schedule ? { schedule: String(row.schedule) } : {}), ...(row.event_date ? { eventDate: String(row.event_date) } : {}), ...(row.employment_type ? { employmentType: String(row.employment_type) as FormalEmploymentType } : {}) };
 }
 const joinedLocation = `JOIN locations l ON l.id = o.location_id`;
 export function listOpportunities() {
@@ -107,12 +118,33 @@ export function findOpportunity(id: string, kind: OpportunityKind) {
   return row ? opportunityFrom(row, kind) : null;
 }
 
+export type TalentInterest = { id: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string; createdAt: string };
+
+export function listTalentInterests(): TalentInterest[] {
+  return database().prepare(`
+    WITH opportunities AS (
+      SELECT id AS opportunity_id, 'FORMAL' AS target_type, title, category, organization_id AS owner_id FROM formal_opportunities
+      UNION ALL SELECT id, 'SERVICE', title, category, provider_id FROM service_offers
+      UNION ALL SELECT id, 'VOLUNTEER', title, category, organizer_id FROM volunteer_opportunities
+    )
+    SELECT i.id, p.name, p.summary, p.capabilities, o.opportunity_id, o.title, o.category, o.owner_id, i.action, i.created_at
+    FROM interactions i
+    JOIN profiles p ON p.id = i.actor_profile_id
+    JOIN opportunities o ON o.opportunity_id = i.target_id AND o.target_type = i.target_type
+    ORDER BY i.created_at DESC
+  `).all().map((row) => ({ id: String(row.id), name: String(row.name), summary: String(row.summary), capabilities: String(row.capabilities), opportunityId: String(row.opportunity_id), opportunityTitle: String(row.title), category: String(row.category), ownerId: String(row.owner_id), action: String(row.action), createdAt: String(row.created_at) }));
+}
+
 export function createInteraction(input: { actorProfileId: string; targetType: string; targetId: string; action: string }) {
   try {
+    const targetTable = input.targetType === "FORMAL" ? "formal_opportunities" : input.targetType === "SERVICE" ? "service_offers" : "volunteer_opportunities";
+    const ownerField = input.targetType === "FORMAL" ? "organization_id" : input.targetType === "SERVICE" ? "provider_id" : "organizer_id";
+    const owner = database().prepare(`SELECT ${ownerField} owner_id FROM ${targetTable} WHERE id = ?`).get(input.targetId);
+    if (owner?.owner_id === input.actorProfileId) return { duplicate: false, selfOwned: true };
     database().prepare("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)").run(`interaction-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, input.actorProfileId, input.targetType, input.targetId, input.action);
-    return { duplicate: false };
+    return { duplicate: false, selfOwned: false };
   } catch (error) {
-    if (String(error).includes("UNIQUE constraint failed")) return { duplicate: true };
+    if (String(error).includes("UNIQUE constraint failed")) return { duplicate: true, selfOwned: false };
     throw error;
   }
 }
@@ -123,7 +155,8 @@ export function territoryData() {
   const formal = count("formal_opportunities"); const service = count("service_offers"); const volunteer = count("volunteer_opportunities"); const interactions = count("interactions");
   const territorial = db.prepare(`SELECT l.municipality, l.district, COUNT(i.id) total FROM locations l JOIN (SELECT id target_id, location_id FROM formal_opportunities UNION ALL SELECT id target_id, location_id FROM service_offers UNION ALL SELECT id target_id, location_id FROM volunteer_opportunities) o ON o.location_id = l.id LEFT JOIN interactions i ON i.target_id = o.target_id GROUP BY l.municipality, l.district ORDER BY total DESC, l.municipality ASC`).all().map((row) => ({ municipality: String(row.municipality), district: String(row.district), total: Number(row.total) }));
   const categories = db.prepare(`SELECT 'formal' front, category, COUNT(*) total FROM formal_opportunities GROUP BY category UNION ALL SELECT 'service' front, category, COUNT(*) total FROM service_offers GROUP BY category UNION ALL SELECT 'volunteer' front, category, COUNT(*) total FROM volunteer_opportunities GROUP BY category ORDER BY front, category`).all().map((row) => ({ front: String(row.front), category: String(row.category), total: Number(row.total) }));
-  return { fronts: [{ key: "formal", label: "Trabalho formal", total: formal }, { key: "service", label: "Serviços autônomos", total: service }, { key: "volunteer", label: "Voluntariado", total: volunteer }], totalOpportunities: formal + service + volunteer, interactions, territorial, categories };
+  const employmentByRegion = db.prepare(`SELECT l.municipality, l.district, o.employment_type, COUNT(*) total FROM formal_opportunities o JOIN locations l ON l.id = o.location_id GROUP BY l.municipality, l.district, o.employment_type ORDER BY l.municipality, l.district, o.employment_type`).all().map((row) => ({ municipality: String(row.municipality), district: String(row.district), employmentType: String(row.employment_type) as FormalEmploymentType, total: Number(row.total) }));
+  return { fronts: [{ key: "formal", label: "Trabalho formal", total: formal }, { key: "service", label: "Serviços autônomos", total: service }, { key: "volunteer", label: "Voluntariado", total: volunteer }], totalOpportunities: formal + service + volunteer, interactions, territorial, categories, employmentByRegion };
 }
 
 export function resetDatabase() { database().exec("DELETE FROM interactions; DELETE FROM formal_opportunities; DELETE FROM service_offers; DELETE FROM volunteer_opportunities; DELETE FROM profiles; DELETE FROM locations;"); }

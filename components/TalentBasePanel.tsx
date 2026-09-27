@@ -1,0 +1,14 @@
+"use client";
+
+import { MessageCircle, Send, UserRound } from "lucide-react";
+import { useState } from "react";
+
+type Talent = { id: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
+
+export function TalentBasePanel({ ownerId, talents }: { ownerId: string; talents: Talent[] }) {
+  const candidates = talents.filter((talent) => talent.ownerId === ownerId);
+  const [active, setActive] = useState<Talent | null>(null);
+  const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
+  return <section className="panel p-5 sm:p-6"><div className="flex items-start gap-3"><div className="rounded-lg bg-[#e8f1f6] p-2 text-blue"><UserRound size={18} /></div><div><p className="eyebrow">Candidatos interessados</p><h2 className="mt-2 text-xl font-bold text-navy">Base de talentos</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#637688]">Veja quem demonstrou interesse nas suas oportunidades. Nesta demonstração, a pessoa demandante inicia a conversa.</p></div></div>{candidates.length ? <div className="mt-6 grid gap-3">{candidates.map((candidate) => <article key={candidate.id} className="rounded-lg border border-line p-4"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><p className="font-bold text-navy">{candidate.name}</p><p className="mt-1 text-sm text-[#637688]">{candidate.capabilities}</p><p className="mt-3 text-xs text-[#718291]">Demonstrou interesse em <strong className="text-navy">{candidate.opportunityTitle}</strong> · {candidate.category}</p></div><button type="button" className="button-secondary shrink-0" onClick={() => { setActive(candidate); setSent(false); }}><MessageCircle size={16} /> Iniciar conversa</button></div>{active?.id === candidate.id && <div className="mt-4 border-t border-line pt-4"><p className="text-sm font-bold text-navy">Nova conversa com {candidate.name}</p><p className="mt-1 text-xs text-[#718291]">A mensagem parte de quem publicou a oportunidade.</p><div className="mt-3 flex gap-2"><input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Escreva uma mensagem sobre o próximo passo" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm" /><button type="button" className="button-primary px-3" onClick={() => { if (message.trim()) { setSent(true); setMessage(""); } }} aria-label="Enviar mensagem"><Send size={16} /></button></div>{sent && <p className="mt-2 text-sm font-bold text-[#176c61]">Mensagem enviada na demonstração.</p>}</div>}</article>)}</div> : <div className="mt-6 rounded-lg border border-dashed border-line p-5 text-sm leading-6 text-[#637688]">Ainda não há pessoas interessadas nas oportunidades desta organização. Quando alguém demonstrar interesse, o currículo resumido aparecerá aqui.</div>}</section>;
+}

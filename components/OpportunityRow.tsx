@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import type { OpportunityKind } from "@/lib/domain";
 import { opportunityMeta } from "@/lib/domain";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { OpportunityIcon } from "@/components/OpportunityIcon";
 
 type Opportunity = {
@@ -10,7 +11,8 @@ type Opportunity = {
   description: string;
   category: string;
   location: { municipality: string; district: string };
-  owner: { name: string };
+  owner: { id: string; name: string };
+  employmentType?: "CLT" | "INTERNSHIP";
 };
 
 export function OpportunityRow({ opportunity, kind }: { opportunity: Opportunity; kind: OpportunityKind }) {
@@ -23,6 +25,7 @@ export function OpportunityRow({ opportunity, kind }: { opportunity: Opportunity
           <span className="inline-flex items-center gap-2 text-blue"><OpportunityIcon kind={kind} /> {meta.label}</span>
           <span className="h-1 w-1 rounded-full bg-[#a9bac7]" aria-hidden="true" />
           <span>{opportunity.category}</span>
+          {kind === "formal" && <span className="rounded-full bg-[#edf6fb] px-2 py-1 text-blue">{opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT"}</span>}
         </div>
         <h3 className="mt-2 text-lg font-bold tracking-[-.02em] text-navy">{opportunity.title}</h3>
         <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#607286]">{opportunity.description}</p>
@@ -31,9 +34,7 @@ export function OpportunityRow({ opportunity, kind }: { opportunity: Opportunity
           <span>{owner}</span>
         </div>
       </div>
-      <Link href={`/opportunity/${opportunity.id}?kind=${kind}`} className="button-secondary w-full whitespace-nowrap sm:w-auto">
-        Ver detalhe <ArrowUpRight size={16} />
-      </Link>
+      <div className="flex items-center gap-2 sm:justify-end"><FavoriteButton opportunityId={opportunity.id} title={opportunity.title} /><Link href={`/opportunity/${opportunity.id}?kind=${kind}`} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link></div>
     </article>
   );
 }
