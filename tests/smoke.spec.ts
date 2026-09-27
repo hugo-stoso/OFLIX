@@ -52,6 +52,20 @@ test("API territorial entrega somente o escopo autorizado", async ({ request }) 
   expect(opportunitiesResponse.ok()).toBe(true);
   const opportunities = await opportunitiesResponse.json();
   expect(opportunities.services.find((opportunity: { id: string }) => opportunity.id === "service-electrical").requiredActivities).toEqual(["Eletricista", "Manutenção"]);
+  expect(opportunities.services.find((opportunity: { id: string }) => opportunity.id === "service-electrical").ownerType).toBe("PERSON");
+  expect(opportunities.formal.find((opportunity: { id: string }) => opportunity.id === "formal-operations").ownerType).toBe("ORGANIZATION");
+});
+
+test("separa ofertas institucionais e demandas de autônomos", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
+  await page.getByRole("tab", { name: /Demandas de trabalho/ }).click();
+  await expect(page.getByRole("button", { name: /Força de trabalho autônoma/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Manutenção residencial" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Design e conteúdo local" })).toHaveCount(0);
+  await page.getByRole("tab", { name: /Ofertas de trabalho/ }).click();
+  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
 });
 
 test("menu da conta abre perfil, configurações e saída", async ({ page }) => {
@@ -94,6 +108,21 @@ test("organização publica demanda autônoma com múltiplas atividades", async 
   await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
   await page.getByRole("checkbox", { name: "Eletricista" }).check({ force: true });
   await expect(page.getByText(/nova\(s\) demanda\(s\) compatível\(is\)/)).toBeVisible();
+});
+
+test("autônomo divulga sua força de trabalho separadamente", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Rafael Santos/ }).click();
+  await expect(page.getByRole("heading", { name: "Divulgar força de trabalho" })).toBeVisible();
+  await page.getByRole("button", { name: "Nova divulgação" }).click();
+  await page.locator("form").getByRole("checkbox", { name: "Eletricista" }).check();
+  await page.getByLabel("Título").fill("Rafael · instalações e manutenção");
+  await page.getByLabel("Descrição completa").fill("Disponibilidade para atendimentos residenciais e pequenos reparos.");
+  await page.getByRole("button", { name: "Publicar divulgação" }).click();
+  await expect(page.getByText(/Divulgação criada na demonstração/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Rafael · instalações e manutenção" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /Demandas de trabalho/ })).toHaveAttribute("aria-selected", "true");
 });
 
 test("mobile não cria overflow horizontal na landing", async ({ page }) => {

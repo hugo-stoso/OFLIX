@@ -6,7 +6,7 @@ import type { OpportunityKind } from "@/lib/domain";
 export type Location = { id: string; state: string; municipality: string; district: string };
 export type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; isDemo: boolean; location: Location };
 export type FormalEmploymentType = "CLT" | "INTERNSHIP";
-export type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; owner: { id: string; name: string }; location: Location; availability?: string; schedule?: string; eventDate?: string; employmentType?: FormalEmploymentType; requiredActivities?: string[] };
+export type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; owner: { id: string; name: string }; ownerType: Profile["type"]; location: Location; availability?: string; schedule?: string; eventDate?: string; employmentType?: FormalEmploymentType; requiredActivities?: string[] };
 
 type Row = Record<string, unknown>;
 type DatabaseLike = { exec: (sql: string) => void; prepare: (sql: string) => { all: (...params: unknown[]) => Row[]; get: (...params: unknown[]) => Row | undefined; run: (...params: unknown[]) => unknown } };
@@ -102,21 +102,21 @@ export function listProfiles() { return database().prepare(`${profileSelect} ORD
 
 function opportunityFrom(row: Row, kind: OpportunityKind): Opportunity {
   const requiredActivities = String(row.required_activities ?? "").split("|").map((activity) => activity.trim()).filter(Boolean);
-  return { id: String(row.id), title: String(row.title), description: String(row.description), category: String(row.category), kind, owner: { id: String(row.owner_id), name: String(row.owner_name) }, location: locationFrom(row), ...(row.availability ? { availability: String(row.availability) } : {}), ...(row.schedule ? { schedule: String(row.schedule) } : {}), ...(row.event_date ? { eventDate: String(row.event_date) } : {}), ...(row.employment_type ? { employmentType: String(row.employment_type) as FormalEmploymentType } : {}), ...(requiredActivities.length ? { requiredActivities } : {}) };
+  return { id: String(row.id), title: String(row.title), description: String(row.description), category: String(row.category), kind, owner: { id: String(row.owner_id), name: String(row.owner_name) }, ownerType: String(row.owner_type) as Profile["type"], location: locationFrom(row), ...(row.availability ? { availability: String(row.availability) } : {}), ...(row.schedule ? { schedule: String(row.schedule) } : {}), ...(row.event_date ? { eventDate: String(row.event_date) } : {}), ...(row.employment_type ? { employmentType: String(row.employment_type) as FormalEmploymentType } : {}), ...(requiredActivities.length ? { requiredActivities } : {}) };
 }
 const joinedLocation = `JOIN locations l ON l.id = o.location_id`;
 export function listOpportunities() {
   const db = database();
-  const formal = db.prepare(`SELECT o.*, p.id owner_id, p.name owner_name, l.id location_id, l.state, l.municipality, l.district FROM formal_opportunities o JOIN profiles p ON p.id = o.organization_id ${joinedLocation} ORDER BY o.rowid`).all().map((row) => opportunityFrom(row, "formal"));
-  const service = db.prepare(`SELECT o.*, p.id owner_id, p.name owner_name, l.id location_id, l.state, l.municipality, l.district FROM service_offers o JOIN profiles p ON p.id = o.provider_id ${joinedLocation} ORDER BY o.rowid`).all().map((row) => opportunityFrom(row, "service"));
-  const volunteer = db.prepare(`SELECT o.*, p.id owner_id, p.name owner_name, l.id location_id, l.state, l.municipality, l.district FROM volunteer_opportunities o JOIN profiles p ON p.id = o.organizer_id ${joinedLocation} ORDER BY o.rowid`).all().map((row) => opportunityFrom(row, "volunteer"));
+  const formal = db.prepare(`SELECT o.*, p.id owner_id, p.name owner_name, p.type owner_type, l.id location_id, l.state, l.municipality, l.district FROM formal_opportunities o JOIN profiles p ON p.id = o.organization_id ${joinedLocation} ORDER BY o.rowid`).all().map((row) => opportunityFrom(row, "formal"));
+  const service = db.prepare(`SELECT o.*, p.id owner_id, p.name owner_name, p.type owner_type, l.id location_id, l.state, l.municipality, l.district FROM service_offers o JOIN profiles p ON p.id = o.provider_id ${joinedLocation} ORDER BY o.rowid`).all().map((row) => opportunityFrom(row, "service"));
+  const volunteer = db.prepare(`SELECT o.*, p.id owner_id, p.name owner_name, p.type owner_type, l.id location_id, l.state, l.municipality, l.district FROM volunteer_opportunities o JOIN profiles p ON p.id = o.organizer_id ${joinedLocation} ORDER BY o.rowid`).all().map((row) => opportunityFrom(row, "volunteer"));
   return { formal, service, volunteer };
 }
 
 export function findOpportunity(id: string, kind: OpportunityKind) {
   const table = kind === "formal" ? "formal_opportunities" : kind === "service" ? "service_offers" : "volunteer_opportunities";
   const ownerField = kind === "formal" ? "organization_id" : kind === "service" ? "provider_id" : "organizer_id";
-  const row = database().prepare(`SELECT o.*, p.id owner_id, p.name owner_name, l.id location_id, l.state, l.municipality, l.district FROM ${table} o JOIN profiles p ON p.id = o.${ownerField} ${joinedLocation} WHERE o.id = ?`).get(id);
+  const row = database().prepare(`SELECT o.*, p.id owner_id, p.name owner_name, p.type owner_type, l.id location_id, l.state, l.municipality, l.district FROM ${table} o JOIN profiles p ON p.id = o.${ownerField} ${joinedLocation} WHERE o.id = ?`).get(id);
   return row ? opportunityFrom(row, kind) : null;
 }
 

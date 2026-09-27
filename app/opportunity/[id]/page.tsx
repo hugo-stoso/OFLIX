@@ -19,6 +19,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
   if (!record) notFound();
   const owner = record.owner.name;
   const meta = opportunityMeta[kind];
+  const frontLabel = kind === "service" && record.ownerType === "PERSON" ? "Força de trabalho autônoma" : meta.label;
   return (
     <main className="min-h-screen">
       <DemoHeader />
@@ -26,7 +27,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
         <Link href="/demo" className="button-quiet -ml-3"><ArrowLeft size={16} /> Voltar para oportunidades</Link>
         <div className="mt-9 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
           <article>
-            <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-blue"><OpportunityIcon kind={kind} /> {meta.label} <span className="h-1 w-1 rounded-full bg-[#a9bac7]" aria-hidden="true" /> {record.category}</div>
+            <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-blue"><OpportunityIcon kind={kind} /> {frontLabel} <span className="h-1 w-1 rounded-full bg-[#a9bac7]" aria-hidden="true" /> {record.category}</div>
             <h1 className="mt-5 max-w-[800px] text-4xl font-black leading-tight tracking-[-.045em] text-navy sm:text-5xl">{record.title}</h1>
             <p className="body-copy mt-6 max-w-[760px] text-lg">{record.description}</p>
             <dl className="mt-10 grid max-w-[760px] gap-5 border-y border-line py-6 sm:grid-cols-2">

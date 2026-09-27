@@ -20,6 +20,7 @@
 - Visão territorial geral restrita ao Observatório Território Aberto (demonstração), com recorte territorial de vagas/serviços por atividades de interesse para pessoas.
 - Organizações podem publicar, na demonstração, demandas de serviços autônomos com múltiplas atividades selecionadas; essas atividades aparecem na oportunidade e alimentam o destaque de alertas compatíveis para trabalhadores no mesmo navegador.
 - Menu de conta funcional no cabeçalho, com Meu perfil, Configurações e Sair; perfil detalhado com resumo, tipo, competências e território demonstrativo.
+- Descoberta separada entre Ofertas de trabalho institucionais e Demandas de trabalho divulgadas por autônomos/informais, com publicação de força de trabalho para perfis de pessoa e área de “Minhas divulgações”.
 
 ## VALIDAÇÃO NECESSÁRIA
 

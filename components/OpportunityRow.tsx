@@ -12,6 +12,7 @@ type Opportunity = {
   category: string;
   location: { municipality: string; district: string };
   owner: { id: string; name: string };
+  ownerType?: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST";
   employmentType?: "CLT" | "INTERNSHIP";
   requiredActivities?: string[];
 };
@@ -23,7 +24,7 @@ export function OpportunityRow({ opportunity, kind }: { opportunity: Opportunity
     <article className="group grid gap-4 border-b border-line py-6 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-[#6b7d8d]">
-          <span className="inline-flex items-center gap-2 text-blue"><OpportunityIcon kind={kind} /> {meta.label}</span>
+          <span className="inline-flex items-center gap-2 text-blue"><OpportunityIcon kind={kind} /> {kind === "service" && opportunity.ownerType === "PERSON" ? "Força de trabalho autônoma" : meta.label}</span>
           <span className="h-1 w-1 rounded-full bg-[#a9bac7]" aria-hidden="true" />
           <span>{opportunity.category}</span>
           {kind === "formal" && <span className="rounded-full bg-[#edf6fb] px-2 py-1 text-blue">{opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT"}</span>}
