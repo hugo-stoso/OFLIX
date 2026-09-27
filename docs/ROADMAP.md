@@ -13,6 +13,7 @@
 - [x] Gráfico de empregos formais por região.
 - [x] Separação semântica entre oferta de pessoas e demanda de contratantes, com isolamento das demandas entre organizações.
 - [x] Filtros de banco de talentos por escolaridade e tipo de curso, além de currículo baseado no modelo fornecido.
+- [x] Navegação horizontal por tarefa e preferências ampliadas para atividades autônomas e interesses de voluntariado.
 
 ## MVP
 

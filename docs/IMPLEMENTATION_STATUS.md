@@ -24,6 +24,8 @@
 - Banco de talentos com compartilhamento opcional, escolaridade, tipo de curso, especialização/pós-graduação, download do modelo de currículo e anexo `.docx` disponível para contratantes.
 - Banco de talentos opt-in para pessoas interessadas em CLT, estágio, serviços autônomos e/ou voluntariado; organizações podem pesquisar perfis compartilhados sem restringir pela distância e iniciar conversa sobre remuneração, benefícios e próximos passos.
 - Chamadas de serviço para o dia, abertas por pessoas ou instituições com atividade, janela e território aproximado; autônomos compatíveis recebem a chamada por polling/alerta do navegador e o primeiro aceite é protegido por atualização condicional no servidor.
+- Navegação da conta reorganizada em uma barra horizontal com Início, Preferências de trabalho, Serviço para hoje, Encontrar oportunidade e Banco de talentos quando aplicável; oferta/demanda permanece junto da busca.
+- Preferências de trabalho agora separam frentes (CLT, estágio, serviços autônomos e voluntariado), atividades autônomas com pesquisa e seleção múltipla e interesses de voluntariado com pesquisa e seleção múltipla.
 
 ## VALIDAÇÃO NECESSÁRIA
 
@@ -35,6 +37,7 @@
 
 - Publicação e “Minhas oportunidades” funcionam como fluxo da demonstração; ainda não há persistência real de autoria, edição, moderação ou autorização.
 - A seleção de atividades demandadas e o aviso de compatibilidade também são locais da demonstração; ainda não enviam notificações server-side para trabalhadores fora do navegador.
+- As categorias de atividades autônomas e interesses voluntários são listas controladas da demo; ainda não há taxonomia administrável nem matching server-side entre preferências e novas publicações.
 - Perfil, configurações e saída ainda são experiências locais da demonstração; não há sessão, credenciais, persistência de conta ou autorização real.
 - Favoritos, atividades e lembretes ficam no `localStorage`; a permissão do navegador é demonstrada, mas não existe push agendado em segundo plano.
 - Base de talentos e chat demonstram o próximo passo com dados fictícios, currículo armazenado apenas no `localStorage` da demo, sem autenticação ou canal de mensagens real.

@@ -10,7 +10,15 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
   await expect(page.getByRole("heading", { name: "O que está se movendo perto de você." })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Seções da conta" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Preferências de trabalho", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Serviço para hoje", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Encontrar oportunidade", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Atividades que você quer acompanhar" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Atividades de trabalho autônomo" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Interesses em voluntariado" })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Educação e leitura", exact: true }).check({ force: true });
+  await page.getByRole("group", { name: "Interesses em voluntariado" }).getByRole("checkbox", { name: "Meio ambiente", exact: true }).check({ force: true });
   await expect(page.getByRole("heading", { name: "Oportunidades relacionadas aos seus interesses" })).toBeVisible();
   await expect(page.getByRole("link", { name: /visão territorial geral/i })).toHaveCount(0);
   await page.getByRole("tab", { name: /Demandas de trabalho/ }).click();

@@ -4,6 +4,8 @@ export const EDUCATION_LEVELS = ["Ensino fundamental", "Ensino médio", "Ensino 
 export type EducationLevel = typeof EDUCATION_LEVELS[number];
 export const COURSE_TYPES = ["Administração", "Arquitetura e urbanismo", "Comunicação", "Computação e tecnologia", "Educação", "Engenharia", "Gestão", "Saúde", "Serviços e manutenção", "Direito", "Meio ambiente", "Outro"] as const;
 export type CourseType = typeof COURSE_TYPES[number];
+export const VOLUNTEER_INTERESTS = ["Educação e leitura", "Saúde e bem-estar", "Meio ambiente", "Cultura e comunicação", "Direitos e cidadania", "Tecnologia e inclusão digital", "Apoio a eventos", "Assistência social"] as const;
+export type VolunteerInterest = typeof VOLUNTEER_INTERESTS[number];
 
 export const ANALYST_PROFILE_ID = "profile-analista";
 export const WORK_ACTIVITIES = ["Eletricista", "Manutenção", "Construção", "Limpeza", "Alimentação", "Eventos", "Design", "Comunicação", "Educação", "Tecnologia", "Cuidados", "Jardinagem", "Transporte", "Beleza", "Administração", "Meio ambiente"] as const;
