@@ -185,6 +185,9 @@ test("pessoa opta por compartilhar perfil e organização consulta banco de tale
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
   await expect(page.getByRole("heading", { name: "Banco de talentos" })).toHaveCount(0);
+  await expect(page.getByLabel("Município onde você mora")).toHaveValue("Aracaju");
+  await expect(page.getByLabel("Estado onde você mora")).toHaveValue("SE");
+  await page.getByLabel("Município onde você mora").fill("Lagarto");
   await page.getByRole("checkbox", { name: "CLT", exact: true }).check({ force: true });
   await page.getByRole("checkbox", { name: "Voluntariado", exact: true }).check({ force: true });
   await page.getByLabel("Nível de escolaridade").selectOption("Graduação");
@@ -202,6 +205,7 @@ test("pessoa opta por compartilhar perfil e organização consulta banco de tale
   const sharedProfile = page.locator("article").filter({ hasText: "Ana Ribeiro" }).first();
   await expect(sharedProfile.getByText("CLT", { exact: true }).last()).toBeVisible();
   await expect(sharedProfile.getByText("Voluntariado", { exact: true }).last()).toBeVisible();
+  await expect(sharedProfile.getByText("Município: Lagarto · Estado: SE")).toBeVisible();
   await expect(sharedProfile.getByText(/Escolaridade:\s*Graduação/)).toBeVisible();
   await expect(sharedProfile.getByText(/Tipo de curso:\s*Comunicação/)).toBeVisible();
   await expect(sharedProfile.getByRole("link", { name: /Baixar currículo/ })).toBeVisible();

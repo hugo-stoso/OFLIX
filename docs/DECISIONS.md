@@ -14,7 +14,7 @@ A primeira etapa não implementa autenticação. A seleção de uma persona fict
 
 ## Territorialidade
 
-O modelo usa UF, município e bairro/região. Não há API de mapas, geocodificação ou localização exata, evitando chaves e dependências externas. A estrutura de `Location` permite evolução futura sem reescrever oportunidades.
+O modelo usa UF, município e bairro/região. Para o banco de talentos, a pessoa informa manualmente o município e o Estado onde mora; não há API de mapas, geocodificação, permissão de localização ou coleta de coordenadas. Isso evita chaves e dependências externas e deixa claro que o dado compartilhado é territorial, não um endereço exato. A estrutura de `Location` permite evolução futura sem reescrever oportunidades.
 
 ## UX
 

@@ -15,7 +15,7 @@ import { ServiceCallPanel } from "@/components/ServiceCallPanel";
 import { TalentBasePanel } from "@/components/TalentBasePanel";
 import type { OpportunityKind } from "@/lib/domain";
 
-type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; location: { municipality: string; district: string } };
+type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; location: { state: string; municipality: string; district: string } };
 type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; location: { municipality: string; district: string }; owner: { id: string; name: string }; ownerType: Profile["type"]; employmentType?: "CLT" | "INTERNSHIP"; eventDate?: string; requiredActivities?: string[] };
 type Talent = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
 type PublicationMode = "offers" | "demands";

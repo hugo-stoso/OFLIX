@@ -23,6 +23,7 @@
 - Descoberta separada entre Ofertas de trabalho publicadas por pessoas e Demandas de trabalho publicadas por contratantes; organizações veem apenas suas próprias demandas, além das ofertas de pessoas.
 - Banco de talentos com compartilhamento opcional, escolaridade, tipo de curso, especialização/pós-graduação, download do modelo de currículo e anexo `.docx` disponível para contratantes.
 - Banco de talentos opt-in para pessoas interessadas em CLT, estágio, serviços autônomos e/ou voluntariado; organizações podem pesquisar perfis compartilhados sem restringir pela distância e iniciar conversa sobre remuneração, benefícios e próximos passos.
+- Banco de talentos permite informar manualmente município e Estado de moradia, deixa esse dado explícito para contratantes e não solicita acesso à localização, ao Google Maps ou a coordenadas.
 - Chamadas de serviço para o dia, abertas por pessoas ou instituições com atividade, janela e território aproximado; autônomos compatíveis recebem a chamada por polling/alerta do navegador e o primeiro aceite é protegido por atualização condicional no servidor.
 - Navegação da conta reorganizada em uma barra horizontal com Início, Preferências de trabalho, Serviço para hoje, Encontrar oportunidade e Banco de talentos quando aplicável; oferta/demanda permanece junto da busca.
 - Preferências de trabalho agora separam frentes (CLT, estágio, serviços autônomos e voluntariado), atividades autônomas com pesquisa e seleção múltipla e interesses de voluntariado com pesquisa e seleção múltipla.
@@ -42,6 +43,7 @@
 - Favoritos, atividades e lembretes ficam no `localStorage`; a permissão do navegador é demonstrada, mas não existe push agendado em segundo plano.
 - Base de talentos e chat demonstram o próximo passo com dados fictícios, currículo armazenado apenas no `localStorage` da demo, sem autenticação ou canal de mensagens real.
 - O diretório opt-in do banco de talentos e as preferências de tipos de trabalho são locais ao navegador da demonstração; a API de interesses já limita o acesso a organizações, mas a publicação do perfil ainda não tem persistência compartilhada nem autorização de produção.
+- Município e Estado informados no perfil são dados locais da demonstração; ainda não há validação cadastral, persistência compartilhada ou autorização de produção para esse dado.
 - Chamados de serviço estão persistidos no SQLite da demo e têm disputa de primeiro aceite no endpoint, mas ainda não há push real, contato seguro, endereço exato pós-aceite, expiração automática, pagamento ou operação multi-região de produção.
 - Inteligência territorial prova o caminho de dados e o gráfico de empregos; a autorização geral e o recorte por interesse estão implementados na demo, mas ainda não há demanda não atendida nem séries históricas.
 
