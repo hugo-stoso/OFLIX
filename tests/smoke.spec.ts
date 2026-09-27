@@ -60,6 +60,19 @@ test("API territorial entrega somente o escopo autorizado", async ({ request }) 
   expect((await request.get("/api/talents?profileId=profile-coletivo")).ok()).toBe(true);
 });
 
+test("chamado de serviço é entregue por atividade e aceito uma única vez", async ({ request }) => {
+  const serviceDay = new Date().toISOString().slice(0, 10);
+  const createResponse = await request.post("/api/service-calls", { data: { requesterProfileId: "profile-coletivo", activity: "Eletricista", title: `Chamado de teste ${Date.now()}`, description: "Instalação de uma luminária no espaço comunitário.", serviceDay, timeWindow: "Hoje · tarde" } });
+  expect(createResponse.status()).toBe(201);
+  const call = await createResponse.json();
+  const compatibleResponse = await request.get("/api/service-calls?profileId=profile-rafael&activities=Eletricista");
+  expect((await compatibleResponse.json()).some((item: { id: string }) => item.id === call.id)).toBe(true);
+  const firstAccept = await request.post(`/api/service-calls/${call.id}/accept`, { data: { workerProfileId: "profile-rafael" } });
+  expect(firstAccept.ok()).toBe(true);
+  const secondAccept = await request.post(`/api/service-calls/${call.id}/accept`, { data: { workerProfileId: "profile-ana" } });
+  expect(secondAccept.status()).toBe(409);
+});
+
 test("separa ofertas institucionais e demandas de autônomos", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
@@ -127,6 +140,23 @@ test("autônomo divulga sua força de trabalho separadamente", async ({ page }) 
   await expect(page.getByText(/Divulgação criada na demonstração/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Rafael · instalações e manutenção" })).toBeVisible();
   await expect(page.getByRole("tab", { name: /Demandas de trabalho/ })).toHaveAttribute("aria-selected", "true");
+});
+
+test("pessoa ou instituição abre chamado e autônomo aceita primeiro", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
+  await page.getByRole("button", { name: "Chamar autônomo agora" }).click();
+  await page.getByLabel("Tipo de serviço").selectOption("Manutenção");
+  await page.getByLabel("O que precisa ser feito?").fill("Verificar um vazamento e trocar a conexão da pia.");
+  await page.getByRole("button", { name: "Notificar autônomos" }).click();
+  await expect(page.getByText(/Chamado aberto/)).toBeVisible();
+  await page.getByRole("button", { name: "Trocar perfil" }).click();
+  await page.getByRole("button", { name: /Rafael Santos/ }).click();
+  await expect(page.getByRole("heading", { name: "Chamados compatíveis hoje" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Aceitar primeiro" })).toBeVisible();
+  await page.getByRole("button", { name: "Aceitar primeiro" }).click();
+  await expect(page.getByText(/Chamado aceito/)).toBeVisible();
 });
 
 test("pessoa opta por compartilhar perfil e organização consulta banco de talentos", async ({ page }) => {

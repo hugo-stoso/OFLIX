@@ -15,6 +15,8 @@ SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL sep
 - `GET /api/profiles`: perfis demo com território.
 - `GET /api/opportunities`: oportunidades separadas por frente.
 - `GET /api/talents?profileId=...`: interesses registrados por candidatos, relacionados à oportunidade e à organização proprietária; exige `profileId` de uma organização e responde `401/403` para acesso ausente ou não institucional.
+- `GET/POST /api/service-calls`: lista chamadas compatíveis com as atividades do autônomo ou as solicitações da conta demandante e abre uma chamada para uma atividade, dia, janela e localização aproximada.
+- `POST /api/service-calls/{id}/accept`: aceita uma chamada com update condicional em `status = 'OPEN'`; a primeira aceitação válida vence e as seguintes recebem conflito `409`.
 - `POST /api/interactions`: valida com Zod, persiste e trata duplicidade por perfil, tipo e alvo.
 - `GET /api/territory?profileId=...`: entrega a visão geral somente quando o perfil demo é `profile-analista`; para outros perfis exige atividades e retorna apenas o recorte de vagas/serviços compatíveis com esses interesses. Sem perfil, responde `401`.
 
@@ -25,6 +27,8 @@ O perfil escolhido é salvo em `localStorage` com a chave `oflix-demo-profile`. 
 Favoritos, atividades de interesse, alertas de novas demandas autônomas e lembretes voluntários usam chaves separadas no `localStorage` para manter a demonstração navegável sem introduzir uma conta falsa. A descoberta tem dois caminhos: Ofertas de trabalho filtra publicações institucionais; Demandas de trabalho filtra serviços divulgados por perfis de pessoa. Organizações registram localmente as atividades demandadas e pessoas registram localmente sua força de trabalho; os interesses compatíveis são destacados no mesmo navegador. O link do Google Agenda é um template de evento; não há OAuth nem escrita automática na agenda. A API também impede que o proprietário de uma oportunidade crie uma interação consigo mesmo.
 
 O banco de talentos é opt-in: pessoas escolhem múltiplos tipos de trabalho (CLT, estágio, serviços autônomos e/ou voluntariado) e ativam `oflix-talent-bank-visible-{profileId}`. O resumo compartilhado (competências, atividades, preferências e localização aproximada) fica no diretório local da demo; a base só é exibida para organizações, com busca por texto, filtro de tipo e sem excluir resultados por distância. A conversa é iniciada pela instituição e oferece atalhos para negociar remuneração e benefícios. Em uma futura implementação, esse diretório deve migrar para uma tabela compartilhada com consentimento, auditoria e autorização real.
+
+Chamadas de serviço seguem um fluxo separado do mural de oportunidades: pessoas e organizações podem abrir um pedido para uma atividade e uma janela do dia; autônomos consultam chamadas compatíveis, recebem polling periódico e podem ativar alertas do navegador. A chamada exibe apenas território aproximado; endereço exato e detalhes finais ficam para a conversa após a aceitação. A disputa do primeiro aceite é resolvida no servidor pela atualização condicional do SQLite, ainda com a limitação de persistência efêmera por instância no Vercel.
 
 ## UI e responsividade
 

@@ -1,12 +1,14 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import type { OpportunityKind } from "@/lib/domain";
+import { WORK_ACTIVITIES, type OpportunityKind } from "@/lib/domain";
 
 export type Location = { id: string; state: string; municipality: string; district: string };
 export type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; isDemo: boolean; location: Location };
 export type FormalEmploymentType = "CLT" | "INTERNSHIP";
 export type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; owner: { id: string; name: string }; ownerType: Profile["type"]; location: Location; availability?: string; schedule?: string; eventDate?: string; employmentType?: FormalEmploymentType; requiredActivities?: string[] };
+export type ServiceCallStatus = "OPEN" | "ACCEPTED";
+export type ServiceCall = { id: string; title: string; activity: string; description: string; serviceDay: string; timeWindow: string; status: ServiceCallStatus; requester: { id: string; name: string; type: Profile["type"] }; location: Location; acceptedBy?: { id: string; name: string }; createdAt: string; acceptedAt?: string };
 
 type Row = Record<string, unknown>;
 type DatabaseLike = { exec: (sql: string) => void; prepare: (sql: string) => { all: (...params: unknown[]) => Row[]; get: (...params: unknown[]) => Row | undefined; run: (...params: unknown[]) => unknown } };
@@ -81,8 +83,10 @@ function database() {
       CREATE TABLE IF NOT EXISTS service_offers (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, provider_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), availability TEXT NOT NULL, required_activities TEXT NOT NULL DEFAULT '');
       CREATE TABLE IF NOT EXISTS volunteer_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organizer_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), schedule TEXT NOT NULL, event_date TEXT);
       CREATE TABLE IF NOT EXISTS interactions (id TEXT PRIMARY KEY, actor_profile_id TEXT NOT NULL REFERENCES profiles(id), target_type TEXT NOT NULL, target_id TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(actor_profile_id, target_type, target_id));
+      CREATE TABLE IF NOT EXISTS service_calls (id TEXT PRIMARY KEY, requester_profile_id TEXT NOT NULL REFERENCES profiles(id), title TEXT NOT NULL, activity TEXT NOT NULL, description TEXT NOT NULL, location_id TEXT NOT NULL REFERENCES locations(id), service_day TEXT NOT NULL, time_window TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'OPEN', accepted_by_profile_id TEXT REFERENCES profiles(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, accepted_at TEXT);
       CREATE INDEX IF NOT EXISTS idx_profiles_type ON profiles(type);
       CREATE INDEX IF NOT EXISTS idx_interactions_target ON interactions(target_type, target_id);
+      CREATE INDEX IF NOT EXISTS idx_service_calls_open ON service_calls(status, service_day, activity);
     `);
     try { db.exec("ALTER TABLE formal_opportunities ADD COLUMN employment_type TEXT NOT NULL DEFAULT 'CLT'"); } catch { /* coluna já existe */ }
     try { db.exec("ALTER TABLE service_offers ADD COLUMN required_activities TEXT NOT NULL DEFAULT ''"); } catch { /* coluna já existe */ }
@@ -140,6 +144,49 @@ export function listTalentInterests(): TalentInterest[] {
 export function canAccessTalentBank(profileId: string) {
   const profile = database().prepare("SELECT type FROM profiles WHERE id = ?").get(profileId);
   return profile?.type === "ORGANIZATION";
+}
+
+function serviceCallFrom(row: Row): ServiceCall {
+  return {
+    id: String(row.id), title: String(row.title), activity: String(row.activity), description: String(row.description), serviceDay: String(row.service_day), timeWindow: String(row.time_window), status: String(row.status) as ServiceCallStatus,
+    requester: { id: String(row.requester_id), name: String(row.requester_name), type: String(row.requester_type) as Profile["type"] }, location: locationFrom(row),
+    ...(row.accepted_by_id && row.accepted_by_name ? { acceptedBy: { id: String(row.accepted_by_id), name: String(row.accepted_by_name) } } : {}), createdAt: String(row.created_at), ...(row.accepted_at ? { acceptedAt: String(row.accepted_at) } : {}),
+  };
+}
+
+const serviceCallSelect = `SELECT c.*, requester.id requester_id, requester.name requester_name, requester.type requester_type, accepted.id accepted_by_id, accepted.name accepted_by_name, l.id location_id, l.state, l.municipality, l.district FROM service_calls c JOIN profiles requester ON requester.id = c.requester_profile_id LEFT JOIN profiles accepted ON accepted.id = c.accepted_by_profile_id JOIN locations l ON l.id = c.location_id`;
+
+export function listServiceCalls(profileId: string, activities: string[], today: string) {
+  const db = database();
+  const profile = db.prepare("SELECT type FROM profiles WHERE id = ?").get(profileId);
+  if (!profile) return [] as ServiceCall[];
+  if (profile.type === "ORGANIZATION") return db.prepare(`${serviceCallSelect} WHERE c.requester_profile_id = ? ORDER BY c.created_at DESC`).all(profileId).map(serviceCallFrom);
+  if (profile.type !== "PERSON") return [] as ServiceCall[];
+  if (!activities.length) return db.prepare(`${serviceCallSelect} WHERE c.requester_profile_id = ? ORDER BY c.created_at DESC`).all(profileId).map(serviceCallFrom);
+  const placeholders = activities.map(() => "?").join(", ");
+  return db.prepare(`${serviceCallSelect} WHERE c.requester_profile_id = ? OR (c.status = 'OPEN' AND c.requester_profile_id <> ? AND c.service_day >= ? AND c.activity IN (${placeholders})) ORDER BY c.created_at DESC`).all(profileId, profileId, today, ...activities).map(serviceCallFrom);
+}
+
+export function createServiceCall(input: { requesterProfileId: string; activity: string; title: string; description: string; serviceDay: string; timeWindow: string }) {
+  const db = database();
+  if (!WORK_ACTIVITIES.some((activity) => activity === input.activity)) return { error: "activity_invalid" as const };
+  const requester = db.prepare("SELECT id, type, location_id FROM profiles WHERE id = ?").get(input.requesterProfileId);
+  if (!requester || (requester.type !== "PERSON" && requester.type !== "ORGANIZATION")) return { error: "requester_invalid" as const };
+  const id = `service-call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  db.prepare("INSERT INTO service_calls (id, requester_profile_id, title, activity, description, location_id, service_day, time_window) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(id, input.requesterProfileId, input.title, input.activity, input.description, requester.location_id, input.serviceDay, input.timeWindow);
+  const row = db.prepare(`${serviceCallSelect} WHERE c.id = ?`).get(id);
+  return { call: row ? serviceCallFrom(row) : null };
+}
+
+export function acceptServiceCall(input: { callId: string; workerProfileId: string }) {
+  const db = database();
+  const worker = db.prepare("SELECT type FROM profiles WHERE id = ?").get(input.workerProfileId);
+  if (worker?.type !== "PERSON") return { accepted: false as const, reason: "worker_required" as const };
+  db.prepare("UPDATE service_calls SET status = 'ACCEPTED', accepted_by_profile_id = ?, accepted_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'OPEN' AND requester_profile_id <> ?").run(input.workerProfileId, input.callId, input.workerProfileId);
+  const changed = Number(db.prepare("SELECT changes() total").get()?.total ?? 0);
+  const row = db.prepare(`${serviceCallSelect} WHERE c.id = ?`).get(input.callId);
+  if (!row) return { accepted: false as const, reason: "not_found" as const };
+  return changed ? { accepted: true as const, call: serviceCallFrom(row) } : { accepted: false as const, reason: String(row.status) === "ACCEPTED" ? "already_taken" as const : "unavailable" as const, call: serviceCallFrom(row) };
 }
 
 export function createInteraction(input: { actorProfileId: string; targetType: string; targetId: string; action: string }) {
@@ -234,5 +281,5 @@ export function territoryDataForProfile(profileId: string, activities: string[])
   return interestTerritoryData(activities);
 }
 
-export function resetDatabase() { database().exec("DELETE FROM interactions; DELETE FROM formal_opportunities; DELETE FROM service_offers; DELETE FROM volunteer_opportunities; DELETE FROM profiles; DELETE FROM locations;"); }
+export function resetDatabase() { database().exec("DELETE FROM service_calls; DELETE FROM interactions; DELETE FROM formal_opportunities; DELETE FROM service_offers; DELETE FROM volunteer_opportunities; DELETE FROM profiles; DELETE FROM locations;"); }
 export function seedRow(sql: string, ...params: string[]) { database().prepare(sql).run(...params); }
