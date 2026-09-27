@@ -15,7 +15,7 @@ import type { OpportunityKind } from "@/lib/domain";
 
 type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; location: { municipality: string; district: string } };
 type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; location: { municipality: string; district: string }; owner: { id: string; name: string }; ownerType: Profile["type"]; employmentType?: "CLT" | "INTERNSHIP"; eventDate?: string; requiredActivities?: string[] };
-type Talent = { id: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
+type Talent = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
 type PublicationMode = "offers" | "demands";
 
 const tabs: { key: OpportunityKind; label: string }[] = [
@@ -43,26 +43,33 @@ export default function DemoPage() {
   const [favoriteVersion, setFavoriteVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId) ?? null, [profiles, selectedId]);
 
   useEffect(() => {
     const stored = window.localStorage.getItem("oflix-demo-profile");
     if (stored) setSelectedId(stored);
     const onFavoritesChanged = () => setFavoriteVersion((version) => version + 1);
     window.addEventListener("oflix-favorites-changed", onFavoritesChanged);
-    Promise.all([fetch("/api/profiles"), fetch("/api/opportunities"), fetch("/api/talents")])
-      .then(async ([profileResponse, opportunityResponse, talentResponse]) => {
-        if (!profileResponse.ok || !opportunityResponse.ok || !talentResponse.ok) throw new Error("request");
-        const [profileData, opportunityData, talentData] = await Promise.all([profileResponse.json(), opportunityResponse.json(), talentResponse.json()]);
+    Promise.all([fetch("/api/profiles"), fetch("/api/opportunities")])
+      .then(async ([profileResponse, opportunityResponse]) => {
+        if (!profileResponse.ok || !opportunityResponse.ok) throw new Error("request");
+        const [profileData, opportunityData] = await Promise.all([profileResponse.json(), opportunityResponse.json()]);
         setProfiles(profileData);
         setOpportunities({ formal: opportunityData.formal, service: opportunityData.services, volunteer: opportunityData.volunteer });
-        setTalents(talentData);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
     return () => window.removeEventListener("oflix-favorites-changed", onFavoritesChanged);
   }, []);
 
-  const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId) ?? null, [profiles, selectedId]);
+  useEffect(() => {
+    if (selectedProfile?.type !== "ORGANIZATION") { setTalents([]); return; }
+    fetch(`/api/talents?profileId=${encodeURIComponent(selectedProfile.id)}`)
+      .then(async (response) => { if (!response.ok) throw new Error("request"); return response.json(); })
+      .then(setTalents)
+      .catch(() => setTalents([]));
+  }, [selectedProfile]);
+
   const modeOpportunities = useMemo(() => opportunities[activeTab].filter((opportunity) => publicationMode === "offers" ? opportunity.ownerType !== "PERSON" : opportunity.ownerType === "PERSON"), [activeTab, opportunities, publicationMode]);
   const publicationTabs = publicationMode === "offers" ? tabs : [{ key: "service" as OpportunityKind, label: "Força de trabalho autônoma" }];
   const categories = useMemo(() => Array.from(new Set(modeOpportunities.flatMap((opportunity) => activeTab === "service" && opportunity.requiredActivities?.length ? opportunity.requiredActivities : [opportunity.category]))).sort(), [activeTab, modeOpportunities]);
@@ -101,7 +108,7 @@ export default function DemoPage() {
         <div className="flex flex-col justify-between gap-7 border-b border-line pb-8 lg:flex-row lg:items-end"><div><p className="eyebrow">Explorar oportunidades</p><h1 className="mt-3 text-4xl font-black tracking-[-.045em] text-navy sm:text-5xl">O que está se movendo perto de você.</h1><p className="body-copy mt-4 max-w-[720px]">Encontre uma oportunidade, apresente seu trabalho ou participe de uma ação. Os caminhos de candidatos e de quem publica estão separados para cada pessoa seguir o próximo passo certo.</p></div><div className="flex flex-col items-start gap-2 text-sm text-[#607286] lg:items-end"><span className="font-bold text-navy">{selectedProfile.name}</span><button className="subtle-link" onClick={() => { window.localStorage.removeItem("oflix-demo-profile"); setSelectedId(null); window.dispatchEvent(new Event("oflix-profile-changed")); }}>Trocar perfil</button></div></div>
         <section className="panel mt-8 p-5 sm:p-6" aria-label="Separar publicações de trabalho"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><p className="eyebrow">Caminhos separados</p><h2 className="mt-2 text-xl font-bold text-navy">Encontre quem publica e quem trabalha</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#637688]">Ofertas reúnem publicações de empresas e instituições. Demandas mostram autônomos e informais divulgando suas competências e disponibilidade.</p></div><div className="grid w-full gap-2 sm:grid-cols-2 lg:max-w-[520px]" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); setActiveTab("formal"); resetFilters(); }} className={`rounded-lg border px-4 py-3 text-left text-sm font-bold transition ${publicationMode === "offers" ? "border-navy bg-navy text-white" : "border-line bg-white text-[#637688] hover:border-blue"}`}>Ofertas de trabalho<span className={`mt-1 block text-xs font-normal ${publicationMode === "offers" ? "text-[#d9e8f0]" : "text-[#82929f]"}`}>Empresas e instituições</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); setActiveTab("service"); resetFilters(); }} className={`rounded-lg border px-4 py-3 text-left text-sm font-bold transition ${publicationMode === "demands" ? "border-navy bg-navy text-white" : "border-line bg-white text-[#637688] hover:border-blue"}`}>Demandas de trabalho<span className={`mt-1 block text-xs font-normal ${publicationMode === "demands" ? "text-[#d9e8f0]" : "text-[#82929f]"}`}>Autônomos e informais</span></button></div></div></section>
         {selectedProfile.type === "PERSON" && <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /><section className="panel p-5 sm:p-6"><p className="eyebrow">Gestão da sua divulgação</p><h2 className="mt-2 text-xl font-bold text-navy">Minhas divulgações</h2><p className="mt-2 text-sm leading-6 text-[#637688]">Apresente sua força de trabalho sem misturá-la às oportunidades publicadas por empresas e instituições.</p><div className="mt-5 divide-y divide-line">{ownedOpportunities.length ? ownedOpportunities.map((opportunity) => <div key={opportunity.id} className="flex items-center justify-between gap-4 py-3"><span className="min-w-0"><strong className="block truncate text-sm text-navy">{opportunity.title}</strong><span className="text-xs text-[#718291]">{opportunity.requiredActivities?.length ? opportunity.requiredActivities.join(" · ") : opportunity.category}</span></span><span className="shrink-0 rounded-full bg-[#edf6fb] px-2 py-1 text-xs font-bold text-blue">Publicada</span></div>) : <p className="py-4 text-sm text-[#637688]">Você ainda não divulgou uma atividade.</p>}</div></section></div>}
-        {selectedProfile.type === "PERSON" && <InterestSelector profileId={selectedProfile.id} matches={[...opportunities.formal, ...opportunities.service].map((opportunity) => ({ title: opportunity.title, category: opportunity.category, requiredActivities: opportunity.requiredActivities }))} />}
+        {selectedProfile.type === "PERSON" && <InterestSelector profile={selectedProfile} matches={[...opportunities.formal, ...opportunities.service].map((opportunity) => ({ title: opportunity.title, category: opportunity.category, requiredActivities: opportunity.requiredActivities }))} />}
         {selectedProfile.type === "PERSON" && <PersonalTerritoryPanel profileId={selectedProfile.id} />}
         {selectedProfile.type === "ORGANIZATION" && <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /><section className="panel p-5 sm:p-6"><p className="eyebrow">Gestão da oferta</p><h2 className="mt-2 text-xl font-bold text-navy">Minhas oportunidades</h2><p className="mt-2 text-sm leading-6 text-[#637688]">Acompanhe o que sua organização publicou e diferencie vagas ofertadas de pessoas candidatas.</p><div className="mt-5 divide-y divide-line">{ownedOpportunities.length ? ownedOpportunities.map((opportunity) => <div key={opportunity.id} className="flex items-center justify-between gap-4 py-3"><span className="min-w-0"><strong className="block truncate text-sm text-navy">{opportunity.title}</strong><span className="text-xs text-[#718291]">{opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : opportunity.requiredActivities?.length ? opportunity.requiredActivities.join(" · ") : opportunity.category}</span></span><span className="shrink-0 rounded-full bg-[#edf6fb] px-2 py-1 text-xs font-bold text-blue">Publicada</span></div>) : <p className="py-4 text-sm text-[#637688]">Você ainda não publicou uma oportunidade.</p>}</div></section></div>}
         {selectedProfile.type === "ORGANIZATION" && <div className="mt-8"><TalentBasePanel ownerId={selectedProfile.id} talents={talents} /></div>}

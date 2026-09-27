@@ -54,6 +54,10 @@ test("API territorial entrega somente o escopo autorizado", async ({ request }) 
   expect(opportunities.services.find((opportunity: { id: string }) => opportunity.id === "service-electrical").requiredActivities).toEqual(["Eletricista", "Manutenção"]);
   expect(opportunities.services.find((opportunity: { id: string }) => opportunity.id === "service-electrical").ownerType).toBe("PERSON");
   expect(opportunities.formal.find((opportunity: { id: string }) => opportunity.id === "formal-operations").ownerType).toBe("ORGANIZATION");
+
+  expect((await request.get("/api/talents")).status()).toBe(401);
+  expect((await request.get("/api/talents?profileId=profile-ana")).status()).toBe(403);
+  expect((await request.get("/api/talents?profileId=profile-coletivo")).ok()).toBe(true);
 });
 
 test("separa ofertas institucionais e demandas de autônomos", async ({ page }) => {
@@ -123,6 +127,29 @@ test("autônomo divulga sua força de trabalho separadamente", async ({ page }) 
   await expect(page.getByText(/Divulgação criada na demonstração/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Rafael · instalações e manutenção" })).toBeVisible();
   await expect(page.getByRole("tab", { name: /Demandas de trabalho/ })).toHaveAttribute("aria-selected", "true");
+});
+
+test("pessoa opta por compartilhar perfil e organização consulta banco de talentos", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
+  await expect(page.getByRole("heading", { name: "Banco de talentos" })).toHaveCount(0);
+  await page.getByRole("checkbox", { name: "CLT", exact: true }).check({ force: true });
+  await page.getByRole("checkbox", { name: "Voluntariado", exact: true }).check({ force: true });
+  await page.getByRole("checkbox", { name: "Permitir que instituições encontrem meu perfil" }).check();
+  await page.getByRole("button", { name: "Trocar perfil" }).click();
+  await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
+  await expect(page.getByRole("heading", { name: "Base de talentos" })).toBeVisible();
+  await expect(page.getByText("Ana Ribeiro")).toBeVisible();
+  const sharedProfile = page.locator("article").filter({ hasText: "Ana Ribeiro" }).first();
+  await expect(sharedProfile.getByText("CLT", { exact: true }).last()).toBeVisible();
+  await expect(sharedProfile.getByText("Voluntariado", { exact: true }).last()).toBeVisible();
+  await page.getByLabel("Pesquisar talentos").fill("Ana");
+  await expect(page.getByRole("button", { name: "Iniciar conversa" })).toBeVisible();
+  await page.getByRole("button", { name: "Iniciar conversa" }).click();
+  await expect(page.getByRole("button", { name: "Negociar remuneração" })).toBeVisible();
+  await page.getByRole("button", { name: "Negociar remuneração" }).click();
+  await expect(page.getByPlaceholder("Escreva uma mensagem sobre o próximo passo")).toHaveValue(/remuneração/);
 });
 
 test("mobile não cria overflow horizontal na landing", async ({ page }) => {

@@ -14,7 +14,7 @@ SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL sep
 
 - `GET /api/profiles`: perfis demo com território.
 - `GET /api/opportunities`: oportunidades separadas por frente.
-- `GET /api/talents`: interesses registrados por candidatos, relacionados à oportunidade e à organização proprietária.
+- `GET /api/talents?profileId=...`: interesses registrados por candidatos, relacionados à oportunidade e à organização proprietária; exige `profileId` de uma organização e responde `401/403` para acesso ausente ou não institucional.
 - `POST /api/interactions`: valida com Zod, persiste e trata duplicidade por perfil, tipo e alvo.
 - `GET /api/territory?profileId=...`: entrega a visão geral somente quando o perfil demo é `profile-analista`; para outros perfis exige atividades e retorna apenas o recorte de vagas/serviços compatíveis com esses interesses. Sem perfil, responde `401`.
 
@@ -23,6 +23,8 @@ SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL sep
 O perfil escolhido é salvo em `localStorage` com a chave `oflix-demo-profile`. O `DemoHeader` carrega a persona selecionada e oferece um menu acessível com Meu perfil, Configurações e Sair. A página `/profile` apresenta resumo, tipo de participação, competências e território demonstrativo; `/settings` salva preferências locais de notificações. Isso não representa autenticação, sessão segura ou controle de acesso.
 
 Favoritos, atividades de interesse, alertas de novas demandas autônomas e lembretes voluntários usam chaves separadas no `localStorage` para manter a demonstração navegável sem introduzir uma conta falsa. A descoberta tem dois caminhos: Ofertas de trabalho filtra publicações institucionais; Demandas de trabalho filtra serviços divulgados por perfis de pessoa. Organizações registram localmente as atividades demandadas e pessoas registram localmente sua força de trabalho; os interesses compatíveis são destacados no mesmo navegador. O link do Google Agenda é um template de evento; não há OAuth nem escrita automática na agenda. A API também impede que o proprietário de uma oportunidade crie uma interação consigo mesmo.
+
+O banco de talentos é opt-in: pessoas escolhem múltiplos tipos de trabalho (CLT, estágio, serviços autônomos e/ou voluntariado) e ativam `oflix-talent-bank-visible-{profileId}`. O resumo compartilhado (competências, atividades, preferências e localização aproximada) fica no diretório local da demo; a base só é exibida para organizações, com busca por texto, filtro de tipo e sem excluir resultados por distância. A conversa é iniciada pela instituição e oferece atalhos para negociar remuneração e benefícios. Em uma futura implementação, esse diretório deve migrar para uma tabela compartilhada com consentimento, auditoria e autorização real.
 
 ## UI e responsividade
 

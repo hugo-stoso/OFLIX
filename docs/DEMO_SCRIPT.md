@@ -12,3 +12,4 @@
 10. Reforçar que o painel não exibe nomes e que os dados desta execução são fictícios.
 11. Abrir o menu com o nome da persona no canto superior direito e mostrar **Meu perfil**, **Configurações** e **Sair**; em Meu perfil, destacar resumo, competências e território demonstrativo.
 12. Na descoberta, alternar entre **Ofertas de trabalho** para ver publicações institucionais e **Demandas de trabalho** para ver a força de trabalho autônoma; com **Rafael Santos**, publicar uma nova divulgação e mostrar que ela permanece no segundo caminho.
+13. Com **Ana Ribeiro**, em **Atividades que você quer acompanhar**, marcar **CLT** e **Voluntariado**, selecionar algumas atividades e ativar **Permitir que instituições encontrem meu perfil**. Trocar para **Coletivo Horizonte** e mostrar o perfil no **Banco de talentos**; pesquisar por competência, filtrar o tipo de trabalho e iniciar uma conversa pelos atalhos de remuneração ou benefícios.

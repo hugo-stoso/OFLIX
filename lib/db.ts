@@ -120,7 +120,7 @@ export function findOpportunity(id: string, kind: OpportunityKind) {
   return row ? opportunityFrom(row, kind) : null;
 }
 
-export type TalentInterest = { id: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string; createdAt: string };
+export type TalentInterest = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string; createdAt: string };
 
 export function listTalentInterests(): TalentInterest[] {
   return database().prepare(`
@@ -129,12 +129,17 @@ export function listTalentInterests(): TalentInterest[] {
       UNION ALL SELECT id, 'SERVICE', title, category, provider_id FROM service_offers
       UNION ALL SELECT id, 'VOLUNTEER', title, category, organizer_id FROM volunteer_opportunities
     )
-    SELECT i.id, p.name, p.summary, p.capabilities, o.opportunity_id, o.title, o.category, o.owner_id, i.action, i.created_at
+    SELECT i.id, p.id profile_id, p.name, p.summary, p.capabilities, o.opportunity_id, o.title, o.category, o.owner_id, i.action, i.created_at
     FROM interactions i
     JOIN profiles p ON p.id = i.actor_profile_id
     JOIN opportunities o ON o.opportunity_id = i.target_id AND o.target_type = i.target_type
     ORDER BY i.created_at DESC
-  `).all().map((row) => ({ id: String(row.id), name: String(row.name), summary: String(row.summary), capabilities: String(row.capabilities), opportunityId: String(row.opportunity_id), opportunityTitle: String(row.title), category: String(row.category), ownerId: String(row.owner_id), action: String(row.action), createdAt: String(row.created_at) }));
+  `).all().map((row) => ({ id: String(row.id), profileId: String(row.profile_id), name: String(row.name), summary: String(row.summary), capabilities: String(row.capabilities), opportunityId: String(row.opportunity_id), opportunityTitle: String(row.title), category: String(row.category), ownerId: String(row.owner_id), action: String(row.action), createdAt: String(row.created_at) }));
+}
+
+export function canAccessTalentBank(profileId: string) {
+  const profile = database().prepare("SELECT type FROM profiles WHERE id = ?").get(profileId);
+  return profile?.type === "ORGANIZATION";
 }
 
 export function createInteraction(input: { actorProfileId: string; targetType: string; targetId: string; action: string }) {

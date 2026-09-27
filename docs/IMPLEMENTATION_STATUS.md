@@ -21,6 +21,7 @@
 - Organizações podem publicar, na demonstração, demandas de serviços autônomos com múltiplas atividades selecionadas; essas atividades aparecem na oportunidade e alimentam o destaque de alertas compatíveis para trabalhadores no mesmo navegador.
 - Menu de conta funcional no cabeçalho, com Meu perfil, Configurações e Sair; perfil detalhado com resumo, tipo, competências e território demonstrativo.
 - Descoberta separada entre Ofertas de trabalho institucionais e Demandas de trabalho divulgadas por autônomos/informais, com publicação de força de trabalho para perfis de pessoa e área de “Minhas divulgações”.
+- Banco de talentos opt-in para pessoas interessadas em CLT, estágio, serviços autônomos e/ou voluntariado; organizações podem pesquisar perfis compartilhados sem restringir pela distância e iniciar conversa sobre remuneração, benefícios e próximos passos.
 
 ## VALIDAÇÃO NECESSÁRIA
 
@@ -35,6 +36,7 @@
 - Perfil, configurações e saída ainda são experiências locais da demonstração; não há sessão, credenciais, persistência de conta ou autorização real.
 - Favoritos, atividades e lembretes ficam no `localStorage`; a permissão do navegador é demonstrada, mas não existe push agendado em segundo plano.
 - Base de talentos e chat demonstram o próximo passo com dados fictícios, sem currículo completo, autenticação ou canal de mensagens real.
+- O diretório opt-in do banco de talentos e as preferências de tipos de trabalho são locais ao navegador da demonstração; a API de interesses já limita o acesso a organizações, mas a publicação do perfil ainda não tem persistência compartilhada nem autorização de produção.
 - Inteligência territorial prova o caminho de dados e o gráfico de empregos; a autorização geral e o recorte por interesse estão implementados na demo, mas ainda não há demanda não atendida nem séries históricas.
 
 ## PENDENTE
