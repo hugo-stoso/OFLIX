@@ -35,6 +35,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
               {record.availability && <div><dt className="eyebrow">Disponibilidade</dt><dd className="mt-2 font-bold text-navy">{record.availability}</dd></div>}
               {record.schedule && <div><dt className="eyebrow">Quando</dt><dd className="mt-2 font-bold text-navy">{record.schedule}</dd></div>}
               {record.employmentType && <div><dt className="eyebrow">Vínculo</dt><dd className="mt-2 font-bold text-navy">{record.employmentType === "INTERNSHIP" ? "Estágio" : "CLT"}</dd></div>}
+              {kind === "service" && record.requiredActivities?.length ? <div className="sm:col-span-2"><dt className="eyebrow">Atividades autônomas demandadas</dt><dd className="mt-2 flex flex-wrap gap-2">{record.requiredActivities.map((activity) => <span key={activity} className="rounded-full bg-[#edf6fb] px-3 py-1.5 text-sm font-bold text-blue">{activity}</span>)}</dd></div> : null}
             </dl>
             {kind === "volunteer" && record.schedule && <VolunteerReminder opportunityId={record.id} title={record.title} description={record.description} schedule={record.schedule} eventDate={record.eventDate} location={`${record.location.municipality} · ${record.location.district}`} />}
           </article>

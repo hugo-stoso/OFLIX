@@ -47,6 +47,32 @@ test("API territorial entrega somente o escopo autorizado", async ({ request }) 
   const general = await generalResponse.json();
   expect(general.scope).toBe("general");
   expect(general.totalOpportunities).toBeGreaterThan(scoped.totalOpportunities);
+
+  const opportunitiesResponse = await request.get("/api/opportunities");
+  expect(opportunitiesResponse.ok()).toBe(true);
+  const opportunities = await opportunitiesResponse.json();
+  expect(opportunities.services.find((opportunity: { id: string }) => opportunity.id === "service-electrical").requiredActivities).toEqual(["Eletricista", "Manutenção"]);
+});
+
+test("organização publica demanda autônoma com múltiplas atividades", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
+  await expect(page.getByRole("heading", { name: "Enviar oportunidade" })).toBeVisible();
+  await page.getByRole("button", { name: "Nova oportunidade" }).click();
+  await page.getByLabel("Frente", { exact: true }).selectOption("service");
+  await expect(page.getByText("Tipos de trabalho autônomo demandados")).toBeVisible();
+  await page.getByRole("checkbox", { name: "Eletricista" }).check();
+  await page.getByRole("checkbox", { name: "Manutenção" }).check();
+  await page.getByLabel("Título").fill("Eletricista para instalação de evento");
+  await page.getByLabel("Descrição completa").fill("Demanda de instalação e manutenção para uma atividade comunitária.");
+  await page.getByRole("button", { name: "Publicar na demonstração" }).click();
+  await expect(page.getByText(/Oportunidade criada na demonstração/)).toBeVisible();
+  await expect(page.getByText("Eletricista · Manutenção")).toBeVisible();
+  await page.getByRole("button", { name: "Trocar perfil" }).click();
+  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
+  await page.getByRole("checkbox", { name: "Eletricista" }).check({ force: true });
+  await expect(page.getByText(/nova\(s\) demanda\(s\) compatível\(is\)/)).toBeVisible();
 });
 
 test("mobile não cria overflow horizontal na landing", async ({ page }) => {

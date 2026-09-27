@@ -8,6 +8,8 @@ Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing 
 
 SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL separa `profiles`, `locations`, `formal_opportunities`, `service_offers`, `volunteer_opportunities` e `interactions`. Em desenvolvimento, o banco fica em `prisma/dev.db` e é preparado com `npm run db:setup`. No Vercel, a demo usa um arquivo por deployment em `/tmp` e executa o seed DEMO na primeira inicialização da função, porque o filesystem do runtime não permite escrita no diretório do projeto. Essa persistência é efêmera e por instância; não representa uma camada de produção.
 
+`service_offers.required_activities` guarda, como lista delimitada no SQLite, as atividades autônomas que uma organização demanda. A interface permite selecionar várias opções da mesma lista usada nas preferências de trabalhadores; a primeira atividade também preserva a categoria legível da oportunidade para compatibilidade com filtros existentes.
+
 ## API
 
 - `GET /api/profiles`: perfis demo com território.
@@ -20,7 +22,7 @@ SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL sep
 
 O perfil escolhido é salvo em `localStorage` com a chave `oflix-demo-profile`. A interface mostra permanentemente que é um perfil de demonstração. Isso não representa autenticação, sessão segura ou controle de acesso.
 
-Favoritos, atividades de interesse e lembretes voluntários usam chaves separadas no `localStorage` para manter a demonstração navegável sem introduzir uma conta falsa. O link do Google Agenda é um template de evento; não há OAuth nem escrita automática na agenda. A API também impede que o proprietário de uma oportunidade crie uma interação consigo mesmo.
+Favoritos, atividades de interesse, alertas de novas demandas autônomas e lembretes voluntários usam chaves separadas no `localStorage` para manter a demonstração navegável sem introduzir uma conta falsa. Ao publicar uma demanda autônoma na demo, a organização registra localmente as atividades selecionadas; ao trocar para uma persona de trabalhador no mesmo navegador, os interesses compatíveis são destacados. O link do Google Agenda é um template de evento; não há OAuth nem escrita automática na agenda. A API também impede que o proprietário de uma oportunidade crie uma interação consigo mesmo.
 
 ## UI e responsividade
 
@@ -28,4 +30,4 @@ A interface usa layout editorial, azul-marinho, azul institucional, neutros frio
 
 ## Limites reais
 
-Não há autenticação de produção, autorização de papéis real, moderação, persistência compartilhada para publicações demo, push agendado, OAuth do Google, coordenadas ou geocodificação nesta execução. A restrição territorial desta demo usa o perfil selecionado no navegador: o agregado geral é exclusivo da persona Observatório Território Aberto; pessoas recebem somente o recorte das atividades salvas localmente.
+Não há autenticação de produção, autorização de papéis real, moderação, persistência compartilhada para publicações e alertas demo, push agendado, OAuth do Google, coordenadas ou geocodificação nesta execução. A restrição territorial desta demo usa o perfil selecionado no navegador: o agregado geral é exclusivo da persona Observatório Território Aberto; pessoas recebem somente o recorte das atividades salvas localmente.

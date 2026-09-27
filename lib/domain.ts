@@ -1,6 +1,7 @@
 export type OpportunityKind = "formal" | "service" | "volunteer";
 
 export const ANALYST_PROFILE_ID = "profile-analista";
+export const WORK_ACTIVITIES = ["Eletricista", "Manutenção", "Construção", "Limpeza", "Alimentação", "Eventos", "Design", "Comunicação", "Educação", "Tecnologia", "Cuidados", "Jardinagem", "Transporte", "Beleza", "Administração", "Meio ambiente"] as const;
 
 export const opportunityMeta: Record<OpportunityKind, { label: string; action: string; verb: string }> = {
   formal: { label: "Trabalho formal", action: "Candidatar-se", verb: "candidatura" },

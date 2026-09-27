@@ -13,6 +13,7 @@ type Opportunity = {
   location: { municipality: string; district: string };
   owner: { id: string; name: string };
   employmentType?: "CLT" | "INTERNSHIP";
+  requiredActivities?: string[];
 };
 
 export function OpportunityRow({ opportunity, kind }: { opportunity: Opportunity; kind: OpportunityKind }) {
@@ -29,6 +30,7 @@ export function OpportunityRow({ opportunity, kind }: { opportunity: Opportunity
         </div>
         <h3 className="mt-2 text-lg font-bold tracking-[-.02em] text-navy">{opportunity.title}</h3>
         <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#607286]">{opportunity.description}</p>
+        {kind === "service" && opportunity.requiredActivities?.length ? <div className="mt-3 flex flex-wrap gap-1.5" aria-label="Atividades autônomas demandadas">{opportunity.requiredActivities.map((activity) => <span key={activity} className="rounded-full bg-[#edf6fb] px-2 py-1 text-xs font-bold text-blue">{activity}</span>)}</div> : null}
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#6b7d8d]">
           <span className="inline-flex items-center gap-1.5"><MapPin size={13} /> {opportunity.location.municipality} · {opportunity.location.district}</span>
           <span>{owner}</span>
