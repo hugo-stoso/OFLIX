@@ -45,6 +45,14 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await expect(page.getByRole("heading", { name: "O que as conexões começam a revelar." })).toBeVisible();
   await expect(page.getByText("Distribuição por frente")).toBeVisible();
   await expect(page.getByText("Empregos na região")).toBeVisible();
+  await page.goto("/demo");
+  await page.waitForURL("**/demo/analyst");
+  await expect(page.getByRole("heading", { name: "O que as conexões começam a revelar." })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Navegação principal" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Trocar perfil" }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Trocar perfil" }).first().click();
+  await page.waitForURL("**/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible();
 });
 
 test("API territorial entrega somente o escopo autorizado", async ({ request }) => {

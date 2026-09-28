@@ -79,6 +79,10 @@ export default function DemoPage() {
       .catch(() => setTalents([]));
   }, [selectedProfile]);
 
+  useEffect(() => {
+    if (selectedProfile?.type === "INSTITUTIONAL_ANALYST") window.location.replace("/demo/analyst");
+  }, [selectedProfile]);
+
   const modeOpportunities = useMemo(() => opportunities[activeTab].filter((opportunity) => {
     if (publicationMode === "offers") return opportunity.ownerType === "PERSON";
     if (selectedProfile?.type === "ORGANIZATION") return opportunity.ownerType !== "PERSON" && opportunity.owner.id === selectedProfile.id;
@@ -135,6 +139,7 @@ export default function DemoPage() {
 
   if (loading) return <main className="min-h-screen"><DemoHeader /><div className="shell py-10"><div className="panel flex min-h-[360px] items-center justify-center"><Loader2 className="animate-spin text-blue" size={24} aria-label="Carregando" /></div></div></main>;
   if (error) return <main className="min-h-screen"><DemoHeader /><div className="shell py-10"><div className="panel flex min-h-[360px] flex-col items-center justify-center p-8 text-center"><CircleAlert className="text-amber" /><h1 className="mt-4 text-xl font-bold text-navy">A demonstração não carregou</h1><p className="mt-2 text-sm text-[#607286]">Verifique se o banco foi preparado e tente novamente.</p><button className="button-secondary mt-5" onClick={() => window.location.reload()}><RefreshCw size={16} /> Tentar novamente</button></div></div></main>;
+  if (selectedProfile?.type === "INSTITUTIONAL_ANALYST") return <main className="min-h-screen"><DemoHeader /><div className="shell py-10"><div className="panel flex min-h-[360px] items-center justify-center"><Loader2 className="animate-spin text-blue" size={24} aria-label="Abrindo painel analítico" /></div></div></main>;
   if (!selectedProfile) return <main className="min-h-screen"><DemoHeader /><div className="shell py-10 sm:py-14"><section className="mx-auto max-w-[820px]"><p className="eyebrow">Perfil de demonstração</p><h1 className="mt-4 max-w-[690px] text-4xl font-black leading-tight tracking-[-.045em] text-navy sm:text-5xl">Escolha uma perspectiva para entrar.</h1><p className="body-copy mt-5 max-w-[650px]">Escolha como quer conhecer o OFLIX. As personas são fictícias e a seleção não é autenticação.</p><ProfilePicker profiles={profiles} onSelected={chooseProfile} /></section></div></main>;
 
   const isPerson = selectedProfile.type === "PERSON";

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowLeft, BarChart3, CircleAlert, Loader2, MapPin, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DemoHeader } from "@/components/DemoHeader";
@@ -24,6 +23,12 @@ export default function AnalystPage() {
   const [data, setData] = useState<TerritoryData | null>(null);
   const [error, setError] = useState(false);
   const [access, setAccess] = useState<"checking" | "granted" | "denied">("checking");
+  function chooseAnotherProfile() {
+    window.localStorage.removeItem("oflix-demo-profile");
+    window.dispatchEvent(new Event("oflix-profile-changed"));
+    window.location.href = "/demo";
+  }
+
   useEffect(() => {
     const profileId = window.localStorage.getItem("oflix-demo-profile");
     if (profileId !== ANALYST_PROFILE_ID) { setAccess("denied"); return; }
@@ -34,13 +39,13 @@ export default function AnalystPage() {
     <main className="min-h-screen">
       <DemoHeader />
       <div className="shell py-10 sm:py-14">
-        <Link href="/demo" className="button-quiet -ml-3"><ArrowLeft size={16} /> Voltar para descoberta</Link>
+        <button type="button" className="button-quiet -ml-3" onClick={chooseAnotherProfile}><ArrowLeft size={16} /> Trocar perfil</button>
         <div className="mt-9 border-b border-line pb-8">
           <p className="eyebrow">Inteligência territorial · primeira leitura</p>
           <h1 className="mt-3 max-w-[760px] text-4xl font-black leading-tight tracking-[-.045em] text-navy sm:text-5xl">O que as conexões começam a revelar.</h1>
           <p className="body-copy mt-4 max-w-[700px]">Visão agregada e anonimizada calculada a partir das mesmas oportunidades e interações que aparecem na demonstração.</p>
         </div>
-        {access === "checking" ? <div className="panel mt-8 flex min-h-[280px] items-center justify-center"><Loader2 className="animate-spin text-blue" aria-label="Verificando acesso" /></div> : access === "denied" ? <div className="panel mt-8 flex min-h-[280px] flex-col items-center justify-center p-8 text-center"><CircleAlert className="text-amber" /><h2 className="mt-4 text-xl font-bold text-navy">Visão territorial geral restrita</h2><p className="mt-2 max-w-xl text-sm leading-6 text-[#607286]">A leitura geral do território está disponível apenas para a conta Observatório Território Aberto (demonstração). Para outros perfis, o OFLIX mostra somente oportunidades relacionadas às atividades de interesse.</p><Link href="/demo" className="button-secondary mt-5"><ArrowLeft size={16} /> Voltar para descoberta</Link></div> : error ? <div className="panel mt-8 flex min-h-[280px] flex-col items-center justify-center p-8 text-center"><CircleAlert className="text-amber" /><p className="mt-4 font-bold text-navy">Não foi possível carregar os agregados.</p><button className="button-secondary mt-5" onClick={() => window.location.reload()}><RefreshCw size={16} /> Tentar novamente</button></div> : !data ? <div className="panel mt-8 flex min-h-[280px] items-center justify-center"><Loader2 className="animate-spin text-blue" aria-label="Carregando indicadores" /></div> : <>
+        {access === "checking" ? <div className="panel mt-8 flex min-h-[280px] items-center justify-center"><Loader2 className="animate-spin text-blue" aria-label="Verificando acesso" /></div> : access === "denied" ? <div className="panel mt-8 flex min-h-[280px] flex-col items-center justify-center p-8 text-center"><CircleAlert className="text-amber" /><h2 className="mt-4 text-xl font-bold text-navy">Visão territorial geral restrita</h2><p className="mt-2 max-w-xl text-sm leading-6 text-[#607286]">A leitura geral do território está disponível apenas para a conta Observatório Território Aberto (demonstração). Para outros perfis, o OFLIX mostra somente oportunidades relacionadas às atividades de interesse.</p><button type="button" className="button-secondary mt-5" onClick={chooseAnotherProfile}><ArrowLeft size={16} /> Trocar perfil</button></div> : error ? <div className="panel mt-8 flex min-h-[280px] flex-col items-center justify-center p-8 text-center"><CircleAlert className="text-amber" /><p className="mt-4 font-bold text-navy">Não foi possível carregar os agregados.</p><button className="button-secondary mt-5" onClick={() => window.location.reload()}><RefreshCw size={16} /> Tentar novamente</button></div> : !data ? <div className="panel mt-8 flex min-h-[280px] items-center justify-center"><Loader2 className="animate-spin text-blue" aria-label="Carregando indicadores" /></div> : <>
           <div className="mt-8 grid gap-4 sm:grid-cols-3">
             <div className="panel p-5"><p className="eyebrow">Oportunidades</p><p className="mt-3 text-3xl font-black tracking-[-.04em] text-navy">{data.totalOpportunities}</p><p className="mt-2 text-sm text-[#687b8b]">registros na base demo</p></div>
             <div className="panel p-5"><p className="eyebrow">Interações</p><p className="mt-3 text-3xl font-black tracking-[-.04em] text-navy">{data.interactions}</p><p className="mt-2 text-sm text-[#687b8b]">conexões registradas</p></div>
