@@ -40,14 +40,15 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
             </dl>
             {kind === "volunteer" && record.schedule && <VolunteerReminder opportunityId={record.id} title={record.title} description={record.description} schedule={record.schedule} eventDate={record.eventDate} location={`${record.location.municipality} · ${record.location.district}`} />}
           </article>
-          <aside className="panel h-fit p-6 sm:p-7">
+          <aside className="panel h-fit p-6 sm:p-7 lg:sticky lg:top-24">
             <p className="eyebrow">Próximo passo</p>
             <h2 className="mt-3 text-xl font-bold tracking-[-.02em] text-navy">{meta.action}</h2>
             <p className="mt-3 text-sm leading-6 text-[#607286]">A ação fica registrada como uma interação da demonstração e ajuda a compor a leitura agregada do território.</p>
-            <div className="mt-6"><InteractionAction targetId={record.id} kind={kind} ownerId={record.owner.id} /></div>
+            <div className="mt-6 hidden lg:block"><InteractionAction targetId={record.id} kind={kind} ownerId={record.owner.id} /></div>
             <p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-[#788995]">Perfil de demonstração · sem contato real ou autenticação de produção.</p>
           </aside>
         </div>
+        <div className="detail-mobile-action lg:hidden"><InteractionAction targetId={record.id} kind={kind} ownerId={record.owner.id} /></div>
       </div>
     </main>
   );

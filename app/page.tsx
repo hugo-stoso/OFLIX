@@ -25,7 +25,7 @@ export default function HomePage() {
             O trabalho certo, no lugar certo.
           </h1>
           <p className="body-copy mt-7 max-w-[590px] text-lg leading-8">
-            Plataforma completa para instituições e trabalhadores encontrarem as melhores oportunidades no mercado de trabalho.
+            Trabalho formal, serviços autônomos e voluntariado em um só lugar.
           </p>
           <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <Link className="button-primary" href="/demo">
@@ -40,7 +40,7 @@ export default function HomePage() {
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-5 rounded-[28px] bg-[#e8f1f6]" aria-hidden="true" />
+          <div className="absolute -inset-2 rounded-[28px] bg-[#e8f1f6] sm:-inset-5" aria-hidden="true" />
           <div className="relative rounded-panel border border-[#cbdde8] bg-white p-7 sm:p-9">
             <div className="flex items-start justify-between border-b border-line pb-6">
               <div>

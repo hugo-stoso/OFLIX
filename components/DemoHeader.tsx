@@ -47,7 +47,7 @@ export function DemoHeader() {
   }
 
   return (
-    <header className="border-b border-line bg-white">
+    <header className="sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur">
       <div className="shell flex min-h-[72px] items-center justify-between gap-4">
         <Brand compact />
         <div className="flex items-center gap-2 sm:gap-4">

@@ -25,8 +25,13 @@
 - Banco de talentos opt-in para pessoas interessadas em CLT, estágio, serviços autônomos e/ou voluntariado; organizações podem pesquisar perfis compartilhados sem restringir pela distância e iniciar conversa sobre remuneração, benefícios e próximos passos.
 - Banco de talentos permite informar manualmente município e Estado de moradia, deixa esse dado explícito para contratantes e não solicita acesso à localização, ao Google Maps ou a coordenadas.
 - Chamadas de serviço para o dia, abertas por pessoas ou instituições com atividade, janela e território aproximado; autônomos compatíveis recebem a chamada por polling/alerta do navegador e o primeiro aceite é protegido por atualização condicional no servidor.
-- Navegação da conta reorganizada em uma barra horizontal com Início, Preferências de trabalho, Serviço para hoje, Encontrar oportunidade e Banco de talentos quando aplicável; oferta/demanda permanece junto da busca.
+- Navegação da conta reorganizada por objetivos, com Início, Buscar, Serviço para hoje, Preferências ou Talentos e Perfil; no mobile os destinos ficam em bottom navigation e no desktop em uma barra curta.
 - Preferências de trabalho agora separam frentes (CLT, estágio, serviços autônomos e voluntariado), atividades autônomas com pesquisa e seleção múltipla e interesses de voluntariado com pesquisa e seleção múltipla.
+- Home demo contextual por persona, com ação principal, localização, oportunidades em destaque e acesso curto aos fluxos existentes.
+- Navegação principal responsiva com cinco destinos: pessoa (Início, Buscar, Serviço hoje, Preferências, Perfil) e organização (Início, Buscar, Serviço hoje, Talentos, Perfil); analista permanece em sua visão territorial dedicada.
+- Busca reorganizada com campo dominante, alternância simples entre ofertas e demandas, filtros ativos visíveis e filtros secundários recolhidos no mobile.
+- Detalhe da oportunidade com ação contextual persistente em barra fixa no mobile; landing sem overflow horizontal em 390 px.
+- Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844.
 
 ## VALIDAÇÃO NECESSÁRIA
 
