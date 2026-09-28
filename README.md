@@ -30,6 +30,12 @@ npm run dev
 
 Abra [http://localhost:3000](http://localhost:3000).
 
+## Publicação pública e indexação
+
+O projeto pode ser publicado como uma aplicação pública no Vercel conectada ao repositório GitHub. Cada push na branch `main` gera uma nova implantação. Em produção, defina `NEXT_PUBLIC_SITE_URL` com a URL pública principal para que canonical, Open Graph e sitemap usem o domínio correto; sem essa variável, o app aproveita as variáveis de ambiente fornecidas pelo Vercel.
+
+A aplicação expõe `/robots.txt` e `/sitemap.xml` e mantém a landing, a demonstração e o observatório como páginas rastreáveis. A publicação não garante aparição imediata no Google: depois do primeiro deploy, o proprietário do domínio deve adicionar a URL no Google Search Console e enviar o sitemap.
+
 Comandos de qualidade:
 
 ```bash

@@ -8,8 +8,8 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await page.getByRole("link", { name: "Entrar na demonstração" }).click();
   await page.waitForURL("**/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
-  await expect(page.getByRole("heading", { name: "Olá, Ana." })).toBeVisible();
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await expect(page.getByRole("heading", { name: "Olá, Hugo." })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Navegação principal" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Buscar", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Serviço hoje", exact: true })).toBeVisible();
@@ -91,7 +91,7 @@ test("chamado de serviço é entregue por atividade e aceito uma única vez", as
 test("separa ofertas de pessoas e demandas de contratantes", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByRole("tab", { name: /Demandas/ }).click();
   await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
@@ -116,19 +116,19 @@ test("organização não acessa demandas publicadas por outra organização", as
 test("menu da conta abre perfil, configurações e saída", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
-  await page.getByRole("button", { name: "Abrir menu de Ana Ribeiro" }).click();
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await page.getByRole("button", { name: "Abrir menu de Hugo Silva" }).click();
   await expect(page.getByRole("menu", { name: "Menu da conta" })).toBeVisible();
   await page.getByRole("menuitem", { name: "Meu perfil" }).click();
   await page.waitForURL("**/profile");
-  await expect(page.getByRole("heading", { name: "Ana Ribeiro" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hugo Silva" })).toBeVisible();
   await expect(page.getByText("Pessoa em busca de oportunidades e conexões locais.")).toBeVisible();
-  await page.getByRole("button", { name: "Abrir menu de Ana Ribeiro" }).click();
+  await page.getByRole("button", { name: "Abrir menu de Hugo Silva" }).click();
   await page.getByRole("menuitem", { name: "Configurações" }).click();
   await page.waitForURL("**/settings");
   await expect(page.getByRole("heading", { name: "Ajuste sua experiência." })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Receber avisos de oportunidades relacionadas" })).toBeVisible();
-  await page.getByRole("button", { name: "Abrir menu de Ana Ribeiro" }).click();
+  await page.getByRole("button", { name: "Abrir menu de Hugo Silva" }).click();
   await page.getByRole("menuitem", { name: "Sair" }).click();
   await page.waitForURL("**/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible();
@@ -150,7 +150,7 @@ test("organização publica demanda autônoma com múltiplas atividades", async 
   await expect(page.getByText(/Demanda criada na demonstração/)).toBeVisible();
   await expect(page.getByText("Eletricista · Manutenção")).toBeVisible();
   await page.getByRole("button", { name: "Trocar perfil" }).click();
-  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
   await page.getByRole("checkbox", { name: "Eletricista" }).check({ force: true });
   await expect(page.getByText(/nova\(s\) demanda\(s\) compatível\(is\)/)).toBeVisible();
@@ -159,7 +159,7 @@ test("organização publica demanda autônoma com múltiplas atividades", async 
 test("autônomo divulga sua força de trabalho separadamente", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: /Rafael Santos/ }).click();
+  await page.getByRole("button", { name: /Amanda Figueiredo/ }).click();
   await page.getByRole("button", { name: "Oferecer meu trabalho" }).click();
   await expect(page.getByRole("heading", { name: "Ofertar força de trabalho" })).toBeVisible();
   await page.getByRole("button", { name: "Nova oferta" }).click();
@@ -186,7 +186,7 @@ test("pessoa ou instituição abre chamado e autônomo aceita primeiro", async (
   await page.getByRole("button", { name: "Notificar autônomos" }).click();
   await expect(page.getByText(/Chamado aberto/)).toBeVisible();
   await page.getByRole("button", { name: "Trocar perfil" }).click();
-  await page.getByRole("button", { name: /Rafael Santos/ }).click();
+  await page.getByRole("button", { name: /Amanda Figueiredo/ }).click();
   await page.getByRole("button", { name: "Serviço hoje", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Chamados compatíveis hoje" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Aceitar primeiro" })).toBeVisible();
@@ -197,7 +197,7 @@ test("pessoa ou instituição abre chamado e autônomo aceita primeiro", async (
 test("pessoa opta por compartilhar perfil e organização consulta banco de talentos", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: /Ana Ribeiro/ }).click();
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Banco de talentos" })).toHaveCount(0);
   await expect(page.getByLabel("Município onde você mora")).toHaveValue("Aracaju");
@@ -217,8 +217,8 @@ test("pessoa opta por compartilhar perfil e organização consulta banco de tale
   await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
   await page.getByRole("button", { name: "Talentos", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Base de talentos" })).toBeVisible();
-  await expect(page.getByText("Ana Ribeiro")).toBeVisible();
-  const sharedProfile = page.locator("article").filter({ hasText: "Ana Ribeiro" }).first();
+  await expect(page.getByText("Hugo Silva")).toBeVisible();
+  const sharedProfile = page.locator("article").filter({ hasText: "Hugo Silva" }).first();
   await expect(sharedProfile.getByText("CLT", { exact: true }).last()).toBeVisible();
   await expect(sharedProfile.getByText("Voluntariado", { exact: true }).last()).toBeVisible();
   await expect(sharedProfile.getByText("Município: Lagarto · Estado: SE")).toBeVisible();
@@ -227,7 +227,7 @@ test("pessoa opta por compartilhar perfil e organização consulta banco de tale
   await expect(sharedProfile.getByRole("link", { name: /Baixar currículo/ })).toBeVisible();
   await expect(page.getByLabel("Filtrar escolaridade")).toBeVisible();
   await expect(page.getByLabel("Filtrar tipo de curso")).toBeVisible();
-  await page.getByLabel("Pesquisar talentos").fill("Ana");
+  await page.getByLabel("Pesquisar talentos").fill("Hugo");
   await expect(page.getByRole("button", { name: "Iniciar conversa" })).toBeVisible();
   await page.getByRole("button", { name: "Iniciar conversa" }).click();
   await expect(page.getByRole("button", { name: "Negociar remuneração" })).toBeVisible();

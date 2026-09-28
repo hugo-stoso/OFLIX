@@ -39,10 +39,10 @@ function seedDemoData(db: DatabaseLike) {
   for (const row of locations) insert("INSERT INTO locations (id, state, municipality, district) VALUES (?, ?, ?, ?)", ...row);
 
   const profiles = [
-    ["profile-ana", "Ana Ribeiro", "PERSON", "Pessoa em busca de oportunidades e conexões locais.", "Candidata formal · Voluntária", "loc-aracaju-centro"],
+    ["profile-ana", "Hugo Silva", "PERSON", "Pessoa em busca de oportunidades e conexões locais.", "Candidato formal · Voluntário", "loc-aracaju-centro"],
     ["profile-coletivo", "Coletivo Horizonte (demonstração)", "ORGANIZATION", "Organização fictícia para demonstrar publicação de oportunidades.", "Empresa · Ações comunitárias", "loc-aracaju-sao-jose"],
     ["profile-instituto", "Instituto Ponte Aberta (demonstração)", "ORGANIZATION", "Organização fictícia com atuação em desenvolvimento territorial.", "Organização sem fins lucrativos · Voluntariado", "loc-lagarto-cidade-nova"],
-    ["profile-rafael", "Rafael Santos (demonstração)", "PERSON", "Profissional autônomo que atende demandas residenciais.", "Manutenção residencial · Serviços autônomos", "loc-lagarto-centro"],
+    ["profile-rafael", "Amanda Figueiredo (demonstração)", "PERSON", "Profissional autônoma que atende demandas residenciais.", "Manutenção residencial · Serviços autônomos", "loc-lagarto-centro"],
     ["profile-analista", "Observatório Território Aberto (demonstração)", "INSTITUTIONAL_ANALYST", "Persona fictícia para leitura agregada do território.", "Inteligência territorial · Análise agregada", "loc-aracaju-centro"],
   ];
   for (const row of profiles) insert("INSERT INTO profiles (id, name, type, summary, capabilities, location_id) VALUES (?, ?, ?, ?, ?, ?)", ...row);
