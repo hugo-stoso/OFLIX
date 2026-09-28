@@ -33,6 +33,7 @@
 - Detalhe da oportunidade com ação contextual persistente em barra fixa no mobile; landing sem overflow horizontal em 390 px.
 - Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844.
 - SEO técnico da aplicação com metadata canonical/Open Graph, `robots.txt` e `sitemap.xml` para a publicação pública.
+- Deploy público da demo validado no Vercel em `https://oflix-six.vercel.app`, com atualização automática a partir da branch `main`.
 
 ## VALIDAÇÃO NECESSÁRIA
 
