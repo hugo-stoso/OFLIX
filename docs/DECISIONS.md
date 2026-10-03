@@ -8,6 +8,20 @@ Foi escolhida uma aplicação única em Next.js, TypeScript e Tailwind CSS por r
 
 As três frentes permanecem como entidades semânticas separadas. `Interaction` compartilha infraestrutura, mas mantém o tipo e o alvo explícitos. A deduplicação inicial usa uma restrição composta por perfil, frente e oportunidade.
 
+## Hub de descoberta e fontes externas
+
+Foi escolhida uma camada `DiscoveryItem` somente para indexação e apresentação. Cursos, concursos/processos seletivos, vagas externas e contratações públicas não são forçados para as tabelas operacionais das três frentes. A proveniência é obrigatória: fonte, rótulo, identificador, URL oficial/canônica e datas são preservados quando disponíveis.
+
+O provider PNCP fica isolado em `lib/connectors/pncp.ts`, no servidor, com timeout, cache curto, normalização e fallback. A experiência usa DEMO DATA por padrão para ser determinística e não representar dados fictícios como oficiais; uma atualização explícita pode consultar a API pública oficial. ComprasNet.SE e outras fontes não foram integradas sem documentação ou autorização pública suficiente.
+
+## Capacidades e oportunidades públicas
+
+O tipo `ORGANIZATION` não é suficiente sozinho para liberar licitações. A menor extensão adotada foi `profiles.can_supply_public`, marcada apenas para a organização fornecedora da demonstração. `PERSON` não ganha um novo tipo de conta: a capacidade autônoma existente mais um opt-in local determinam o acesso contextual. A interface sempre usa “pode interessar ao seu perfil” e “verifique os requisitos do edital”, sem inferir elegibilidade jurídica.
+
+## Matching explicável
+
+O primeiro matching é determinístico e legível: busca, tags, atividade/categoria, município e preferência selecionada. A explicação aparece como “Por que apareceu para você?” e não usa porcentagens arbitrárias nem IA generativa. Relações entre profissão e capacitação são relações de categoria/interesse, nunca causalidade.
+
 ## Perfil demo
 
 A primeira etapa não implementa autenticação. A seleção de uma persona fictícia é persistida no `localStorage` e identificada visualmente como “Perfil de demonstração”. Isso permite demonstrar perspectivas sem criar uma falsa sensação de segurança.
@@ -19,6 +33,10 @@ O modelo usa UF, município e bairro/região. Para o banco de talentos, a pessoa
 ## UX
 
 A landing é curta. A descoberta usa listas densas e legíveis. Cada frente usa seu próprio verbo de ação. A visão de analista evita nomes e números inventados; seus agregados vêm do seed e das interações.
+
+## Descoberta da marca
+
+O domínio técnico `oflix-six.vercel.app` é mantido como implantação atual, mas não é tratado como a identidade final da marca. A landing e os metadados usam “OFLIX” e “Sergipe” de forma explícita, com dados estruturados `WebSite` e favicon próprio. Um domínio próprio com OFLIX deve ser registrado e conectado pelo responsável quando houver disponibilidade; a posição para a busca genérica depende do Google e de sinais externos, então não é prometida pelo produto.
 
 ## Navegação por objetivo
 

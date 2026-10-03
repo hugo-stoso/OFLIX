@@ -6,6 +6,16 @@ Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing 
 
 A descoberta técnica usa metadata do Next.js, canonical e Open Graph no layout raiz, além de `/robots.txt` e `/sitemap.xml` para orientar rastreadores. `NEXT_PUBLIC_SITE_URL` pode fixar o domínio público; em um deploy Vercel sem essa variável, o app usa os hosts de produção fornecidos pela plataforma e mantém `localhost:3000` apenas como fallback local.
 
+## Descoberta unificada
+
+As entidades operacionais permanecem separadas (`formal_opportunities`, `service_offers` e `volunteer_opportunities`). `lib/discovery.ts` fornece uma camada de indexação leve (`DiscoveryItem`) para busca, home, filtros, explicação do matching e proveniência. Ela também normaliza cursos, concursos públicos, processos seletivos, vagas externas e contratações públicas sem transformar esses domínios em uma tabela genérica.
+
+O perfil demo carrega a capacidade `canSupplyPublic`. Organizações fornecedoras e pessoas `PERSON` com atividade autônoma podem ver o recorte de poder público; a pessoa autônoma ainda precisa manter o opt-in local. Organizações sem capacidade fornecedora não recebem o hub público. O analista continua entrando diretamente em `/demo/analyst`.
+
+`/api/public-opportunities` entrega DEMO DATA por padrão. `lib/connectors/pncp.ts` é um provider server-side isolado para a API pública de consulta do PNCP, usando `contratacoes/proposta`, filtro inicial por UF, timeout de 3,5 s, cache em memória de cinco minutos, normalização flexível, deduplicação conservadora e resposta de erro sem derrubar a aplicação. A atualização ao vivo é opt-in pela ação “Atualizar PNCP”; se a fonte falhar, a tela mantém o estado e informa a indisponibilidade. Não há adapter ComprasNet.SE, scraping ou endpoint privado.
+
+Itens externos carregam `source`, `sourceLabel`, `sourceId`, `sourceUrl`, datas, prazo e status quando informados. A UI distingue `DEMO DATA`, `PNCP` e `OFLIX`; o CTA externo usa “Ver no site oficial”, e nenhum item externo é contado como contratação ou emprego criado pelo OFLIX.
+
 ## Persistência
 
 SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL separa `profiles`, `locations`, `formal_opportunities`, `service_offers`, `volunteer_opportunities` e `interactions`. Em desenvolvimento, o banco fica em `prisma/dev.db` e é preparado com `npm run db:setup`. No Vercel, a demo usa um arquivo por deployment em `/tmp` e executa o seed DEMO na primeira inicialização da função, porque o filesystem do runtime não permite escrita no diretório do projeto. Essa persistência é efêmera e por instância; não representa uma camada de produção.
@@ -35,6 +45,10 @@ Chamadas de serviço seguem um fluxo separado do mural de oportunidades: pessoas
 ## UI e responsividade
 
 A interface usa layout editorial, azul-marinho, azul institucional, neutros frios, bordas discretas e raio moderado. A descoberta usa listas em vez de uma grade de cards. Os testes cobrem viewport desktop de 1440×900 e mobile de 390×844.
+
+## SEO de marca
+
+O layout raiz define título e descrição com a marca OFLIX e a associação a Sergipe, além de canonical, Open Graph, Twitter summary, favicon e dados estruturados `WebSite` em JSON-LD. A landing repete a marca em um título principal semanticamente descritivo para que pessoas e rastreadores entendam que o resultado é a plataforma territorial, não um dos serviços homônimos. A posição para a busca genérica “oflix” depende também de indexação, domínio, menções públicas e concorrência; o código não pode garantir uma colocação específica.
 
 ## Navegação contextual
 

@@ -33,6 +33,12 @@
 - Detalhe da oportunidade com ação contextual persistente em barra fixa no mobile; landing sem overflow horizontal em 390 px.
 - Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844.
 - SEO técnico da aplicação com metadata canonical/Open Graph, `robots.txt` e `sitemap.xml` para a publicação pública.
+- SEO de marca reforçado com título e descrição “OFLIX · Sergipe”, dados estruturados `WebSite`, favicon próprio e copy textual explícita na landing.
+- Busca unificada com `DiscoveryItem`, etiquetas de VAGA/SERVIÇO/CURSO/CONCURSO/PODER PÚBLICO, relação determinística por profissão e detalhe DEMO DATA.
+- Preferências ampliadas para concursos públicos, processos seletivos e cursos/capacitação, sem formulário separado por módulo.
+- Capacidade `canSupplyPublic` no perfil demo, com acesso contextual a oportunidades públicas para organização fornecedora e pessoa autônoma opt-in.
+- Proveniência visível, rotas de detalhe para itens DEMO DATA e estados de fonte com fallback.
+- Adapter server-side PNCP preparado com consulta pública oficial, timeout, cache curto, normalização e deduplicação conservadora; a UI só atualiza ao vivo por ação explícita.
 - Deploy público da demo validado no Vercel em `https://oflix-six.vercel.app`, com atualização automática a partir da branch `main`.
 
 ## VALIDAÇÃO NECESSÁRIA
@@ -42,6 +48,11 @@
 - Definição de governança, consentimento e moderação.
 
 ## PARCIAL
+
+- Concursos, processos seletivos, cursos, vagas externas e contratações públicas estão implementados como DEMO DATA para provar a experiência; ainda não há fontes reais legítimas integradas para esses universos.
+- O adapter PNCP está implementado e isolado, mas a disponibilidade e o comportamento da API em cada ambiente de deploy ainda precisam de validação operacional contínua; o fallback DEMO DATA é o estado determinístico padrão.
+- A deduplicação existe na normalização em memória por fonte/identificador e sinais conservadores; ainda não há agrupamento persistido nem histórico de decisões.
+- Favoritos e alertas continuam focados nas entidades operacionais locais; a extensão para todos os `DiscoveryItem` é uma pendência de baixo risco.
 
 - Publicação e “Minhas oportunidades” funcionam como fluxo da demonstração; ainda não há persistência real de autoria, edição, moderação ou autorização.
 - A seleção de atividades demandadas e o aviso de compatibilidade também são locais da demonstração; ainda não enviam notificações server-side para trabalhadores fora do navegador.
@@ -60,6 +71,8 @@
 - Fluxos de cadastro, autenticação real, autorização persistente e recuperação de acesso.
 - Criação, edição, revisão e encerramento de oportunidades persistentes.
 - Notificações server-side e integração OAuth com Google Agenda.
+- Canal oficial/autorização para ComprasNet.SE; a ausência é intencional e não há scraping.
+- Primeira fonte autorizada de vagas externas, cursos ou concursos reais.
 
 ## FUTURO
 

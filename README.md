@@ -1,6 +1,6 @@
 # OFLIX
 
-OFLIX é uma plataforma territorial em demonstração para Sergipe. A primeira fundação conecta três frentes — trabalho formal, serviços autônomos e voluntariado — em uma experiência única de descoberta, interação e leitura agregada do território.
+OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em demonstração para Sergipe. As três frentes originais — trabalho formal, serviços autônomos e voluntariado — continuam existindo e agora convivem com descoberta contextual de capacitação, concursos/processos seletivos públicos, vagas externas autorizadas e oportunidades de fornecimento ao poder público.
 
 ## O que está nesta fundação
 
@@ -10,6 +10,17 @@ OFLIX é uma plataforma territorial em demonstração para Sergipe. A primeira f
 - Detalhes com ações semânticas por frente: candidatura, solicitação de contato e interesse em participar.
 - Registro de `Interaction` em SQLite, com prevenção de duplicação simples.
 - Primeira visão de inteligência territorial calculada sobre as mesmas oportunidades e interações.
+- Busca unificada que relaciona trabalho, capacitação e oportunidades públicas sem transformar a navegação em um portal de módulos.
+- Proveniência visível em itens externos; `DEMO DATA` é identificado quando não há fonte legitimamente integrada.
+- Adapter server-side do PNCP com timeout, normalização, deduplicação conservadora, cache curto e fallback.
+
+## Evolução do hub nesta execução
+
+- `PERSON` descobre trabalho, serviços, voluntariado, cursos, concursos públicos, processos seletivos e vagas externas DEMO DATA.
+- Pessoa com atividade autônoma pode ativar, em Preferências, oportunidades com o poder público; a interface orienta a conferir o edital e não afirma habilitação jurídica.
+- Organizações só recebem o hub de fornecimento quando a capacidade `canSupplyPublic` está marcada; organizações sem essa capacidade continuam fora desse recorte.
+- Contratações públicas usam “Poder público” e “Forma de contratação”; concurso público permanece separado da modalidade jurídica `Concurso — modalidade de contratação`.
+- Nenhum scraping é feito. ComprasNet.SE e vagas/cursos/concursos reais permanecem pendentes de API, feed ou autorização documentada.
 
 Os dados do seed são DEMO DATA, fictícios e substituíveis. Nenhum dado pessoal da proposta de inscrição deve ser incluído no repositório.
 
@@ -34,9 +45,9 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 O projeto pode ser publicado como uma aplicação pública no Vercel conectada ao repositório GitHub. Cada push na branch `main` gera uma nova implantação. Em produção, defina `NEXT_PUBLIC_SITE_URL` com a URL pública principal para que canonical, Open Graph e sitemap usem o domínio correto; sem essa variável, o app aproveita as variáveis de ambiente fornecidas pelo Vercel.
 
-A implantação pública atual está em [oflix-six.vercel.app](https://oflix-six.vercel.app).
+A implantação pública atual está em [oflix-six.vercel.app](https://oflix-six.vercel.app). O endereço técnico do Vercel é temporário; para facilitar a memorização e diferenciar a marca de outros resultados chamados “Oflix”, a publicação ideal deve usar um domínio próprio que contenha OFLIX e a associação territorial, como `oflixsergipe.com.br`, caso esteja disponível e seja registrado pelo responsável.
 
-A aplicação expõe `/robots.txt` e `/sitemap.xml` e mantém a landing, a demonstração e o observatório como páginas rastreáveis. A publicação não garante aparição imediata no Google: depois do primeiro deploy, o proprietário do domínio deve adicionar a URL no Google Search Console e enviar o sitemap.
+A aplicação usa título e descrição com “OFLIX” e “Sergipe”, dados estruturados `WebSite`, favicon próprio, canonical, Open Graph, `/robots.txt` e `/sitemap.xml`. Isso melhora a compreensão e a apresentação do site, mas não garante o primeiro lugar: depois do deploy, o proprietário deve verificar o domínio no Google Search Console, enviar `https://SEU-DOMINIO/sitemap.xml` e solicitar a indexação da página inicial. Também é importante divulgar o domínio em perfis e páginas públicas legítimas, porque links externos ajudam o Google a descobrir e contextualizar a marca.
 
 Comandos de qualidade:
 

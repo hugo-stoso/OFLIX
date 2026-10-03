@@ -3,10 +3,14 @@ import { getSiteUrl } from "@/lib/site";
 import "./globals.css";
 
 const siteUrl = getSiteUrl();
+const siteName = "OFLIX";
+const siteTitle = "OFLIX | Trabalho, serviços e voluntariado em Sergipe";
+const siteDescription = "OFLIX é a plataforma territorial de Sergipe para encontrar trabalho formal, serviços autônomos e voluntariado em um só lugar.";
 
 export const metadata: Metadata = {
-  title: "OFLIX · Trabalho que acontece no território",
-  description: "Demo territorial para conectar trabalho formal, serviços autônomos e voluntariado em Sergipe.",
+  title: siteTitle,
+  description: siteDescription,
+  applicationName: siteName,
   metadataBase: siteUrl,
   alternates: {
     canonical: "/",
@@ -14,10 +18,18 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    siteName: "OFLIX",
-    title: "OFLIX · Trabalho que acontece no território",
-    description: "Uma plataforma territorial para aproximar trabalho formal, serviços autônomos e voluntariado em Sergipe.",
+    siteName,
+    title: siteTitle,
+    description: siteDescription,
     url: siteUrl,
+  },
+  twitter: {
+    card: "summary",
+    title: siteTitle,
+    description: siteDescription,
+  },
+  icons: {
+    icon: "/icon.svg",
   },
   robots: {
     index: true,
@@ -29,9 +41,22 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteName,
+    alternateName: "OFLIX Sergipe",
+    url: siteUrl.toString(),
+    description: siteDescription,
+    inLanguage: "pt-BR",
+  };
+
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        {children}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      </body>
     </html>
   );
 }

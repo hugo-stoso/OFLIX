@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { WORK_ACTIVITIES, type OpportunityKind } from "@/lib/domain";
 
 export type Location = { id: string; state: string; municipality: string; district: string };
-export type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; isDemo: boolean; location: Location };
+export type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; canSupplyPublic: boolean; isDemo: boolean; location: Location };
 export type FormalEmploymentType = "CLT" | "INTERNSHIP";
 export type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; owner: { id: string; name: string }; ownerType: Profile["type"]; location: Location; availability?: string; schedule?: string; eventDate?: string; employmentType?: FormalEmploymentType; requiredActivities?: string[] };
 export type ServiceCallStatus = "OPEN" | "ACCEPTED";
@@ -39,13 +39,13 @@ function seedDemoData(db: DatabaseLike) {
   for (const row of locations) insert("INSERT INTO locations (id, state, municipality, district) VALUES (?, ?, ?, ?)", ...row);
 
   const profiles = [
-    ["profile-ana", "Hugo Silva", "PERSON", "Pessoa em busca de oportunidades e conexões locais.", "Candidato formal · Voluntário", "loc-aracaju-centro"],
-    ["profile-coletivo", "Coletivo Horizonte (demonstração)", "ORGANIZATION", "Organização fictícia para demonstrar publicação de oportunidades.", "Empresa · Ações comunitárias", "loc-aracaju-sao-jose"],
-    ["profile-instituto", "Instituto Ponte Aberta (demonstração)", "ORGANIZATION", "Organização fictícia com atuação em desenvolvimento territorial.", "Organização sem fins lucrativos · Voluntariado", "loc-lagarto-cidade-nova"],
-    ["profile-rafael", "Amanda Figueiredo (demonstração)", "PERSON", "Profissional autônoma que atende demandas residenciais.", "Manutenção residencial · Serviços autônomos", "loc-lagarto-centro"],
-    ["profile-analista", "Observatório Território Aberto (demonstração)", "INSTITUTIONAL_ANALYST", "Persona fictícia para leitura agregada do território.", "Inteligência territorial · Análise agregada", "loc-aracaju-centro"],
+    ["profile-ana", "Hugo Silva", "PERSON", "Pessoa em busca de oportunidades e conexões locais.", "Candidato formal · Voluntário", "loc-aracaju-centro", "0"],
+    ["profile-coletivo", "Coletivo Horizonte (demonstração)", "ORGANIZATION", "Organização fictícia para demonstrar publicação de oportunidades.", "Empresa · Ações comunitárias", "loc-aracaju-sao-jose", "1"],
+    ["profile-instituto", "Instituto Ponte Aberta (demonstração)", "ORGANIZATION", "Organização fictícia com atuação em desenvolvimento territorial.", "Organização sem fins lucrativos · Voluntariado", "loc-lagarto-cidade-nova", "0"],
+    ["profile-rafael", "Amanda Figueiredo (demonstração)", "PERSON", "Profissional autônoma que atende demandas residenciais.", "Manutenção residencial · Serviços autônomos", "loc-lagarto-centro", "0"],
+    ["profile-analista", "Observatório Território Aberto (demonstração)", "INSTITUTIONAL_ANALYST", "Persona fictícia para leitura agregada do território.", "Inteligência territorial · Análise agregada", "loc-aracaju-centro", "0"],
   ];
-  for (const row of profiles) insert("INSERT INTO profiles (id, name, type, summary, capabilities, location_id) VALUES (?, ?, ?, ?, ?, ?)", ...row);
+  for (const row of profiles) insert("INSERT INTO profiles (id, name, type, summary, capabilities, location_id, can_supply_public) VALUES (?, ?, ?, ?, ?, ?, ?)", ...row);
 
   insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-operations", "Assistente de operações locais", "A pessoa apoiará a organização de rotas, conferência de estoque, contato com parceiros e registro de indicadores simples da operação. A rotina combina trabalho em equipe, acompanhamento de prazos e presença no território.", "Operações", "profile-coletivo", "loc-aracaju-centro", "CLT");
   insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-attendance", "Técnico de atendimento", "Atendimento presencial e remoto para uma rede de serviços em expansão, com acolhimento de solicitações, organização de agenda e encaminhamento para as áreas responsáveis. Buscamos comunicação clara e escuta ativa.", "Atendimento", "profile-coletivo", "loc-socorro-taicoca", "CLT");
@@ -78,7 +78,7 @@ function database() {
     db.exec(`
       PRAGMA foreign_keys = ON;
       CREATE TABLE IF NOT EXISTS locations (id TEXT PRIMARY KEY, state TEXT NOT NULL, municipality TEXT NOT NULL, district TEXT NOT NULL, UNIQUE(state, municipality, district));
-      CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, summary TEXT NOT NULL, capabilities TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 1, location_id TEXT NOT NULL REFERENCES locations(id));
+      CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, summary TEXT NOT NULL, capabilities TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 1, location_id TEXT NOT NULL REFERENCES locations(id), can_supply_public INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS formal_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organization_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), status TEXT NOT NULL DEFAULT 'OPEN', employment_type TEXT NOT NULL DEFAULT 'CLT');
       CREATE TABLE IF NOT EXISTS service_offers (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, provider_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), availability TEXT NOT NULL, required_activities TEXT NOT NULL DEFAULT '');
       CREATE TABLE IF NOT EXISTS volunteer_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organizer_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), schedule TEXT NOT NULL, event_date TEXT);
@@ -91,6 +91,8 @@ function database() {
     try { db.exec("ALTER TABLE formal_opportunities ADD COLUMN employment_type TEXT NOT NULL DEFAULT 'CLT'"); } catch { /* coluna já existe */ }
     try { db.exec("ALTER TABLE service_offers ADD COLUMN required_activities TEXT NOT NULL DEFAULT ''"); } catch { /* coluna já existe */ }
     try { db.exec("ALTER TABLE volunteer_opportunities ADD COLUMN event_date TEXT"); } catch { /* coluna já existe */ }
+    try { db.exec("ALTER TABLE profiles ADD COLUMN can_supply_public INTEGER NOT NULL DEFAULT 0"); } catch { /* coluna já existe */ }
+    db.prepare("UPDATE profiles SET can_supply_public = 1 WHERE id = 'profile-coletivo'").run();
     globalForDb.oflixInitialized = true;
     seedDemoData(db);
   }
@@ -99,8 +101,8 @@ function database() {
 
 export function ensureDatabase() { return database(); }
 function locationFrom(row: Row): Location { return { id: String(row.location_id), state: String(row.state), municipality: String(row.municipality), district: String(row.district) }; }
-function profileFrom(row: Row): Profile { return { id: String(row.id), name: String(row.name), type: String(row.type) as Profile["type"], summary: String(row.summary), capabilities: String(row.capabilities), isDemo: Boolean(row.is_demo), location: locationFrom(row) }; }
-const profileSelect = `SELECT p.id, p.name, p.type, p.summary, p.capabilities, p.is_demo, l.id AS location_id, l.state, l.municipality, l.district FROM profiles p JOIN locations l ON l.id = p.location_id`;
+function profileFrom(row: Row): Profile { return { id: String(row.id), name: String(row.name), type: String(row.type) as Profile["type"], summary: String(row.summary), capabilities: String(row.capabilities), canSupplyPublic: Boolean(row.can_supply_public), isDemo: Boolean(row.is_demo), location: locationFrom(row) }; }
+const profileSelect = `SELECT p.id, p.name, p.type, p.summary, p.capabilities, p.can_supply_public, p.is_demo, l.id AS location_id, l.state, l.municipality, l.district FROM profiles p JOIN locations l ON l.id = p.location_id`;
 
 export function listProfiles() { return database().prepare(`${profileSelect} ORDER BY p.type, p.name`).all().map(profileFrom); }
 

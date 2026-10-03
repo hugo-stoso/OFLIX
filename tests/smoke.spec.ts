@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 test("percurso principal: perfil, descoberta, detalhe e interação", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "O trabalho certo, no lugar certo." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "OFLIX conecta trabalho, serviços e voluntariado em Sergipe." })).toBeVisible();
   await page.getByRole("link", { name: "Entrar na demonstração" }).click();
   await page.waitForURL("**/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
@@ -247,4 +247,36 @@ test("mobile não cria overflow horizontal na landing", async ({ page }) => {
   await page.goto("/");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);
+});
+
+test("busca unificada conecta profissão, capacitação e concurso sem abrir licitação para pessoa comum", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
+  await page.getByPlaceholder("Buscar por título ou atividade").fill("eletricista");
+  await expect(page.getByRole("heading", { name: "Instalações elétricas residenciais" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Contratação DEMO de manutenção elétrica" })).toHaveCount(0);
+  await expect(page.getByText(/Fonte: DEMO DATA/).first()).toBeVisible();
+});
+
+test("capacidade de fornecedora controla oportunidades públicas", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Instituto Ponte Aberta/ }).click();
+  await expect(page.getByRole("heading", { name: "Oportunidades com o poder público" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Trocar perfil" }).first().click();
+  await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
+  await expect(page.getByRole("heading", { name: "Oportunidades com o poder público" })).toBeVisible();
+});
+
+test("API pública retorna DEMO DATA sem mascarar a proveniência", async ({ request }) => {
+  const response = await request.get("/api/public-opportunities");
+  expect(response.ok()).toBe(true);
+  const payload = await response.json();
+  expect(payload.source).toBe("DEMO_DATA");
+  expect(payload.provider).toBe("PNCP");
+  expect(payload.items.every((item: { source: string; demo: boolean }) => item.source === "DEMO_DATA" && item.demo)).toBe(true);
 });

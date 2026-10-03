@@ -20,12 +20,12 @@ export default function HomePage() {
 
       <section className="shell grid gap-12 pb-20 pt-16 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:pt-24">
         <div>
-          <p className="eyebrow">Uma plataforma territorial</p>
+          <p className="eyebrow">OFLIX · plataforma territorial em Sergipe</p>
           <h1 className="mt-5 max-w-[680px] text-5xl font-black leading-[1.03] tracking-[-.055em] text-navy sm:text-6xl">
-            O trabalho certo, no lugar certo.
+            OFLIX conecta trabalho, serviços e voluntariado em Sergipe.
           </h1>
           <p className="body-copy mt-7 max-w-[590px] text-lg leading-8">
-            Trabalho formal, serviços autônomos e voluntariado em um só lugar.
+            Encontre trabalho formal, serviços autônomos e oportunidades de voluntariado em um só lugar.
           </p>
           <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <Link className="button-primary" href="/demo">
@@ -67,7 +67,7 @@ export default function HomePage() {
       <section className="border-y border-line bg-white py-11">
         <div className="shell flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="eyebrow">Primeira fundação da demo</p>
+            <p className="eyebrow">O que é o OFLIX?</p>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5d7184]">Explore uma experiência navegável com personas fictícias, oportunidades territoriais e interações persistidas.</p>
           </div>
           <Link className="subtle-link whitespace-nowrap" href="/demo">Conhecer os perfis →</Link>

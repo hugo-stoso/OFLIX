@@ -2,26 +2,30 @@
 
 import Link from "next/link";
 import { ArrowRight, BarChart3, CircleAlert, Loader2, MapPin, RefreshCw, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DemoHeader } from "@/components/DemoHeader";
 import { DemoNavigation, type DemoView } from "@/components/DemoNavigation";
+import { DiscoveryRow } from "@/components/DiscoveryRow";
 import { InterestSelector } from "@/components/InterestSelector";
 import { OpportunityComposer } from "@/components/OpportunityComposer";
 import { OpportunityFilters } from "@/components/OpportunityFilters";
-import { OpportunityRow } from "@/components/OpportunityRow";
 import { PersonalTerritoryPanel } from "@/components/PersonalTerritoryPanel";
 import { ProfilePicker } from "@/components/ProfilePicker";
+import { PublicOpportunityPanel } from "@/components/PublicOpportunityPanel";
 import { ServiceCallComposer } from "@/components/ServiceCallComposer";
 import { ServiceCallPanel } from "@/components/ServiceCallPanel";
 import { TalentBasePanel } from "@/components/TalentBasePanel";
-import type { OpportunityKind } from "@/lib/domain";
+import { canDiscoverPublicOpportunities, type DiscoveryItem, type OpportunityKind } from "@/lib/domain";
+import { demoDiscoveryItems, internalToDiscoveryItem } from "@/lib/discovery";
 
-type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; location: { state: string; municipality: string; district: string } };
+type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; canSupplyPublic: boolean; location: { state: string; municipality: string; district: string } };
 type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; location: { municipality: string; district: string }; owner: { id: string; name: string }; ownerType: Profile["type"]; employmentType?: "CLT" | "INTERNSHIP"; eventDate?: string; requiredActivities?: string[] };
 type Talent = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
 type PublicationMode = "offers" | "demands";
+type SearchKind = "all" | OpportunityKind;
 
-const tabs: { key: OpportunityKind; label: string }[] = [
+const tabs: { key: SearchKind; label: string }[] = [
+  { key: "all", label: "Tudo" },
   { key: "formal", label: "Trabalho formal" },
   { key: "service", label: "Serviços autônomos" },
   { key: "volunteer", label: "Voluntariado" },
@@ -40,7 +44,7 @@ export default function DemoPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [opportunities, setOpportunities] = useState<Record<OpportunityKind, Opportunity[]>>({ formal: [], service: [], volunteer: [] });
   const [talents, setTalents] = useState<Talent[]>([]);
-  const [activeTab, setActiveTab] = useState<OpportunityKind>("formal");
+  const [activeTab, setActiveTab] = useState<SearchKind>("all");
   const [publicationMode, setPublicationMode] = useState<PublicationMode>("demands");
   const [activeView, setActiveView] = useState<DemoView>("home");
   const [personComposerOpen, setPersonComposerOpen] = useState(false);
@@ -52,6 +56,10 @@ export default function DemoPage() {
   const [favoriteVersion, setFavoriteVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [publicItems, setPublicItems] = useState<DiscoveryItem[]>(demoDiscoveryItems.filter((item) => item.kind === "public_procurement"));
+  const [publicLoading, setPublicLoading] = useState(false);
+  const [publicError, setPublicError] = useState("");
+  const [publicInterestEnabled, setPublicInterestEnabled] = useState(false);
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId) ?? null, [profiles, selectedId]);
 
   useEffect(() => {
@@ -59,17 +67,27 @@ export default function DemoPage() {
     if (stored) setSelectedId(stored);
     const onFavoritesChanged = () => setFavoriteVersion((version) => version + 1);
     window.addEventListener("oflix-favorites-changed", onFavoritesChanged);
-    Promise.all([fetch("/api/profiles"), fetch("/api/opportunities")])
-      .then(async ([profileResponse, opportunityResponse]) => {
+    Promise.all([fetch("/api/profiles"), fetch("/api/opportunities"), fetch("/api/public-opportunities")])
+      .then(async ([profileResponse, opportunityResponse, publicResponse]) => {
         if (!profileResponse.ok || !opportunityResponse.ok) throw new Error("request");
-        const [profileData, opportunityData] = await Promise.all([profileResponse.json(), opportunityResponse.json()]);
+        const [profileData, opportunityData, publicData] = await Promise.all([profileResponse.json(), opportunityResponse.json(), publicResponse.json()]);
         setProfiles(profileData);
         setOpportunities({ formal: opportunityData.formal, service: opportunityData.services, volunteer: opportunityData.volunteer });
+        if (Array.isArray(publicData.items)) setPublicItems(publicData.items);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
     return () => window.removeEventListener("oflix-favorites-changed", onFavoritesChanged);
   }, []);
+
+  useEffect(() => {
+    if (!selectedProfile) return;
+    const eligible = canDiscoverPublicOpportunities(selectedProfile);
+    const readPublicPreference = () => setPublicInterestEnabled(eligible && window.localStorage.getItem(`oflix-public-opportunities-${selectedProfile.id}`) !== "off");
+    readPublicPreference();
+    window.addEventListener("oflix-public-opportunities-changed", readPublicPreference);
+    return () => window.removeEventListener("oflix-public-opportunities-changed", readPublicPreference);
+  }, [selectedProfile]);
 
   useEffect(() => {
     if (selectedProfile?.type !== "ORGANIZATION") { setTalents([]); return; }
@@ -83,13 +101,37 @@ export default function DemoPage() {
     if (selectedProfile?.type === "INSTITUTIONAL_ANALYST") window.location.replace("/demo/analyst");
   }, [selectedProfile]);
 
-  const modeOpportunities = useMemo(() => opportunities[activeTab].filter((opportunity) => {
+  const modeOpportunities = useMemo(() => opportunities[activeTab === "all" ? "formal" : activeTab].filter((opportunity) => {
     if (publicationMode === "offers") return opportunity.ownerType === "PERSON";
     if (selectedProfile?.type === "ORGANIZATION") return opportunity.ownerType !== "PERSON" && opportunity.owner.id === selectedProfile.id;
     return opportunity.ownerType !== "PERSON";
   }), [activeTab, opportunities, publicationMode, selectedProfile]);
-  const categories = useMemo(() => Array.from(new Set(modeOpportunities.flatMap((opportunity) => activeTab === "service" && opportunity.requiredActivities?.length ? opportunity.requiredActivities : [opportunity.category]))).sort(), [activeTab, modeOpportunities]);
-  const municipalities = useMemo(() => Array.from(new Set(modeOpportunities.map((opportunity) => opportunity.location.municipality))).sort(), [modeOpportunities]);
+  const allInternalDiscovery = useMemo(() => Object.values(opportunities).flat().map((opportunity) => internalToDiscoveryItem(opportunity)), [opportunities]);
+  const eligiblePublicItems = useMemo(() => publicInterestEnabled && publicationMode === "demands" && selectedProfile && canDiscoverPublicOpportunities(selectedProfile) ? publicItems : [], [publicInterestEnabled, publicationMode, publicItems, selectedProfile]);
+  const unifiedItems = useMemo(() => {
+    const internal = allInternalDiscovery.filter((item) => {
+      if (item.kind !== "formal" && item.kind !== "service" && item.kind !== "volunteer") return false;
+      const opportunity = opportunities[item.kind].find((candidate) => candidate.id === item.id);
+      if (!opportunity) return false;
+      if (selectedProfile?.type === "PERSON") return true;
+      if (publicationMode === "offers") return opportunity.ownerType === "PERSON";
+      if (selectedProfile?.type === "ORGANIZATION") return opportunity.ownerType !== "PERSON" && opportunity.owner.id === selectedProfile.id;
+      return opportunity.ownerType !== "PERSON";
+    });
+    const personalExternal = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement") : [];
+    return [...internal, ...personalExternal, ...eligiblePublicItems];
+  }, [allInternalDiscovery, eligiblePublicItems, opportunities, publicationMode, selectedProfile]);
+  const categories = useMemo(() => Array.from(new Set((activeTab === "all" ? unifiedItems : modeOpportunities).flatMap((opportunity) => "requiredActivities" in opportunity && opportunity.requiredActivities?.length ? opportunity.requiredActivities : [opportunity.category]))).sort(), [activeTab, modeOpportunities, unifiedItems]);
+  const municipalities = useMemo(() => Array.from(new Set((activeTab === "all" ? unifiedItems : modeOpportunities).map((opportunity) => opportunity.location.municipality))).sort(), [activeTab, modeOpportunities, unifiedItems]);
+  const filterDiscoveryItem = useCallback((item: DiscoveryItem) => {
+    const term = search.trim().toLowerCase();
+    const matchesTerm = !term || `${item.title} ${item.description} ${item.category} ${item.tags.join(" ")}`.toLowerCase().includes(term);
+    const matchesCategory = !category || [item.category, ...item.tags].includes(category);
+    const matchesMunicipality = !municipality || item.location.municipality === municipality;
+    const matchesEmployment = item.kind !== "formal" || employmentType === "ALL" || (employmentType === "CLT" ? item.modality === "CLT" : item.modality === "Estágio");
+    const matchesFavorite = !favoritesOnly || favoriteIds().includes(item.id);
+    return matchesTerm && matchesCategory && matchesMunicipality && matchesEmployment && matchesFavorite;
+  }, [category, employmentType, favoritesOnly, municipality, search]);
   const visible = useMemo(() => {
     void favoriteVersion;
     const term = search.trim().toLowerCase();
@@ -104,9 +146,26 @@ export default function DemoPage() {
       return matchesTerm && matchesCategory && matchesMunicipality && matchesEmployment && matchesFavorite;
     });
   }, [activeTab, category, employmentType, favoriteVersion, favoritesOnly, modeOpportunities, municipality, search]);
+  const visibleDiscovery = useMemo(() => {
+    void favoriteVersion;
+    const source = activeTab === "all" ? unifiedItems : visible.map((opportunity) => internalToDiscoveryItem(opportunity));
+    return source.filter((item) => filterDiscoveryItem(item));
+  }, [activeTab, favoriteVersion, unifiedItems, visible, filterDiscoveryItem]);
   const allOpportunities = useMemo(() => Object.values(opportunities).flat(), [opportunities]);
   const ownedOpportunities = useMemo(() => selectedProfile ? allOpportunities.filter((opportunity) => opportunity.owner.id === selectedProfile.id) : [], [allOpportunities, selectedProfile]);
-  const homeMatches = useMemo(() => allOpportunities.filter((opportunity) => opportunity.ownerType !== "PERSON").slice(0, 3), [allOpportunities]);
+  const homeMatches = useMemo(() => unifiedItems.slice(0, 3), [unifiedItems]);
+
+  async function refreshPublicOpportunities() {
+    setPublicLoading(true); setPublicError("");
+    try {
+      const response = await fetch("/api/public-opportunities?live=1&state=SE");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Não foi possível atualizar oportunidades públicas agora.");
+      setPublicItems(data.items ?? []);
+    } catch (refreshError) {
+      setPublicError(refreshError instanceof Error ? refreshError.message : "Não foi possível atualizar oportunidades públicas agora.");
+    } finally { setPublicLoading(false); }
+  }
 
   function chooseProfile(id: string) {
     setSelectedId(id);
@@ -159,7 +218,7 @@ export default function DemoPage() {
           <button type="button" className="quick-action" onClick={() => isPerson ? openPersonComposer() : goTo("talents")}><span><span className="quick-action-kicker">Atalho</span><strong>{isPerson ? "Oferecer meu trabalho" : "Encontrar talentos"}</strong></span><ArrowRight size={18} /></button>
         </div>
 
-        {isPerson ? <><section className="mt-10" aria-labelledby="home-opportunities-title"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Para você</p><h2 id="home-opportunities-title" className="mt-2 text-2xl font-bold tracking-[-.03em] text-navy">Oportunidades em destaque</h2><p className="mt-1 text-sm text-[#637688]">Demandas que já estão movimentando o território.</p></div><button type="button" className="subtle-link" onClick={() => goTo("discover")}>Ver todas</button></div><div className="panel mt-4 px-5 sm:px-8">{homeMatches.length ? homeMatches.map((opportunity) => <OpportunityRow key={opportunity.id} opportunity={opportunity} kind={opportunity.kind} />) : <p className="py-8 text-sm text-[#637688]">Nenhuma oportunidade disponível agora.</p>}</div></section>{personComposerOpen && <div id="person-offer" className="mt-8 scroll-mt-4"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /></div>}</> : <section id="publish-opportunity" className="mt-10 scroll-mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /><section className="panel p-5 sm:p-6"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Acompanhar</p><h2 className="mt-2 text-xl font-bold text-navy">Minhas oportunidades</h2></div><span className="text-sm font-bold text-blue">{ownedOpportunities.length}</span></div><div className="mt-4 divide-y divide-line">{ownedOpportunities.length ? ownedOpportunities.map((opportunity) => <div key={opportunity.id} className="flex items-center justify-between gap-4 py-3"><span className="min-w-0"><strong className="block truncate text-sm text-navy">{opportunity.title}</strong><span className="text-xs text-[#718291]">{opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : opportunity.requiredActivities?.join(" · ") ?? opportunity.category}</span></span><span className="status status-success">Publicada</span></div>) : <p className="py-4 text-sm text-[#637688]">Você ainda não publicou uma oportunidade.</p>}</div><button type="button" className="subtle-link mt-4" onClick={() => goTo("discover")}>Ver oportunidades do território →</button></section></section>}
+        {isPerson ? <><section className="mt-10" aria-labelledby="home-opportunities-title"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Para você</p><h2 id="home-opportunities-title" className="mt-2 text-2xl font-bold tracking-[-.03em] text-navy">Oportunidades em destaque</h2><p className="mt-1 text-sm text-[#637688]">Trabalho, concursos e capacitações relacionados em um só recorte.</p></div><button type="button" className="subtle-link" onClick={() => goTo("discover")}>Ver todas</button></div><div className="panel mt-4 px-5 sm:px-8">{homeMatches.length ? homeMatches.map((item) => <DiscoveryRow key={item.id} item={item} />) : <p className="py-8 text-sm text-[#637688]">Nenhuma oportunidade disponível agora.</p>}</div></section>{personComposerOpen && <div id="person-offer" className="mt-8 scroll-mt-4"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /></div>}{canDiscoverPublicOpportunities(selectedProfile) && <PublicOpportunityPanel items={publicItems} onRefresh={refreshPublicOpportunities} loading={publicLoading} error={publicError} profileLabel={selectedProfile.name} />}</> : <><section id="publish-opportunity" className="mt-10 scroll-mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /><section className="panel p-5 sm:p-6"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Acompanhar</p><h2 className="mt-2 text-xl font-bold text-navy">Minhas oportunidades</h2></div><span className="text-sm font-bold text-blue">{ownedOpportunities.length}</span></div><div className="mt-4 divide-y divide-line">{ownedOpportunities.length ? ownedOpportunities.map((opportunity) => <div key={opportunity.id} className="flex items-center justify-between gap-4 py-3"><span className="min-w-0"><strong className="block truncate text-sm text-navy">{opportunity.title}</strong><span className="text-xs text-[#718291]">{opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : opportunity.requiredActivities?.join(" · ") ?? opportunity.category}</span></span><span className="status status-success">Publicada</span></div>) : <p className="py-4 text-sm text-[#637688]">Você ainda não publicou uma oportunidade.</p>}</div><button type="button" className="subtle-link mt-4" onClick={() => goTo("discover")}>Ver oportunidades do território →</button></section></section>{canDiscoverPublicOpportunities(selectedProfile) && <PublicOpportunityPanel items={publicItems} onRefresh={refreshPublicOpportunities} loading={publicLoading} error={publicError} profileLabel={selectedProfile.name} />}</>}
       </section>}
 
       {activeView === "preferences" && isPerson && <section aria-labelledby="preferences-title"><div className="page-intro"><p className="eyebrow">Preferências de trabalho</p><h1 id="preferences-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Diga o que combina com você.</h1><p className="body-copy mt-3 max-w-[650px]">Suas escolhas orientam os destaques e o recorte territorial da sua experiência.</p></div><InterestSelector profile={selectedProfile} matches={[...opportunities.formal, ...opportunities.service].map((opportunity) => ({ title: opportunity.title, category: opportunity.category, requiredActivities: opportunity.requiredActivities }))} /><PersonalTerritoryPanel profileId={selectedProfile.id} /></section>}
@@ -168,7 +227,7 @@ export default function DemoPage() {
 
       {activeView === "talents" && isOrganization && <section aria-labelledby="talents-title"><div className="page-intro"><p className="eyebrow">Banco de talentos</p><h1 id="talents-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Encontre pessoas para o próximo passo.</h1><p className="body-copy mt-3 max-w-[650px]">Busque perfis que autorizaram a divulgação de competências, formação e interesses.</p></div><div className="mt-7"><TalentBasePanel ownerId={selectedProfile.id} talents={talents} /></div></section>}
 
-      {activeView === "discover" && <section aria-labelledby="discover-title"><div className="page-intro"><p className="eyebrow">Buscar</p><h1 id="discover-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Encontre a próxima conexão.</h1><p className="body-copy mt-3 max-w-[650px]">Pesquise por oportunidade, atividade ou território. Use os filtros só quando precisar.</p></div><section className="mt-7" aria-label="Separar ofertas e demandas de trabalho"><div className="segmented-control" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); setActiveTab("formal"); resetFilters(); }} className={publicationMode === "offers" ? "is-active" : ""}>Ofertas <span>Pessoas e autônomos</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); setActiveTab("formal"); resetFilters(); }} className={publicationMode === "demands" ? "is-active" : ""}>Demandas <span>{isOrganization ? "Suas publicações" : "Contratantes e instituições"}</span></button></div></section><nav className="mt-6 flex max-w-full gap-1 overflow-x-auto border-b border-line" aria-label="Frentes da plataforma">{tabs.map((tab) => <button key={tab.key} type="button" onClick={() => { setActiveTab(tab.key); setCategory(""); setMunicipality(""); setEmploymentType("ALL"); }} className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-bold transition first:pl-0 ${activeTab === tab.key ? "border-blue text-blue" : "border-transparent text-[#718291] hover:text-navy"}`}>{tab.label}<span className="ml-2 text-xs font-normal text-[#8a9aa7]">{opportunities[tab.key].filter((opportunity) => publicationMode === "offers" ? opportunity.ownerType === "PERSON" : opportunity.ownerType !== "PERSON" && (!isOrganization || opportunity.owner.id === selectedProfile.id)).length}</span></button>)}</nav><div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><OpportunityFilters search={search} category={category} municipality={municipality} employmentType={employmentType} favoritesOnly={favoritesOnly} categories={categories} municipalities={municipalities} isFormal={activeTab === "formal"} onSearch={setSearch} onCategory={setCategory} onMunicipality={setMunicipality} onEmploymentType={setEmploymentType} onFavoritesOnly={setFavoritesOnly} onClear={resetFilters} /><div className="panel px-5 sm:px-8">{visible.length ? visible.map((opportunity) => <OpportunityRow key={opportunity.id} opportunity={opportunity} kind={activeTab} />) : <div className="py-14 text-center"><p className="font-bold text-navy">Nenhuma publicação encontrada.</p><p className="mt-2 text-sm text-[#607286]">Tente outra palavra ou limpe os filtros para ampliar a busca.</p><button type="button" className="subtle-link mt-4" onClick={resetFilters}>Limpar busca</button></div>}</div></div><aside className="hidden h-fit border-l-2 border-[#c9dce8] pl-5 lg:block"><p className="eyebrow">Neste recorte</p><p className="mt-3 text-sm leading-6 text-[#607286]">{publicationMode === "offers" ? "Pessoas apresentam sua força de trabalho e suas atividades." : isOrganization ? "Você vê somente as demandas publicadas pela sua organização." : "Empresas e instituições apresentam vagas, serviços e ações."}</p><Link href="/profile" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline"><BarChart3 size={16} /> Ver meu perfil <ArrowRight size={15} /></Link></aside></div></section>}
+      {activeView === "discover" && <section aria-labelledby="discover-title"><div className="page-intro"><p className="eyebrow">Buscar · descoberta unificada</p><h1 id="discover-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Encontre a próxima conexão.</h1><p className="body-copy mt-3 max-w-[650px]">Pesquise uma profissão ou tema e compare trabalho, capacitação, concursos e oportunidades públicas no mesmo lugar.</p></div><section className="mt-7" aria-label="Separar ofertas e demandas de trabalho"><div className="segmented-control" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); setActiveTab("formal"); resetFilters(); }} className={publicationMode === "offers" ? "is-active" : ""}>Ofertas <span>Pessoas e autônomos</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); setActiveTab("formal"); resetFilters(); }} className={publicationMode === "demands" ? "is-active" : ""}>Demandas <span>{isOrganization ? "Sua organização + poder público" : "Contratantes e fontes externas"}</span></button></div></section><nav className="mt-6 flex max-w-full gap-1 overflow-x-auto border-b border-line" aria-label="Tipos de oportunidade">{tabs.map((tab) => <button key={tab.key} type="button" onClick={() => { setActiveTab(tab.key); setCategory(""); setMunicipality(""); setEmploymentType("ALL"); }} className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-bold transition first:pl-0 ${activeTab === tab.key ? "border-blue text-blue" : "border-transparent text-[#718291] hover:text-navy"}`}>{tab.label}<span className="ml-2 text-xs font-normal text-[#8a9aa7]">{tab.key === "all" ? unifiedItems.length : opportunities[tab.key].filter((opportunity) => publicationMode === "offers" ? opportunity.ownerType === "PERSON" : opportunity.ownerType !== "PERSON" && (!isOrganization || opportunity.owner.id === selectedProfile.id)).length}</span></button>)}</nav><div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><OpportunityFilters search={search} category={category} municipality={municipality} employmentType={employmentType} favoritesOnly={favoritesOnly} categories={categories} municipalities={municipalities} isFormal={activeTab === "formal"} onSearch={setSearch} onCategory={setCategory} onMunicipality={setMunicipality} onEmploymentType={setEmploymentType} onFavoritesOnly={setFavoritesOnly} onClear={resetFilters} /><div className="panel px-5 sm:px-8">{visibleDiscovery.length ? visibleDiscovery.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} reason={item.source === "OFLIX" ? ["A atividade está relacionada ao seu recorte de busca", "O tipo da oportunidade permanece separado na origem"] : ["O tipo de oportunidade foi incluído na busca unificada", `Fonte identificada: ${item.sourceLabel}`]} />) : <div className="py-14 text-center"><p className="font-bold text-navy">Nenhuma oportunidade encontrada.</p><p className="mt-2 text-sm text-[#607286]">Tente outra palavra ou limpe os filtros para ampliar a busca.</p><button type="button" className="subtle-link mt-4" onClick={resetFilters}>Limpar busca</button></div>}</div></div><aside className="hidden h-fit border-l-2 border-[#c9dce8] pl-5 lg:block"><p className="eyebrow">Neste recorte</p><p className="mt-3 text-sm leading-6 text-[#607286]">{publicationMode === "offers" ? "Pessoas apresentam sua força de trabalho e suas atividades." : isOrganization ? "Sua organização vê suas demandas e, quando habilitada, oportunidades públicas." : "Trabalho, cursos, concursos e processos seletivos permanecem separados por tipo."}</p><Link href="/profile" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline"><BarChart3 size={16} /> Ver meu perfil <ArrowRight size={15} /></Link></aside></div></section>}
     </div>
     <div className="shell"><button type="button" className="button-quiet sm:hidden" onClick={() => { window.localStorage.removeItem("oflix-demo-profile"); setSelectedId(null); window.dispatchEvent(new Event("oflix-profile-changed")); }}>Trocar perfil</button></div>
   </main>;

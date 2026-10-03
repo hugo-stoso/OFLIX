@@ -2,7 +2,7 @@
 
 ## Visão
 
-OFLIX é uma plataforma territorial para Sergipe que integra oportunidades formais, serviços autônomos e ações voluntárias.
+OFLIX é um hub territorial de oportunidades e desenvolvimento profissional para Sergipe. Integra as três frentes originais — trabalho formal, serviços autônomos e ações voluntárias — e organiza, sem misturar seus modelos semânticos, capacitação, concursos/processos seletivos públicos, vagas externas autorizadas e oportunidades econômicas com o poder público.
 
 ## Problema e proposta de valor
 
@@ -13,6 +13,8 @@ As três frentes de trabalho normalmente ficam dispersas. O OFLIX propõe um pon
 - `PERSON`: pessoa que pode futuramente atuar como candidata formal, profissional autônoma ou voluntária.
 - `ORGANIZATION`: empresa, instituição pública ou organização sem fins lucrativos, conforme suas capacidades.
 - `INSTITUTIONAL_ANALYST`: uso orientado a inteligência territorial por gestão pública, ensino ou pesquisa.
+- Organizações podem ou não ter a capacidade demonstrativa `canSupplyPublic`; somente fornecedoras acessam oportunidades de contratação pública.
+- Pessoas continuam sendo `PERSON`; a atuação autônoma é uma capacidade/interesse, não uma nova conta. O acesso a oportunidades públicas para pessoa autônoma é opt-in local na demonstração.
 
 ## Jornadas identificadas
 
@@ -30,11 +32,15 @@ O futuro ciclo é: atividade na plataforma → conexão entre oferta e demanda �
 
 ## Escopo da demo
 
-Landing, perfis fictícios persistidos durante a navegação, descoberta de três frentes, detalhe contextual, `Interaction` funcional e visão territorial inicial.
+Landing, perfis fictícios persistidos durante a navegação, descoberta unificada de três frentes + itens externos DEMO DATA, detalhe contextual, `Interaction` funcional, preferências ampliadas e visão territorial inicial. O hub público usa DEMO DATA por padrão e disponibiliza um adapter server-side opt-in para consulta pública do PNCP.
+
+## Fontes e proveniência
+
+Itens originados na OFLIX continuam separados de sinais externos. Cada item externo expõe fonte, identificador quando disponível, URL canônica, datas e status. A demo não trata dados fictícios como publicação real: cursos, concursos, processos seletivos, vagas externas e contratações de exemplo são rotulados `DEMO DATA`. O PNCP é o único provider externo com adapter preparado nesta execução; ComprasNet.SE, vagas, cursos e concursos reais aguardam canal autorizado.
 
 ## Escopo futuro
 
-Autenticação real, publicação e gestão de oportunidades, busca avançada, demandas não atendidas, evolução para coordenadas e análises territoriais mais completas.
+Autenticação real, publicação e gestão de oportunidades, ingestão real de fontes autorizadas, busca avançada, deduplicação persistida, matching explicável server-side, demandas não atendidas, evolução para coordenadas e análises territoriais mais completas.
 
 ## Não objetivos desta fase
 

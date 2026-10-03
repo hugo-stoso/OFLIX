@@ -66,6 +66,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .status { @apply rounded-full px-2 py-1 text-xs font-bold; }
 .status-success { @apply bg-[#edf8f5] text-[#176c61]; }
 .filter-chip { @apply rounded-full bg-[#edf6fb] px-2.5 py-1 text-xs font-bold text-blue; }
+.discovery-badge { @apply inline-flex rounded-full bg-[#edf6fb] px-2 py-1 text-[10px] font-black tracking-[.08em] text-blue; }
+.discovery-badge-lg { @apply px-3 py-1.5 text-xs; }
+.discovery-badge-course { @apply bg-[#eff8f3] text-[#176c61]; }
+.discovery-badge-public_exam, .discovery-badge-public_selection { @apply bg-[#f2effb] text-[#5f4b97]; }
+.discovery-badge-public_procurement { @apply bg-[#fff4df] text-[#8a5a00]; }
+.discovery-badge-external_job { @apply bg-[#f0f3f7] text-[#53687c]; }
 .detail-mobile-action { @apply fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(16,47,80,.1)]; padding-bottom: calc(.75rem + env(safe-area-inset-bottom)); backdrop-filter: blur(12px); }
 
 @media (max-width: 767px) {

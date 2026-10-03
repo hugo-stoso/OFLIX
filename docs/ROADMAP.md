@@ -14,6 +14,11 @@
 - [x] Separação semântica entre oferta de pessoas e demanda de contratantes, com isolamento das demandas entre organizações.
 - [x] Filtros de banco de talentos por escolaridade e tipo de curso, além de currículo baseado no modelo fornecido.
 - [x] Navegação horizontal por tarefa e preferências ampliadas para atividades autônomas e interesses de voluntariado.
+- [x] Reforço de SEO de marca com metadata, dados estruturados, favicon e mensagem explícita de OFLIX em Sergipe.
+- [x] Camada de descoberta unificada sem apagar a semântica das três frentes originais.
+- [x] Preferências demonstrativas para concursos, processos seletivos e cursos/capacitação.
+- [x] Proveniência explícita e DEMO DATA para fontes ainda não autorizadas.
+- [x] Capacidades demonstrativas para separar organização fornecedora, organização não fornecedora e pessoa autônoma opt-in.
 
 ## MVP
 
@@ -23,9 +28,12 @@
 - [ ] Busca, filtros e estados de demanda com autorização real.
 - [ ] Governança de dados, consentimento e políticas de retenção.
 - [ ] Armazenamento seguro e compartilhado de currículos, com validação server-side do modelo e download autorizado.
+- [ ] Validar operação do provider PNCP em produção, observar limites e persistir cache/última atualização conforme a infraestrutura existente permitir.
+- [ ] Integrar cursos, concursos e vagas externas somente após confirmar API, feed, licença ou autorização oficial.
 
 ## Pós-MVP
 
+- [ ] Registrar e conectar domínio próprio da marca, caso esteja disponível, e acompanhar indexação no Google Search Console.
 - [ ] Matching e notificações responsáveis com entrega server-side.
 - [ ] OAuth e criação confirmada de eventos no Google Agenda.
 - [ ] Coordenadas opcionais, mapas e recortes territoriais configuráveis.
