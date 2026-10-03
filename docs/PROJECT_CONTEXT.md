@@ -32,7 +32,7 @@ O futuro ciclo é: atividade na plataforma → conexão entre oferta e demanda �
 
 ## Escopo da demo
 
-Landing, perfis fictícios persistidos durante a navegação, hub de descoberta com blocos semânticos separados, detalhe contextual, `Interaction` funcional, preferências ampliadas e visão territorial inicial. A busca operacional cobre trabalho e serviços; formação e caminhos públicos ficam na home; o hub público usa DEMO DATA por padrão e disponibiliza um adapter server-side opt-in para consulta pública do PNCP.
+Landing, perfis fictícios persistidos durante a navegação, hub de descoberta unificado em `Buscar`, detalhe contextual, `Interaction` funcional, preferências ampliadas e visão territorial inicial. A projeção de descoberta reúne os universos permitidos para cada perfil; as entidades e regras semânticas continuam separadas na origem. O hub público usa DEMO DATA por padrão e disponibiliza um adapter server-side contextual para consulta pública do PNCP.
 
 ## Fontes e proveniência
 

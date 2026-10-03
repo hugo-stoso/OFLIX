@@ -34,12 +34,12 @@
 - Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844.
 - SEO técnico da aplicação com metadata canonical/Open Graph, `robots.txt` e `sitemap.xml` para a publicação pública.
 - SEO de marca reforçado com título e descrição “OFLIX · Sergipe”, dados estruturados `WebSite`, favicon próprio e copy textual explícita na landing.
-- Hub de descoberta com `DiscoveryItem`, busca operacional restrita a trabalho/serviços e blocos próprios para formação, caminhos públicos e poder público, com relação determinística por profissão e detalhe DEMO DATA.
+- Hub de descoberta unificado com `DiscoveryItem`, chips para trabalho, serviços, voluntariado, concursos, capacitação e poder público quando permitido, com relação determinística por profissão e detalhe DEMO DATA; a semântica das origens permanece separada.
 - Preferências ampliadas para concursos públicos, processos seletivos e cursos/capacitação, sem formulário separado por módulo.
 - Capacidade `canSupplyPublic` no perfil demo, com acesso contextual a oportunidades públicas para organização fornecedora e pessoa autônoma opt-in.
 - Proveniência visível, rotas de detalhe para itens DEMO DATA e estados de fonte com fallback.
-- Adapter server-side PNCP preparado com consulta pública oficial, timeout, cache curto, normalização e deduplicação conservadora; a UI só atualiza ao vivo por ação explícita.
-- Deploy público da demo validado no Vercel em `https://oflix-six.vercel.app`, com atualização automática a partir da branch `main`.
+- Adapter server-side PNCP preparado com consulta pública oficial, timeout, cache curto, normalização e deduplicação conservadora; a UI só consulta no contexto público elegível e oferece nova tentativa sem expor detalhes técnicos do conector.
+- Publicação pública em `https://oflix-six.vercel.app`: VALIDAÇÃO NECESSÁRIA após esta evolução; a validação local está verde, mas a sincronização do build publicado precisa ser confirmada no ambiente Vercel.
 
 ## VALIDAÇÃO NECESSÁRIA
 
@@ -49,7 +49,7 @@
 
 ## PARCIAL
 
-- Concursos, processos seletivos, cursos, vagas externas e contratações públicas estão implementados como DEMO DATA para provar a experiência; ainda não há fontes reais legítimas integradas para esses universos.
+- Concursos, processos seletivos, cursos, vagas externas e contratações públicas estão implementados como DEMO DATA para provar a experiência; ainda não há fontes reais legítimas integradas para esses universos. A frente permanece PARCIAL/VALIDAÇÃO NECESSÁRIA.
 - O adapter PNCP está implementado e isolado, mas a disponibilidade e o comportamento da API em cada ambiente de deploy ainda precisam de validação operacional contínua; o fallback DEMO DATA é o estado determinístico padrão.
 - A deduplicação existe na normalização em memória por fonte/identificador e sinais conservadores; ainda não há agrupamento persistido nem histórico de decisões.
 - Favoritos e alertas continuam focados nas entidades operacionais locais; a extensão para todos os `DiscoveryItem` é uma pendência de baixo risco.

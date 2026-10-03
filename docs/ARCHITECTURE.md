@@ -6,15 +6,15 @@ Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing 
 
 A descoberta técnica usa metadata do Next.js, canonical e Open Graph no layout raiz, além de `/robots.txt` e `/sitemap.xml` para orientar rastreadores. `NEXT_PUBLIC_SITE_URL` pode fixar o domínio público; em um deploy Vercel sem essa variável, o app usa os hosts de produção fornecidos pela plataforma e mantém `localhost:3000` apenas como fallback local.
 
-## Descoberta unificada
+## SEMÂNTICA SEPARADA + DESCOBERTA UNIFICADA
 
 As entidades operacionais permanecem separadas (`formal_opportunities`, `service_offers` e `volunteer_opportunities`). `lib/discovery.ts` fornece uma camada de indexação leve (`DiscoveryItem`) para busca, home, filtros, explicação do matching e proveniência. Ela também normaliza cursos, concursos públicos, processos seletivos, vagas externas e contratações públicas sem transformar esses domínios em uma tabela genérica.
 
 O perfil demo carrega a capacidade `canSupplyPublic`. Organizações fornecedoras e pessoas `PERSON` com atividade autônoma podem ver o recorte de poder público; a pessoa autônoma ainda precisa manter o opt-in local. Organizações sem capacidade fornecedora não recebem o hub público. O analista continua entrando diretamente em `/demo/analyst`.
 
-`/api/public-opportunities` entrega DEMO DATA por padrão. `lib/connectors/pncp.ts` é um provider server-side isolado para a API pública de consulta do PNCP, usando `contratacoes/proposta`, filtro inicial por UF, timeout de 3,5 s, cache em memória de cinco minutos, normalização flexível, deduplicação conservadora e resposta de erro sem derrubar a aplicação. A atualização ao vivo é opt-in pela ação “Atualizar PNCP”; se a fonte falhar, a tela mantém o estado e informa a indisponibilidade. Não há adapter ComprasNet.SE, scraping ou endpoint privado.
+`/api/public-opportunities` entrega DEMO DATA por padrão. `lib/connectors/pncp.ts` é um provider server-side isolado para a API pública de consulta do PNCP, usando `contratacoes/proposta`, filtro inicial por UF, timeout de 3,5 s, cache em memória de cinco minutos, normalização flexível, deduplicação conservadora e resposta de erro sem derrubar a aplicação. A consulta só é acionada no contexto público e para organização fornecedora ou pessoa autônoma com opt-in explícito; se a fonte falhar, a busca preserva o fallback DEMO DATA e oferece nova tentativa. Não há adapter ComprasNet.SE, scraping ou endpoint privado.
 
-Itens externos carregam `source`, `sourceLabel`, `sourceId`, `sourceUrl`, datas, prazo e status quando informados. A UI distingue `DEMO DATA`, `PNCP` e `OFLIX`; o CTA externo usa “Ver no site oficial”, e nenhum item externo é contado como contratação ou emprego criado pelo OFLIX.
+Itens externos carregam `source`, `sourceLabel`, `sourceId`, `sourceUrl`, datas, prazo e status quando informados. A UI distingue `DEMO DATA`, `PNCP` e `OFLIX`; o CTA varia por universo (vaga original, curso ou edital/portal oficial), e nenhum item externo é contado como contratação ou emprego criado pelo OFLIX.
 
 ## Persistência
 
@@ -52,9 +52,9 @@ O layout raiz define título e descrição com a marca OFLIX e a associação a 
 
 ## Navegação contextual
 
-`/demo` funciona como uma experiência orientada a destinos, com `DemoNavigation` compartilhada entre desktop e mobile. A home separa visualmente `Trabalho e serviços`, `Formação e caminhos públicos` e o painel de oportunidades com o poder público; os fluxos completos ficam em destinos próprios controlados por estado local: `Início`, `Buscar trabalho e serviços`, `Serviço hoje` e `Perfil`, com `Preferências` para pessoas ou `Talentos` para organizações. No mobile, os cinco destinos ficam em uma bottom navigation persistente; no desktop, aparecem como uma barra curta no conteúdo. Analistas seguem diretamente para `/demo/analyst` e não recebem a navegação operacional de pessoas e organizações.
+`/demo` funciona como uma experiência orientada a destinos, com `DemoNavigation` compartilhada entre desktop e mobile. A home é curta: saudação, território, ações rápidas e um recorte misto de 3–5 recomendações; o painel público é apenas um teaser com CTA para `Buscar`. Os fluxos completos ficam em destinos próprios controlados por estado local: `Início`, `Buscar`, `Serviço hoje` e `Perfil`, com `Preferências` para pessoas ou `Talentos` para organizações. `Buscar` é o hub unificado e aplica filtros contextuais por universo. No mobile, os cinco destinos ficam em uma bottom navigation persistente; no desktop, aparecem como uma barra curta no conteúdo. Analistas seguem diretamente para `/demo/analyst` e não recebem a navegação operacional de pessoas e organizações.
 
-A busca mantém ofertas e demandas como alternância semântica, usa listas compactas e deixa filtros secundários recolhidos no mobile. O detalhe da oportunidade mantém a ação contextual persistida e apresenta uma barra de ação fixa no mobile. Essas decisões mudam a apresentação e os caminhos de entrada, sem alterar regras de domínio ou endpoints.
+A busca mantém ofertas e demandas como alternância semântica para o mural operacional, projeta todos os universos permitidos em chips de contexto e deixa filtros secundários recolhidos no mobile. O detalhe da oportunidade preserva a URL local de retorno, mantém a ação contextual persistida e apresenta uma barra de ação fixa no mobile. Essas decisões mudam a apresentação e os caminhos de entrada, sem alterar regras de domínio ou endpoints.
 
 ## Limites reais
 

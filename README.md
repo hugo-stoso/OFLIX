@@ -10,7 +10,7 @@ OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em d
 - Detalhes com ações semânticas por frente: candidatura, solicitação de contato e interesse em participar.
 - Registro de `Interaction` em SQLite, com prevenção de duplicação simples.
 - Primeira visão de inteligência territorial calculada sobre as mesmas oportunidades e interações.
-- Hub de descoberta que relaciona os universos sem misturá-los: busca de trabalho e serviços, bloco próprio de formação e caminhos públicos e painel específico do poder público.
+- Hub de descoberta unificado em `Buscar`: relaciona trabalho, serviços, voluntariado, capacitação, concursos/processos seletivos, vagas externas e, quando permitido, oportunidades com o poder público, sem apagar a semântica de cada origem.
 - Proveniência visível em itens externos; `DEMO DATA` é identificado quando não há fonte legitimamente integrada.
 - Adapter server-side do PNCP com timeout, normalização, deduplicação conservadora, cache curto e fallback.
 
@@ -19,7 +19,7 @@ OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em d
 - `PERSON` descobre trabalho, serviços, voluntariado, cursos, concursos públicos, processos seletivos e vagas externas DEMO DATA.
 - Pessoa com atividade autônoma pode ativar, em Preferências, oportunidades com o poder público; a interface orienta a conferir o edital e não afirma habilitação jurídica.
 - Organizações só recebem o hub de fornecimento quando a capacidade `canSupplyPublic` está marcada; organizações sem essa capacidade continuam fora desse recorte.
-- Contratações públicas usam “Poder público” e “Forma de contratação”; concurso público permanece separado da modalidade jurídica `Concurso — modalidade de contratação`.
+- Contratações públicas usam “Poder público” e “Forma de contratação”; concurso público e processo seletivo permanecem distintos dos demais itens por badges e detalhes próprios.
 - Nenhum scraping é feito. ComprasNet.SE e vagas/cursos/concursos reais permanecem pendentes de API, feed ou autorização documentada.
 
 Os dados do seed são DEMO DATA, fictícios e substituíveis. Nenhum dado pessoal da proposta de inscrição deve ser incluído no repositório.

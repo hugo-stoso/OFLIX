@@ -8,7 +8,20 @@ function formatDate(value?: string) {
   return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(parsed);
 }
 
-export function DiscoveryRow({ item, reason }: { item: DiscoveryItem; reason?: string[] }) {
+function withReturnTo(path: string, returnTo?: string) {
+  if (!returnTo) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}returnTo=${encodeURIComponent(returnTo)}`;
+}
+
+function externalLabel(item: DiscoveryItem) {
+  if (item.kind === "external_job") return "Ver vaga no site original";
+  if (item.kind === "course") return "Ver curso na fonte oficial";
+  if (item.kind === "public_exam" || item.kind === "public_selection") return "Ver edital oficial";
+  if (item.kind === "public_procurement") return "Ver no portal oficial";
+  return "Ver no site oficial";
+}
+
+export function DiscoveryRow({ item, reason, returnTo }: { item: DiscoveryItem; reason?: string[]; returnTo?: string }) {
   const isInternal = item.source === "OFLIX";
   const label = DISCOVERY_KIND_LABELS[item.kind];
   const content = <>
@@ -34,7 +47,7 @@ export function DiscoveryRow({ item, reason }: { item: DiscoveryItem; reason?: s
   return <article className="group grid gap-4 border-b border-line py-6 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
     <div className="min-w-0">{content}</div>
     <div className="flex items-center gap-2 sm:justify-end">
-      {isInternal ? <Link href={`/opportunity/${item.id}?kind=${item.kind}`} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link> : item.sourceUrl && item.source !== "DEMO_DATA" ? <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver no site oficial <ExternalLink size={16} /></a> : <Link href={`/discovery/${item.id}`} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link>}
+      {isInternal ? <Link href={withReturnTo(`/opportunity/${item.id}?kind=${item.kind}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link> : item.sourceUrl && item.source !== "DEMO_DATA" ? <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="button-secondary w-full whitespace-nowrap sm:w-auto">{externalLabel(item)} <ExternalLink size={16} /></a> : <Link href={withReturnTo(`/discovery/${item.id}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link>}
     </div>
   </article>;
 }

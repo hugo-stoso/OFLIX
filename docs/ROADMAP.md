@@ -16,6 +16,7 @@
 - [x] Navegação horizontal por tarefa e preferências ampliadas para atividades autônomas e interesses de voluntariado.
 - [x] Reforço de SEO de marca com metadata, dados estruturados, favicon e mensagem explícita de OFLIX em Sergipe.
 - [x] Camada de descoberta unificada sem apagar a semântica das três frentes originais.
+- [x] Hub `Buscar` com filtros contextuais, recomendações mistas na home e retorno preservado ao detalhe.
 - [x] Preferências demonstrativas para concursos, processos seletivos e cursos/capacitação.
 - [x] Proveniência explícita e DEMO DATA para fontes ainda não autorizadas.
 - [x] Capacidades demonstrativas para separar organização fornecedora, organização não fornecedora e pessoa autônoma opt-in.

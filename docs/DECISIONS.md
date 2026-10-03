@@ -14,13 +14,13 @@ Foi escolhida uma camada `DiscoveryItem` somente para indexação e apresentaç�
 
 O provider PNCP fica isolado em `lib/connectors/pncp.ts`, no servidor, com timeout, cache curto, normalização e fallback. A experiência usa DEMO DATA por padrão para ser determinística e não representar dados fictícios como oficiais; uma atualização explícita pode consultar a API pública oficial. ComprasNet.SE e outras fontes não foram integradas sem documentação ou autorização pública suficiente.
 
-## Separação semântica das oportunidades
+## SEMÂNTICA SEPARADA + DESCOBERTA UNIFICADA
 
-Cursos, concursos públicos e processos seletivos não são resultados de uma procura de vagas. A demo mantém a busca operacional restrita a trabalho formal, serviços autônomos, voluntariado e vagas externas; formação e caminhos públicos aparecem em bloco próprio na home; contratações públicas ficam no painel de poder público, com capacidade específica e proveniência explícita.
+Cursos, concursos públicos, processos seletivos, vagas externas e contratações públicas permanecem entidades/projeções semanticamente distintas, com badges, filtros e detalhes próprios. A decisão de produto é apresentar esses universos permitidos em um único hub `Buscar`, porque separação de significado não deve virar fragmentação da descoberta. A home fica curta e recomenda um recorte misto; o painel de poder público é um teaser para o filtro `Poder público`.
 
 ## Capacidades e oportunidades públicas
 
-O tipo `ORGANIZATION` não é suficiente sozinho para liberar licitações. A menor extensão adotada foi `profiles.can_supply_public`, marcada apenas para a organização fornecedora da demonstração. `PERSON` não ganha um novo tipo de conta: a capacidade autônoma existente mais um opt-in local determinam o acesso contextual. A interface sempre usa “pode interessar ao seu perfil” e “verifique os requisitos do edital”, sem inferir elegibilidade jurídica.
+O tipo `ORGANIZATION` não é suficiente sozinho para liberar licitações. A menor extensão adotada foi `profiles.can_supply_public`, marcada apenas para a organização fornecedora da demonstração. `PERSON` não ganha um novo tipo de conta: a capacidade autônoma existente mais um opt-in local explícito, desligado por padrão inclusive para perfis antigos, determinam o acesso contextual. A interface sempre usa “pode interessar ao seu perfil” e “verifique os requisitos do edital”, sem inferir elegibilidade jurídica.
 
 ## Matching explicável
 
@@ -44,7 +44,7 @@ O domínio técnico `oflix-six.vercel.app` é mantido como implantação atual, 
 
 ## Navegação por objetivo
 
-Em vez de expor todos os módulos em uma página única, a demo usa uma home curta e uma navegação contextual por persona. Pessoas recebem Início, Buscar, Serviço hoje, Preferências e Perfil; organizações recebem Início, Buscar, Serviço hoje, Talentos e Perfil. A navegação é uma barra curta no desktop e uma bottom navigation persistente no mobile. Publicação, preferências, chamados e banco de talentos continuam sendo os fluxos existentes, apenas apresentados em destinos focados. O analista permanece separado na inteligência territorial para não misturar leitura institucional com operação.
+Em vez de expor listas completas de todos os módulos na home, a demo usa uma home curta e uma navegação contextual por persona. Pessoas recebem Início, Buscar, Serviço hoje, Preferências e Perfil; organizações recebem Início, Buscar, Serviço hoje, Talentos e Perfil. A navegação é uma barra curta no desktop e uma bottom navigation persistente no mobile. `Buscar` reúne os universos permitidos sem misturar suas entidades; publicação, preferências, chamados e banco de talentos continuam sendo os fluxos existentes, apresentados em destinos focados. O analista permanece separado na inteligência territorial para não misturar leitura institucional com operação.
 
 ## Mobile first da busca e do detalhe
 
@@ -56,7 +56,7 @@ CLT e Estágio são atributos explícitos de oportunidades formais. Trabalhadore
 
 ## Desvios e limites
 
-O fluxo de publicação, a base de talentos e o chat foram adicionados como experiências demonstráveis, mas continuam sem autorização, persistência compartilhada, moderação ou entrega de mensagens. O link do Google Agenda usa um template confirmável pelo usuário, sem OAuth. A UI apresenta organizações na descoberta, mas separa gestão, candidatos e oportunidades ofertadas em blocos próprios.
+O fluxo de publicação, a base de talentos e o chat foram adicionados como experiências demonstráveis, mas continuam sem autorização, persistência compartilhada, moderação ou entrega de mensagens. O link do Google Agenda usa um template confirmável pelo usuário, sem OAuth. A UI apresenta organizações na descoberta, mas separa gestão, candidatos e oportunidades ofertadas em blocos próprios; a projeção de `Buscar` continua unificada.
 
 ## Oferta, demanda e banco de talentos
 

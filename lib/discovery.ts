@@ -197,6 +197,7 @@ export function normalizePncpRecord(record: Record<string, unknown>): DiscoveryI
     status: textValue(record, "situacaoCompraNome", "situacaoNome") || "Publicada",
     officialType,
     tags: [classifyProcurement(title), officialType],
+    value: textValue(record, "valorTotalEstimado", "valorTotal") || undefined,
   };
 }
 
@@ -224,4 +225,47 @@ export function isWorkDiscoveryItem(item: DiscoveryItem) {
 
 export function isDevelopmentDiscoveryItem(item: DiscoveryItem) {
   return item.kind === "course" || item.kind === "public_exam" || item.kind === "public_selection";
+}
+
+function normalized(value: string) {
+  return value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+type RankingContext = { search?: string; activities?: string[]; workPreferences?: string[]; municipality?: string };
+
+export function rankDiscoveryItems(items: DiscoveryItem[], context: RankingContext = {}) {
+  const term = normalized(context.search?.trim() ?? "");
+  const activities = (context.activities ?? []).map(normalized);
+  const municipality = normalized(context.municipality ?? "");
+  return items
+    .map((item, index) => {
+      const haystack = normalized(`${item.title} ${item.description} ${item.category} ${item.tags.join(" ")}`);
+      const title = normalized(item.title);
+      const itemActivities = [item.category, ...item.tags].map(normalized);
+      let score = 0;
+      if (term && title.includes(term)) score += 100;
+      else if (term && haystack.includes(term)) score += 70;
+      if (activities.some((activity) => itemActivities.some((value) => value.includes(activity) || activity.includes(value)))) score += 30;
+      if (municipality && normalized(item.location.municipality) === municipality) score += 20;
+      if (item.status && /abert|dispon|publicad/i.test(item.status)) score += 5;
+      if (item.deadline) score += 2;
+      return { item, score, index };
+    })
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+    .map(({ item }) => item);
+}
+
+export function discoveryReasons(item: DiscoveryItem, context: RankingContext & { publicEnabled?: boolean }) {
+  const reasons: string[] = [];
+  const term = context.search?.trim();
+  const normalizedTerm = normalized(term ?? "");
+  const itemText = normalized(`${item.title} ${item.description} ${item.category} ${item.tags.join(" ")}`);
+  if (normalizedTerm && itemText.includes(normalizedTerm)) reasons.push(`Relacionada à busca por “${term}”.`);
+  const activity = (context.activities ?? []).find((candidate) => [item.category, ...item.tags].some((value) => normalized(value).includes(normalized(candidate)) || normalized(candidate).includes(normalized(value))));
+  if (activity) reasons.push(`${activity} está entre suas atividades.`);
+  if (context.municipality && normalized(item.location.municipality) === normalized(context.municipality)) reasons.push(`Esta oportunidade fica em ${item.location.municipality}.`);
+  if ((item.kind === "public_exam" || item.kind === "public_selection") && context.workPreferences?.some((preference) => ["Concursos públicos", "Processos seletivos públicos"].includes(preference))) reasons.push("Você acompanha concursos e processos seletivos públicos.");
+  if (item.kind === "course" && context.workPreferences?.includes("Cursos e capacitação")) reasons.push("Você selecionou cursos e capacitação.");
+  if (item.kind === "public_procurement" && context.publicEnabled) reasons.push("Você ativou oportunidades com o poder público.");
+  return reasons.slice(0, 2);
 }

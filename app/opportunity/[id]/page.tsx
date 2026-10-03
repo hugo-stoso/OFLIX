@@ -8,11 +8,16 @@ import { VolunteerReminder } from "@/components/VolunteerReminder";
 import { opportunityMeta, type OpportunityKind } from "@/lib/domain";
 import { findOpportunity } from "@/lib/db";
 
-type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ kind?: string }> };
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ kind?: string; returnTo?: string }> };
+
+function safeReturnTo(value?: string) {
+  return value && value.startsWith("/demo") && !value.startsWith("//") ? value : "/demo?view=discover";
+}
 
 export default async function OpportunityDetailPage({ params, searchParams }: Props) {
   const { id } = await params;
-  const { kind: rawKind } = await searchParams;
+  const { kind: rawKind, returnTo: rawReturnTo } = await searchParams;
+  const returnTo = safeReturnTo(rawReturnTo);
   const kind = rawKind as OpportunityKind;
   if (!["formal", "service", "volunteer"].includes(kind)) notFound();
   const record = findOpportunity(id, kind);
@@ -24,7 +29,7 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
     <main className="min-h-screen">
       <DemoHeader />
       <div className="shell py-10 sm:py-14">
-        <Link href="/demo" className="button-quiet -ml-3"><ArrowLeft size={16} /> Voltar para oportunidades</Link>
+        <Link href={returnTo} className="button-quiet -ml-3"><ArrowLeft size={16} /> Voltar para oportunidades</Link>
         <div className="mt-9 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
           <article>
             <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-blue"><OpportunityIcon kind={kind} /> {frontLabel} <span className="h-1 w-1 rounded-full bg-[#a9bac7]" aria-hidden="true" /> {record.category}</div>

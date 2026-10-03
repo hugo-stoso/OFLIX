@@ -2,6 +2,7 @@ export type OpportunityKind = "formal" | "service" | "volunteer";
 export type DiscoveryKind = OpportunityKind | "course" | "public_exam" | "public_selection" | "external_job" | "public_procurement";
 export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "AUTHORIZED_PARTNER";
 export type WorkPreference = "CLT" | "Estágio" | "Serviços autônomos" | "Voluntariado" | "Concursos públicos" | "Processos seletivos públicos" | "Cursos e capacitação";
+export type DiscoveryFilterKind = "all" | "employment" | "service" | "volunteer" | "public_exam" | "course" | "public_procurement";
 export const EDUCATION_LEVELS = ["Ensino fundamental", "Ensino médio", "Ensino técnico", "Graduação", "Especialização", "Pós-graduação"] as const;
 export type EducationLevel = typeof EDUCATION_LEVELS[number];
 export const COURSE_TYPES = ["Administração", "Arquitetura e urbanismo", "Comunicação", "Computação e tecnologia", "Educação", "Engenharia", "Gestão", "Saúde", "Serviços e manutenção", "Direito", "Meio ambiente", "Outro"] as const;
@@ -20,7 +21,18 @@ export const BRAZILIAN_STATES = [
 
 export const ANALYST_PROFILE_ID = "profile-analista";
 export const WORK_ACTIVITIES = ["Eletricista", "Manutenção", "Construção", "Limpeza", "Alimentação", "Eventos", "Design", "Comunicação", "Educação", "Tecnologia", "Cuidados", "Jardinagem", "Transporte", "Beleza", "Administração", "Meio ambiente"] as const;
-export const WORK_PREFERENCES: WorkPreference[] = ["CLT", "Estágio", "Serviços autônomos", "Voluntariado", "Concursos públicos", "Processos seletivos públicos", "Cursos e capacitação"];
+export const WORK_PREFERENCES: WorkPreference[] = ["CLT", "Estágio", "Serviços autônomos", "Voluntariado"];
+export const DEVELOPMENT_PREFERENCES: WorkPreference[] = ["Concursos públicos", "Processos seletivos públicos", "Cursos e capacitação"];
+
+export const DISCOVERY_FILTER_LABELS: Record<DiscoveryFilterKind, string> = {
+  all: "Todos",
+  employment: "Empregos",
+  service: "Serviços",
+  volunteer: "Voluntariado",
+  public_exam: "Concursos",
+  course: "Capacitação",
+  public_procurement: "Poder público",
+};
 
 export const DISCOVERY_KIND_LABELS: Record<DiscoveryKind, string> = {
   formal: "VAGA",
@@ -69,10 +81,26 @@ export type DiscoveryItem = {
   salary?: string;
   modality?: string;
   education?: string;
+  duration?: string;
+  cost?: string;
+  certificate?: string;
+  positions?: string;
+  vacancies?: string;
+  board?: string;
+  value?: string;
 };
 
 export function discoveryKindLabel(kind: DiscoveryKind) {
   return DISCOVERY_KIND_LABELS[kind];
+}
+
+export function discoveryItemMatchesFilter(item: DiscoveryItem, filter: DiscoveryFilterKind) {
+  if (filter === "all") return true;
+  if (filter === "employment") return item.kind === "formal" || item.kind === "external_job";
+  if (filter === "public_exam") return item.kind === "public_exam" || item.kind === "public_selection";
+  if (filter === "course") return item.kind === "course";
+  if (filter === "public_procurement") return item.kind === "public_procurement";
+  return item.kind === filter;
 }
 
 export function canDiscoverPublicOpportunities(profile: { type: ProfileType; canSupplyPublic?: boolean; capabilities?: string }) {

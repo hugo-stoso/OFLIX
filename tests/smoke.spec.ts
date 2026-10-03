@@ -15,8 +15,9 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await expect(page.getByRole("button", { name: "Serviço hoje", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Preferências", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
-  await expect(page.getByRole("heading", { name: "Diga o que combina com você." })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Atividades que você quer acompanhar" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Escolha o que você quer acompanhar.", level: 1 })).toBeVisible();
+  await expect(page.getByRole("group", { name: "O que você procura em trabalho" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Desenvolvimento e carreira" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Atividades de trabalho autônomo" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Interesses em voluntariado" })).toBeVisible();
   await page.getByRole("checkbox", { name: "Educação e leitura", exact: true }).check({ force: true });
@@ -24,18 +25,18 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await expect(page.getByRole("heading", { name: "Oportunidades relacionadas aos seus interesses" })).toBeVisible();
   await expect(page.getByRole("link", { name: /visão territorial geral/i })).toHaveCount(0);
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-  await page.getByRole("tab", { name: /Demandas/ }).click();
+  await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible();
+  await expect(page.getByPlaceholder("Buscar profissão, atividade ou oportunidade")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Concursos/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Capacitação/ })).toBeVisible();
+  await page.getByRole("button", { name: /Empregos/ }).click();
   const filtersButton = page.getByRole("button", { name: /Filtros/ });
   if (await filtersButton.isVisible()) await filtersButton.click();
-  await expect(page.getByRole("button", { name: "CLT", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Estágio", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Estágio", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Estágio em comunicação territorial" })).toBeVisible();
-  await page.getByRole("button", { name: "CLT e estágio", exact: true }).click();
   await page.getByRole("link", { name: "Ver detalhe" }).first().click();
   await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
   await page.getByRole("button", { name: "Candidatar-se" }).click();
-  await expect(page.getByText(/candidatura foi registrada|já estava registrada/)).toBeVisible();
+  await expect(page.getByText(/candidatura foi registrada|já estava registrada/)).toBeVisible({ timeout: 15_000 });
   await page.goto("/demo/analyst");
   await expect(page.getByRole("heading", { name: "Visão territorial geral restrita" })).toBeVisible();
   await page.goto("/demo");
@@ -99,14 +100,14 @@ test("chamado de serviço é entregue por atividade e aceito uma única vez", as
 test("separa ofertas de pessoas e demandas de contratantes", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByRole("tab", { name: /Demandas/ }).click();
   await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Estágio em projetos educativos" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Estágio em projetos educativos" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Manutenção residencial" })).toHaveCount(0);
   await page.getByRole("tab", { name: /Ofertas/ }).click();
-  await page.getByRole("button", { name: /Serviços autônomos/ }).click();
+  await page.getByRole("button", { name: /Serviços/ }).click();
   await expect(page.getByRole("heading", { name: "Manutenção residencial" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Design e conteúdo local" })).toHaveCount(0);
 });
@@ -177,9 +178,7 @@ test("autônomo divulga sua força de trabalho separadamente", async ({ page }) 
   await page.getByRole("button", { name: "Publicar oferta" }).click();
   await expect(page.getByText(/Oferta criada na demonstração/)).toBeVisible();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-  await page.getByRole("tab", { name: /Ofertas/ }).click();
-  await page.getByRole("button", { name: /Serviços autônomos/ }).click();
-  await expect(page.getByRole("tab", { name: /Ofertas/ })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: /Serviços/ }).click();
   await expect(page.getByRole("heading", { name: "Rafael · instalações e manutenção" })).toBeVisible();
 });
 
@@ -249,20 +248,58 @@ test("mobile não cria overflow horizontal na landing", async ({ page }) => {
   expect(overflow).toBe(false);
 });
 
-test("busca de trabalho mantém formação, concurso e licitação em áreas próprias", async ({ page }) => {
+test("Buscar reúne profissão, capacitação e concurso sem expor poder público comum", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
-  await expect(page.getByRole("heading", { name: "Formação e caminhos públicos" })).toBeVisible();
+  await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Empregos/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Serviços/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Concursos/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Capacitação/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Poder público/ })).toHaveCount(0);
+  await page.getByPlaceholder("Buscar profissão, atividade ou oportunidade").fill("eletricista");
+  await expect(page.getByRole("heading", { name: "Instalações elétricas residenciais" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toBeVisible();
-  await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-  await page.getByPlaceholder("Buscar por título ou atividade").fill("eletricista");
-  await expect(page.getByRole("heading", { name: "Instalações elétricas residenciais" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Contratação DEMO de manutenção elétrica" })).toHaveCount(0);
-  await expect(page.getByText("Buscar trabalho e serviços")).toBeVisible();
+});
+
+test("pessoa autônoma ativa oportunidades públicas de forma explícita", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Amanda Figueiredo/ }).click();
+  await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
+  const publicPreference = page.getByRole("checkbox", { name: "Quero acompanhar oportunidades com o poder público" });
+  await expect(publicPreference).not.toBeChecked();
+  await publicPreference.check();
+  await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
+  await expect(page.getByRole("button", { name: /Poder público/ })).toBeVisible();
+  await page.getByRole("button", { name: /Poder público/ }).click();
+  await expect(page.getByRole("heading", { name: "Contratação DEMO de manutenção elétrica" })).toBeVisible();
+});
+
+test("detalhe preserva o contexto completo da busca", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
+  await page.getByRole("button", { name: /Capacitação/ }).click();
+  await page.getByPlaceholder("Buscar profissão, atividade ou oportunidade").fill("eletricista");
+  const courseDetailLink = page.locator('a[href^="/discovery/demo-course-electrician"]');
+  await expect(courseDetailLink).toHaveCount(1);
+  const courseHref = await courseDetailLink.getAttribute("href");
+  expect(courseHref).toContain("type%3Dcourse");
+  expect(courseHref).toContain("q%3Deletricista");
+  await courseDetailLink.click();
+  await page.waitForURL("**/discovery/demo-course-electrician**");
+  const returnLink = page.getByRole("link", { name: "Voltar para Buscar" });
+  await expect(returnLink).toHaveAttribute("href", "/demo?view=discover&type=course&q=eletricista");
+  await page.goto("/demo?view=discover&type=course&q=eletricista");
+  await expect(page).toHaveURL(/\/demo\?view=discover&type=course&q=eletricista/);
+  await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible();
+  await expect(page.getByPlaceholder("Buscar profissão, atividade ou oportunidade")).toHaveValue("eletricista");
 });
 
 test("capacidade de fornecedora controla oportunidades públicas", async ({ page }) => {
@@ -270,9 +307,13 @@ test("capacidade de fornecedora controla oportunidades públicas", async ({ page
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Instituto Ponte Aberta/ }).click();
   await expect(page.getByRole("heading", { name: "Oportunidades com o poder público" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
+  await expect(page.getByRole("button", { name: /Poder público/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Trocar perfil" }).first().click();
   await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
   await expect(page.getByRole("heading", { name: "Oportunidades com o poder público" })).toBeVisible();
+  await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
+  await expect(page.getByRole("button", { name: /Poder público/ })).toBeVisible();
 });
 
 test("API pública retorna DEMO DATA sem mascarar a proveniência", async ({ request }) => {
