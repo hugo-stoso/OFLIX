@@ -217,3 +217,11 @@ export function isExternal(item: DiscoveryItem) {
 export function sourceLabel(source: DiscoverySource) {
   return source === "PNCP" ? "PNCP" : source === "OFLIX" ? "OFLIX" : "DEMO DATA";
 }
+
+export function isWorkDiscoveryItem(item: DiscoveryItem) {
+  return item.kind === "formal" || item.kind === "service" || item.kind === "volunteer" || item.kind === "external_job";
+}
+
+export function isDevelopmentDiscoveryItem(item: DiscoveryItem) {
+  return item.kind === "course" || item.kind === "public_exam" || item.kind === "public_selection";
+}

@@ -34,7 +34,7 @@
 - Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844.
 - SEO técnico da aplicação com metadata canonical/Open Graph, `robots.txt` e `sitemap.xml` para a publicação pública.
 - SEO de marca reforçado com título e descrição “OFLIX · Sergipe”, dados estruturados `WebSite`, favicon próprio e copy textual explícita na landing.
-- Busca unificada com `DiscoveryItem`, etiquetas de VAGA/SERVIÇO/CURSO/CONCURSO/PODER PÚBLICO, relação determinística por profissão e detalhe DEMO DATA.
+- Hub de descoberta com `DiscoveryItem`, busca operacional restrita a trabalho/serviços e blocos próprios para formação, caminhos públicos e poder público, com relação determinística por profissão e detalhe DEMO DATA.
 - Preferências ampliadas para concursos públicos, processos seletivos e cursos/capacitação, sem formulário separado por módulo.
 - Capacidade `canSupplyPublic` no perfil demo, com acesso contextual a oportunidades públicas para organização fornecedora e pessoa autônoma opt-in.
 - Proveniência visível, rotas de detalhe para itens DEMO DATA e estados de fonte com fallback.

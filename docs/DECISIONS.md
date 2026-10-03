@@ -14,6 +14,10 @@ Foi escolhida uma camada `DiscoveryItem` somente para indexação e apresentaç�
 
 O provider PNCP fica isolado em `lib/connectors/pncp.ts`, no servidor, com timeout, cache curto, normalização e fallback. A experiência usa DEMO DATA por padrão para ser determinística e não representar dados fictícios como oficiais; uma atualização explícita pode consultar a API pública oficial. ComprasNet.SE e outras fontes não foram integradas sem documentação ou autorização pública suficiente.
 
+## Separação semântica das oportunidades
+
+Cursos, concursos públicos e processos seletivos não são resultados de uma procura de vagas. A demo mantém a busca operacional restrita a trabalho formal, serviços autônomos, voluntariado e vagas externas; formação e caminhos públicos aparecem em bloco próprio na home; contratações públicas ficam no painel de poder público, com capacidade específica e proveniência explícita.
+
 ## Capacidades e oportunidades públicas
 
 O tipo `ORGANIZATION` não é suficiente sozinho para liberar licitações. A menor extensão adotada foi `profiles.can_supply_public`, marcada apenas para a organização fornecedora da demonstração. `PERSON` não ganha um novo tipo de conta: a capacidade autônoma existente mais um opt-in local determinam o acesso contextual. A interface sempre usa “pode interessar ao seu perfil” e “verifique os requisitos do edital”, sem inferir elegibilidade jurídica.

@@ -10,7 +10,7 @@ OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em d
 - Detalhes com ações semânticas por frente: candidatura, solicitação de contato e interesse em participar.
 - Registro de `Interaction` em SQLite, com prevenção de duplicação simples.
 - Primeira visão de inteligência territorial calculada sobre as mesmas oportunidades e interações.
-- Busca unificada que relaciona trabalho, capacitação e oportunidades públicas sem transformar a navegação em um portal de módulos.
+- Hub de descoberta que relaciona os universos sem misturá-los: busca de trabalho e serviços, bloco próprio de formação e caminhos públicos e painel específico do poder público.
 - Proveniência visível em itens externos; `DEMO DATA` é identificado quando não há fonte legitimamente integrada.
 - Adapter server-side do PNCP com timeout, normalização, deduplicação conservadora, cache curto e fallback.
 

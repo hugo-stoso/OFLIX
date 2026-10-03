@@ -249,17 +249,20 @@ test("mobile não cria overflow horizontal na landing", async ({ page }) => {
   expect(overflow).toBe(false);
 });
 
-test("busca unificada conecta profissão, capacitação e concurso sem abrir licitação para pessoa comum", async ({ page }) => {
+test("busca de trabalho mantém formação, concurso e licitação em áreas próprias", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await expect(page.getByRole("heading", { name: "Formação e caminhos públicos" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toBeVisible();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByPlaceholder("Buscar por título ou atividade").fill("eletricista");
   await expect(page.getByRole("heading", { name: "Instalações elétricas residenciais" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Contratação DEMO de manutenção elétrica" })).toHaveCount(0);
-  await expect(page.getByText(/Fonte: DEMO DATA/).first()).toBeVisible();
+  await expect(page.getByText("Buscar trabalho e serviços")).toBeVisible();
 });
 
 test("capacidade de fornecedora controla oportunidades públicas", async ({ page }) => {
