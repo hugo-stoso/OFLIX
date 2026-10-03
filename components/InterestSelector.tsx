@@ -1,26 +1,34 @@
 "use client";
 
-import { Bell, FileText, Search, Tag } from "lucide-react";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { BRAZILIAN_STATES, COURSE_TYPES, DEVELOPMENT_PREFERENCES, EDUCATION_LEVELS, VOLUNTEER_INTERESTS, WORK_ACTIVITIES, WORK_PREFERENCES, type CourseType, type EducationLevel, type VolunteerInterest, type WorkPreference } from "@/lib/domain";
+import Link from "next/link";
+import { Bell, ChevronDown, Search, Tag } from "lucide-react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { DEVELOPMENT_PREFERENCES, VOLUNTEER_INTERESTS, WORK_ACTIVITIES, WORK_PREFERENCES, type VolunteerInterest, type WorkPreference } from "@/lib/domain";
+import { readProfileArray, readResidence, readTalentRecord, saveTalentRecord, SERVICE_ALERT_KEY, type ResidenceData, type TalentDirectoryRecord } from "@/lib/profile-storage";
 
 type Match = { title: string; category: string; requiredActivities?: string[] };
-type ServiceAlert = { id: string; title: string; activities: string[]; location: string; createdAt: string };
 type PersonProfile = { id: string; name: string; summary: string; capabilities: string; location: { state: string; municipality: string; district: string } };
-type EducationData = { educationLevel: EducationLevel | ""; courseTypes: CourseType[]; courseName: string; specialization: string; curriculumFileName: string; curriculumDataUrl: string; curriculumConfirmed: boolean };
-type ResidenceData = { state: string; municipality: string };
-type TalentDirectoryRecord = EducationData & { profileId: string; name: string; summary: string; capabilities: string; location: { state: string; municipality: string; district: string }; workPreferences: WorkPreference[]; activities: string[]; volunteerInterests: VolunteerInterest[]; visible: boolean; updatedAt: string };
-const serviceAlertKey = "oflix-service-opportunity-alerts";
-const talentDirectoryKey = "oflix-talent-bank-profiles";
-const residenceKey = "oflix-residence";
-const emptyEducation: EducationData = { educationLevel: "", courseTypes: [], courseName: "", specialization: "", curriculumFileName: "", curriculumDataUrl: "", curriculumConfirmed: false };
+type ServiceAlert = { id: string; title: string; activities: string[]; location: string; createdAt: string };
+type PreferenceSection = "work" | "development" | "activities" | "volunteer" | "business" | null;
 
 function matchesActivity(activities: string[], selected: string[]) {
   return activities.some((activity) => selected.some((item) => item.toLowerCase() === activity.toLowerCase()));
 }
 
-function readDirectory() {
-  try { return JSON.parse(window.localStorage.getItem(talentDirectoryKey) ?? "[]") as TalentDirectoryRecord[]; } catch { return []; }
+function storedArray<T>(key: string, profileId: string, fallback: T[]) {
+  if (typeof window === "undefined") return fallback;
+  const stored = window.localStorage.getItem(`${key}-${profileId}`);
+  return stored === null ? fallback : readProfileArray<T>(key, profileId);
+}
+
+function PreferenceGroup({ id, title, description, summary, open, onToggle, children }: { id: string; title: string; description: string; summary: string; open: boolean; onToggle: () => void; children: ReactNode }) {
+  return <section className={`rounded-2xl border bg-white transition ${open ? "border-[#a9c9dc] shadow-soft" : "border-line"}`}>
+    <button type="button" className="flex w-full items-start justify-between gap-4 p-4 text-left sm:p-5" aria-expanded={open} aria-controls={`${id}-content`} onClick={onToggle}>
+      <span className="min-w-0"><span className="block text-base font-bold text-navy">{title}</span><span className="mt-1 block text-sm leading-6 text-[#637688]">{description}</span><span className="mt-3 block text-sm font-bold text-blue">{summary}</span></span>
+      <ChevronDown size={19} className={`mt-1 shrink-0 text-blue transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+    </button>
+    {open && <div id={`${id}-content`} className="border-t border-line px-4 pb-5 pt-4 sm:px-5">{children}</div>}
+  </section>;
 }
 
 export function InterestSelector({ profile, matches }: { profile: PersonProfile; matches: Match[] }) {
@@ -31,94 +39,85 @@ export function InterestSelector({ profile, matches }: { profile: PersonProfile;
   const [volunteerInterests, setVolunteerInterests] = useState<VolunteerInterest[]>([]);
   const [workPreferences, setWorkPreferences] = useState<WorkPreference[]>([]);
   const [residence, setResidence] = useState<ResidenceData>({ state: profile.location.state || "SE", municipality: profile.location.municipality });
-  const [education, setEducation] = useState<EducationData>(emptyEducation);
-  const [talentVisible, setTalentVisible] = useState(false);
   const [notifications, setNotifications] = useState(false);
   const [publicOpportunities, setPublicOpportunities] = useState(false);
   const [alerts, setAlerts] = useState<ServiceAlert[]>([]);
-  const [curriculumFeedback, setCurriculumFeedback] = useState("");
+  const [openSection, setOpenSection] = useState<PreferenceSection>(null);
 
   useEffect(() => {
     function loadPreferences() {
+      const record = readTalentRecord(profileId);
+      setSelected(storedArray<string>("oflix-interests", profileId, record?.activities ?? []));
+      setVolunteerInterests(record?.volunteerInterests ?? []);
+      setWorkPreferences(storedArray<WorkPreference>("oflix-work-preferences", profileId, record?.workPreferences ?? []));
+      setResidence(readResidence(profileId, { municipality: profile.location.municipality, state: profile.location.state || "SE" }));
+      setNotifications(window.localStorage.getItem(`oflix-interest-notifications-${profileId}`) === "on");
+      setPublicOpportunities(window.localStorage.getItem(`oflix-public-opportunities-${profileId}`) === "on" && profile.capabilities.toLowerCase().includes("serviços autônomos"));
       try {
-        const record = readDirectory().find((item) => item.profileId === profileId);
-        const storedResidence = JSON.parse(window.localStorage.getItem(`${residenceKey}-${profileId}`) ?? "null") as Partial<ResidenceData> | null;
-        setSelected(JSON.parse(window.localStorage.getItem(`oflix-interests-${profileId}`) ?? JSON.stringify(record?.activities ?? [])));
-        setVolunteerInterests(record?.volunteerInterests ?? []);
-        setWorkPreferences(JSON.parse(window.localStorage.getItem(`oflix-work-preferences-${profileId}`) ?? JSON.stringify(record?.workPreferences ?? [])));
-        setResidence({ municipality: storedResidence?.municipality ?? record?.location.municipality ?? profile.location.municipality, state: storedResidence?.state ?? record?.location.state ?? profile.location.state ?? "SE" });
-        setEducation({
-          educationLevel: record?.educationLevel ?? "",
-          courseTypes: record?.courseTypes ?? [],
-          courseName: record?.courseName ?? "",
-          specialization: record?.specialization ?? "",
-          curriculumFileName: record?.curriculumFileName ?? "",
-          curriculumDataUrl: record?.curriculumDataUrl ?? "",
-          curriculumConfirmed: record?.curriculumConfirmed ?? false,
-        });
-        setTalentVisible(window.localStorage.getItem(`oflix-talent-bank-visible-${profileId}`) === "on");
-        setNotifications(window.localStorage.getItem(`oflix-interest-notifications-${profileId}`) === "on");
-        setPublicOpportunities(window.localStorage.getItem(`oflix-public-opportunities-${profileId}`) === "on" && profile.capabilities.toLowerCase().includes("serviços autônomos"));
-        setAlerts(JSON.parse(window.localStorage.getItem(serviceAlertKey) ?? "[]"));
+        const value = JSON.parse(window.localStorage.getItem(SERVICE_ALERT_KEY) ?? "[]");
+        setAlerts(Array.isArray(value) ? value as ServiceAlert[] : []);
       } catch {
-        // Estado inicial seguro quando o navegador bloqueia o localStorage.
+        setAlerts([]);
       }
     }
     loadPreferences();
     window.addEventListener("oflix-opportunity-alerts-changed", loadPreferences);
     window.addEventListener("oflix-interests-changed", loadPreferences);
+    window.addEventListener("oflix-profile-preferences-changed", loadPreferences);
     window.addEventListener("oflix-talent-bank-changed", loadPreferences);
+    window.addEventListener("oflix-profile-territory-changed", loadPreferences);
     return () => {
       window.removeEventListener("oflix-opportunity-alerts-changed", loadPreferences);
       window.removeEventListener("oflix-interests-changed", loadPreferences);
+      window.removeEventListener("oflix-profile-preferences-changed", loadPreferences);
       window.removeEventListener("oflix-talent-bank-changed", loadPreferences);
+      window.removeEventListener("oflix-profile-territory-changed", loadPreferences);
     };
-  }, [profile.capabilities, profile.location.district, profile.location.municipality, profile.location.state, profileId]);
+  }, [profile.capabilities, profile.location.municipality, profile.location.state, profileId]);
 
   const filtered = useMemo(() => WORK_ACTIVITIES.filter((activity) => activity.toLowerCase().includes(query.toLowerCase())), [query]);
   const filteredVolunteerInterests = useMemo(() => VOLUNTEER_INTERESTS.filter((interest) => interest.toLowerCase().includes(volunteerQuery.toLowerCase())), [volunteerQuery]);
   const matching = matches.filter((match) => matchesActivity(match.requiredActivities?.length ? match.requiredActivities : [match.category], selected)).length;
   const relevantAlerts = alerts.filter((alert) => matchesActivity(alert.activities, selected));
+  const selectedDevelopment = workPreferences.filter((preference) => DEVELOPMENT_PREFERENCES.includes(preference));
+  const canFollowPublic = profile.capabilities.toLowerCase().includes("serviços autônomos");
 
-  function saveDirectory(next: Partial<TalentDirectoryRecord> = {}) {
-    try {
-      const current = readDirectory().filter((record) => record.profileId !== profileId);
-      const record: TalentDirectoryRecord = {
-        profileId,
-        name: profile.name,
-        summary: profile.summary,
-        capabilities: profile.capabilities,
-        location: next.location ?? { ...residence, district: profile.location.district },
-        workPreferences: next.workPreferences ?? workPreferences,
-        activities: next.activities ?? selected,
-        volunteerInterests: next.volunteerInterests ?? volunteerInterests,
-        visible: next.visible ?? talentVisible,
-        educationLevel: next.educationLevel ?? education.educationLevel,
-        courseTypes: next.courseTypes ?? education.courseTypes,
-        courseName: next.courseName ?? education.courseName,
-        specialization: next.specialization ?? education.specialization,
-        curriculumFileName: next.curriculumFileName ?? education.curriculumFileName,
-        curriculumDataUrl: next.curriculumDataUrl ?? education.curriculumDataUrl,
-        curriculumConfirmed: next.curriculumConfirmed ?? education.curriculumConfirmed,
-        updatedAt: new Date().toISOString(),
-      };
-      window.localStorage.setItem(talentDirectoryKey, JSON.stringify([...current, record]));
-      window.dispatchEvent(new Event("oflix-talent-bank-changed"));
-    } catch {
-      setCurriculumFeedback("Não foi possível salvar o currículo neste navegador. Tente um arquivo menor.");
-    }
+  function saveDirectory(next: { workPreferences?: WorkPreference[]; activities?: string[]; volunteerInterests?: VolunteerInterest[] }) {
+    const current = readTalentRecord(profileId);
+    const record: TalentDirectoryRecord = {
+      profileId,
+      name: profile.name,
+      summary: profile.summary,
+      capabilities: profile.capabilities,
+      location: current?.location ?? { ...residence, district: profile.location.district },
+      workPreferences: next.workPreferences ?? workPreferences,
+      activities: next.activities ?? selected,
+      volunteerInterests: next.volunteerInterests ?? volunteerInterests,
+      visible: current?.visible ?? false,
+      educationLevel: current?.educationLevel ?? "",
+      courseTypes: current?.courseTypes ?? [],
+      courseName: current?.courseName ?? "",
+      specialization: current?.specialization ?? "",
+      curriculumFileName: current?.curriculumFileName ?? "",
+      curriculumDataUrl: current?.curriculumDataUrl ?? "",
+      curriculumConfirmed: current?.curriculumConfirmed ?? false,
+      updatedAt: new Date().toISOString(),
+    };
+    saveTalentRecord(record);
   }
 
   function toggle(activity: string) {
     const next = selected.includes(activity) ? selected.filter((item) => item !== activity) : [...selected, activity];
-    setSelected(next); window.localStorage.setItem(`oflix-interests-${profileId}`, JSON.stringify(next));
+    setSelected(next);
+    window.localStorage.setItem(`oflix-interests-${profileId}`, JSON.stringify(next));
     saveDirectory({ activities: next });
     window.dispatchEvent(new Event("oflix-interests-changed"));
   }
 
   function toggleWorkPreference(preference: WorkPreference) {
     const next = workPreferences.includes(preference) ? workPreferences.filter((item) => item !== preference) : [...workPreferences, preference];
-    setWorkPreferences(next); window.localStorage.setItem(`oflix-work-preferences-${profileId}`, JSON.stringify(next));
+    setWorkPreferences(next);
+    window.localStorage.setItem(`oflix-work-preferences-${profileId}`, JSON.stringify(next));
     saveDirectory({ workPreferences: next });
     window.dispatchEvent(new Event("oflix-profile-preferences-changed"));
   }
@@ -127,62 +126,7 @@ export function InterestSelector({ profile, matches }: { profile: PersonProfile;
     const next = volunteerInterests.includes(interest) ? volunteerInterests.filter((item) => item !== interest) : [...volunteerInterests, interest];
     setVolunteerInterests(next);
     saveDirectory({ volunteerInterests: next });
-  }
-
-  function updateResidence(next: Partial<ResidenceData>) {
-    const merged = { ...residence, ...next };
-    setResidence(merged);
-    window.localStorage.setItem(`${residenceKey}-${profileId}`, JSON.stringify(merged));
-    saveDirectory({ location: { ...merged, district: profile.location.district } });
-  }
-
-  function updateEducation(next: Partial<EducationData>) {
-    const merged = { ...education, ...next };
-    setEducation(merged);
-    saveDirectory(merged);
-  }
-
-  function handleCurriculumChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".docx")) {
-      setCurriculumFeedback("Envie o currículo preenchido no formato .docx, usando o modelo indicado.");
-      event.target.value = "";
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setCurriculumFeedback("O currículo deve ter no máximo 5 MB nesta demonstração.");
-      event.target.value = "";
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = typeof reader.result === "string" ? reader.result : "";
-      if (!dataUrl) return;
-      updateEducation({ curriculumFileName: file.name, curriculumDataUrl: dataUrl });
-      setCurriculumFeedback(`Currículo anexado: ${file.name}`);
-    };
-    reader.onerror = () => setCurriculumFeedback("Não foi possível ler o currículo. Tente anexar o arquivo novamente.");
-    reader.readAsDataURL(file);
-  }
-
-  function toggleCurriculumConfirmation() {
-    updateEducation({ curriculumConfirmed: !education.curriculumConfirmed });
-  }
-
-  function toggleTalentVisibility() {
-    const next = !talentVisible;
-    if (next && (!education.curriculumDataUrl || !education.curriculumConfirmed)) {
-      setCurriculumFeedback("Anexe um currículo .docx preenchido a partir do modelo indicado e confirme essa informação antes de liberar seu perfil.");
-      return;
-    }
-    setTalentVisible(next); window.localStorage.setItem(`oflix-talent-bank-visible-${profileId}`, next ? "on" : "off");
-    saveDirectory({ visible: next });
-  }
-
-  async function enableNotifications() {
-    if (typeof Notification !== "undefined" && Notification.permission === "default") await Notification.requestPermission();
-    setNotifications(true); window.localStorage.setItem(`oflix-interest-notifications-${profileId}`, "on");
+    window.dispatchEvent(new Event("oflix-profile-preferences-changed"));
   }
 
   function togglePublicOpportunities() {
@@ -192,17 +136,37 @@ export function InterestSelector({ profile, matches }: { profile: PersonProfile;
     window.dispatchEvent(new Event("oflix-public-opportunities-changed"));
   }
 
-  return <section className="panel mt-8 p-5 sm:p-6">
-    <div className="flex items-start gap-3"><div className="rounded-lg bg-[#e8f1f6] p-2 text-blue"><Tag size={18} /></div><div><p className="eyebrow">Preferências</p><h2 className="mt-2 text-xl font-bold text-navy">Escolha o que você quer acompanhar.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#637688]">Suas escolhas organizam a descoberta e ajudam a destacar caminhos relacionados ao seu perfil.</p></div></div>
-    <fieldset className="mt-5 rounded-lg border border-line bg-[#fbfcfd] p-4"><legend className="px-1 text-sm font-bold text-navy">O que você procura em trabalho</legend><p className="text-sm leading-6 text-[#637688]">Escolha quantas quiser para acompanhar trabalho, serviços e ações do território.</p><div className="mt-3 flex flex-wrap gap-2">{WORK_PREFERENCES.map((preference) => <label key={preference} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${workPreferences.includes(preference) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={preference} checked={workPreferences.includes(preference)} onChange={() => toggleWorkPreference(preference)} className="sr-only" />{preference}</label>)}</div></fieldset>
-    <fieldset className="mt-5 rounded-lg border border-line bg-[#fbfcfd] p-4"><legend className="px-1 text-sm font-bold text-navy">Desenvolvimento e carreira</legend><p className="text-sm leading-6 text-[#637688]">Acompanhe concursos, processos seletivos e oportunidades de capacitação.</p><div className="mt-3 flex flex-wrap gap-2">{DEVELOPMENT_PREFERENCES.map((preference) => <label key={preference} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${workPreferences.includes(preference) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={preference} checked={workPreferences.includes(preference)} onChange={() => toggleWorkPreference(preference)} className="sr-only" />{preference}</label>)}</div></fieldset>
-    {profile.capabilities.toLowerCase().includes("serviços autônomos") && <fieldset className="mt-5 rounded-lg border border-[#c9dce8] bg-[#f5fafc] p-4"><legend className="px-1 text-sm font-bold text-navy">Oportunidades de negócio</legend><label className="flex cursor-pointer gap-3"><input type="checkbox" aria-label="Quero acompanhar oportunidades com o poder público" checked={publicOpportunities} onChange={togglePublicOpportunities} className="mt-1 h-4 w-4 accent-[#8a5a00]" /><span><strong className="block text-sm text-navy">Quero acompanhar oportunidades com o poder público</strong><span className="mt-1 block text-sm leading-6 text-[#637688]">Ative para descobrir contratações relacionadas às suas atividades. Isso não confirma habilitação jurídica: verifique os requisitos do edital.</span></span></label></fieldset>}
-    <fieldset className="mt-5 rounded-lg border border-line bg-[#fbfcfd] p-4"><legend className="px-1 text-sm font-bold text-navy">Formação e qualificação</legend><p className="text-sm leading-6 text-[#637688]">Essas informações ajudam as instituições a encontrar perfis no banco de talentos.</p><div className="mt-3 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold text-navy">Nível de escolaridade<select aria-label="Nível de escolaridade" value={education.educationLevel} onChange={(event) => updateEducation({ educationLevel: event.target.value as EducationLevel | "" })} className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-3 font-normal"><option value="">Selecione o nível</option>{EDUCATION_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}</select></label><label className="text-sm font-bold text-navy">Nome do curso<input aria-label="Nome do curso" value={education.courseName} onChange={(event) => updateEducation({ courseName: event.target.value })} placeholder="Ex.: Técnico em eletrotécnica" className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-3 font-normal" /></label></div><div className="mt-4"><p className="text-sm font-bold text-navy">Tipo de curso</p><div className="mt-2 grid gap-2 sm:grid-cols-2">{COURSE_TYPES.map((courseType) => <label key={courseType} className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-sm text-[#637688]"><input type="checkbox" aria-label={`Tipo de curso: ${courseType}`} checked={education.courseTypes.includes(courseType)} onChange={() => updateEducation({ courseTypes: education.courseTypes.includes(courseType) ? education.courseTypes.filter((item) => item !== courseType) : [...education.courseTypes, courseType] })} className="h-4 w-4 accent-[#176c61]" />{courseType}</label>)}</div></div><label className="mt-4 block text-sm font-bold text-navy">Especialização ou pós-graduação<input aria-label="Especialização ou pós-graduação" value={education.specialization} onChange={(event) => updateEducation({ specialization: event.target.value })} placeholder="Ex.: Gestão de projetos sociais" className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-3 font-normal" /></label></fieldset>
-    <section className="mt-5 rounded-lg border border-[#c9dce8] bg-[#f5fafc] p-4"><div className="flex items-start gap-3"><FileText size={19} className="mt-1 shrink-0 text-blue" /><div><h3 className="font-bold text-navy">Currículo no modelo OFLIX</h3><p className="mt-1 text-sm leading-6 text-[#637688]">Para compartilhar seu perfil no banco de talentos, é obrigatório anexar o currículo preenchido a partir do modelo indicado. O arquivo fica disponível para a instituição baixar nesta demonstração.</p><a className="mt-3 inline-flex text-sm font-bold text-blue hover:underline" href="/Modelo_Curriculo.docx" download>Baixar modelo de currículo</a></div></div><label className="mt-4 block text-sm font-bold text-navy">Currículo no modelo OFLIX<input aria-label="Currículo no modelo OFLIX" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleCurriculumChange} className="mt-2 block w-full rounded-lg border border-line bg-white px-3 py-3 text-sm font-normal text-[#637688]" /></label>{education.curriculumFileName && <p className="mt-2 text-sm font-semibold text-[#176c61]">Arquivo anexado: {education.curriculumFileName}</p>}<label className="mt-3 flex items-start gap-2 text-sm leading-6 text-[#637688]"><input type="checkbox" aria-label="Confirmo que estou usando o modelo de currículo OFLIX" checked={education.curriculumConfirmed} onChange={toggleCurriculumConfirmation} className="mt-1 h-4 w-4 accent-[#176c61]" />Confirmo que este currículo foi preenchido usando o modelo indicado.</label>{curriculumFeedback && <p role="status" className="mt-3 rounded-lg border border-[#b7ded5] bg-[#effaf6] p-3 text-sm font-semibold text-[#176c61]">{curriculumFeedback}</p>}</section>
-    <fieldset className="mt-5 rounded-lg border border-line bg-[#fbfcfd] p-4"><legend className="px-1 text-sm font-bold text-navy">Município e Estado onde você mora</legend><p className="text-sm leading-6 text-[#637688]">Informe manualmente o município e o Estado onde mora. O OFLIX não solicita acesso à sua localização, ao Google Maps ou a coordenadas exatas.</p><div className="mt-3 grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold text-navy">Município<input aria-label="Município onde você mora" value={residence.municipality} onChange={(event) => updateResidence({ municipality: event.target.value })} placeholder="Ex.: Aracaju" className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-3 font-normal" /></label><label className="text-sm font-bold text-navy">Estado<select aria-label="Estado onde você mora" value={residence.state} onChange={(event) => updateResidence({ state: event.target.value })} className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-3 font-normal"><option value="">Selecione o Estado</option>{BRAZILIAN_STATES.map((state) => <option key={state.code} value={state.code}>{state.name} ({state.code})</option>)}</select></label></div></fieldset>
-    <label className="mt-4 flex cursor-pointer gap-3 rounded-lg border border-[#b7ded5] bg-[#effaf6] p-4"><input type="checkbox" aria-label="Permitir que instituições encontrem meu perfil" checked={talentVisible} onChange={toggleTalentVisibility} className="mt-1 h-4 w-4 accent-[#176c61]" /><span><strong className="block text-sm text-[#176c61]">Permitir que instituições encontrem meu perfil</strong><span className="mt-1 block text-sm leading-6 text-[#356d68]">Opcional. Contratantes poderão ver seu resumo, formação, competências, interesses, currículo e o município e Estado onde você mora, mesmo sem você ter demonstrado interesse em uma vaga.</span></span></label>
-    <fieldset className="mt-5 rounded-lg border border-line bg-[#fbfcfd] p-4"><legend className="px-1 text-sm font-bold text-navy">Atividades de trabalho autônomo</legend><p className="text-sm leading-6 text-[#637688]">Selecione quantas atividades você realiza ou quer acompanhar. Elas ajudam a aproximar você de serviços compatíveis.</p><label className="relative mt-3 block max-w-[520px]"><span className="sr-only">Pesquisar atividades</span><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8b98]" /><input aria-label="Pesquisar atividades" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Pesquisar atividade, como eletricista" className="w-full rounded-lg border border-line bg-white py-3 pl-9 pr-3 text-sm text-navy placeholder:text-[#91a0aa]" /></label><div className="mt-4 flex flex-wrap gap-2">{filtered.map((activity) => <label key={activity} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${selected.includes(activity) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={activity} checked={selected.includes(activity)} onChange={() => toggle(activity)} className="sr-only" />{activity}</label>)}</div><p className="mt-3 text-xs text-[#718291]">{selected.length ? `${selected.length} atividade(s) autônoma(s) selecionada(s).` : "Nenhuma atividade autônoma selecionada ainda."}</p></fieldset>
-    <fieldset className="mt-5 rounded-lg border border-line bg-[#fbfcfd] p-4"><legend className="px-1 text-sm font-bold text-navy">Interesses em voluntariado</legend><p className="text-sm leading-6 text-[#637688]">Escolha quantos temas quiser para acompanhar ações voluntárias relacionadas aos seus interesses.</p><label className="relative mt-3 block max-w-[520px]"><span className="sr-only">Pesquisar interesses em voluntariado</span><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8b98]" /><input aria-label="Pesquisar interesses em voluntariado" value={volunteerQuery} onChange={(event) => setVolunteerQuery(event.target.value)} placeholder="Pesquisar tema, como educação ou meio ambiente" className="w-full rounded-lg border border-line bg-white py-3 pl-9 pr-3 text-sm text-navy placeholder:text-[#91a0aa]" /></label><div className="mt-4 flex flex-wrap gap-2">{filteredVolunteerInterests.map((interest) => <label key={interest} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${volunteerInterests.includes(interest) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={interest} checked={volunteerInterests.includes(interest)} onChange={() => toggleVolunteerInterest(interest)} className="sr-only" />{interest}</label>)}</div><p className="mt-3 text-xs text-[#718291]">{volunteerInterests.length ? `${volunteerInterests.length} interesse(s) em voluntariado selecionado(s).` : "Nenhum interesse em voluntariado selecionado ainda."}</p></fieldset>
-    <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between"><div className="text-sm text-[#637688]"><p>{selected.length ? <><strong className="text-navy">{selected.length}</strong> atividade(s) selecionada(s){matching ? ` · ${matching} oportunidade(s) compatível(is) agora` : ""}</> : "Nenhuma atividade selecionada ainda."}</p>{relevantAlerts.length > 0 && <p className="mt-2 rounded-lg border border-[#b7ded5] bg-[#effaf6] p-3 font-semibold text-[#176c61]">{relevantAlerts.length} nova(s) demanda(s) compatível(is): {relevantAlerts.slice(0, 2).map((alert) => alert.title).join("; ")}{relevantAlerts.length > 2 ? "…" : ""}</p>}</div><button type="button" className={notifications ? "button-secondary" : "button-primary"} onClick={enableNotifications}><Bell size={16} />{notifications ? "Notificações ativadas" : "Ativar notificações"}</button></div>
+  const workSummary = workPreferences.filter((preference) => WORK_PREFERENCES.includes(preference)).length ? workPreferences.filter((preference) => WORK_PREFERENCES.includes(preference)).join(" + ") : "Nenhuma frente selecionada";
+  const developmentSummary = selectedDevelopment.length ? selectedDevelopment.map((item) => item.replace(" públicos", "").replace("Cursos e capacitação", "Cursos")).join(" + ") : "Nenhum caminho selecionado";
+  const activitySummary = selected.length ? `${selected.slice(0, 3).join(", ")}${selected.length > 3 ? "…" : ""} · ${selected.length} área(s)` : "Nenhuma área selecionada";
+  const volunteerSummary = volunteerInterests.length ? `${volunteerInterests.slice(0, 2).join(" + ")}${volunteerInterests.length > 2 ? "…" : ""}` : "Nenhum interesse selecionado";
+
+  return <section className="mt-7" aria-label="Preferências de descoberta">
+    <div className="mb-4 flex items-start gap-3"><div className="rounded-lg bg-[#e8f1f6] p-2 text-blue"><Tag size={18} /></div><div><p className="eyebrow">O que acompanhar</p><h2 className="mt-2 text-xl font-bold text-navy">Preferências de descoberta</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#637688]">A visão inicial é curta. Abra um grupo para ajustar apenas o que importa agora.</p></div></div>
+    <div className="space-y-3">
+      <PreferenceGroup id="work-preferences" title="Oportunidades de trabalho" description="CLT, estágio, serviços e voluntariado" summary={workSummary} open={openSection === "work"} onToggle={() => setOpenSection(openSection === "work" ? null : "work")}>
+        <p className="text-sm leading-6 text-[#637688]">Escolha as frentes de trabalho que você quer acompanhar.</p><div className="mt-3 flex flex-wrap gap-2">{WORK_PREFERENCES.map((preference) => <label key={preference} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${workPreferences.includes(preference) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={preference} checked={workPreferences.includes(preference)} onChange={() => toggleWorkPreference(preference)} className="sr-only" />{preference}</label>)}</div>
+      </PreferenceGroup>
+      <PreferenceGroup id="development-preferences" title="Desenvolvimento profissional" description="Concursos, processos seletivos e capacitação" summary={developmentSummary} open={openSection === "development"} onToggle={() => setOpenSection(openSection === "development" ? null : "development")}>
+        <p className="text-sm leading-6 text-[#637688]">Acompanhe caminhos de desenvolvimento que devem influenciar suas recomendações.</p><div className="mt-3 flex flex-wrap gap-2">{DEVELOPMENT_PREFERENCES.map((preference) => <label key={preference} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${workPreferences.includes(preference) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={preference} checked={workPreferences.includes(preference)} onChange={() => toggleWorkPreference(preference)} className="sr-only" />{preference}</label>)}</div>
+      </PreferenceGroup>
+      <PreferenceGroup id="activity-preferences" title="Áreas e atividades" description="Profissões, competências e temas de atuação" summary={activitySummary} open={openSection === "activities"} onToggle={() => setOpenSection(openSection === "activities" ? null : "activities")}>
+        <label className="relative block max-w-[520px]"><span className="sr-only">Buscar área ou profissão</span><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8b98]" /><input aria-label="Buscar área ou profissão" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar área ou profissão" className="w-full rounded-lg border border-line bg-white py-3 pl-9 pr-3 text-sm text-navy placeholder:text-[#91a0aa]" /></label>
+        <p className="mt-5 text-xs font-black uppercase tracking-[.12em] text-[#738593]">Selecionadas</p><div className="mt-2 flex flex-wrap gap-2">{selected.length ? selected.map((activity) => <label key={activity} className="cursor-pointer rounded-full border border-blue bg-[#edf6fb] px-3 py-2 text-sm font-bold text-blue"><input type="checkbox" aria-label={`Remover ${activity}`} checked onChange={() => toggle(activity)} className="sr-only" />{activity} ×</label>) : <p className="text-sm text-[#718291]">Nenhuma área selecionada ainda.</p>}</div>
+        <p className="mt-5 text-xs font-black uppercase tracking-[.12em] text-[#738593]">Outras áreas</p><div className="mt-2 flex flex-wrap gap-2">{filtered.filter((activity) => !selected.includes(activity)).map((activity) => <label key={activity} className="cursor-pointer rounded-full border border-line bg-white px-3 py-2 text-sm font-bold text-[#637688] hover:border-blue"><input type="checkbox" aria-label={activity} checked={false} onChange={() => toggle(activity)} className="sr-only" />{activity}</label>)}</div><p className="mt-3 text-xs text-[#718291]">{matching ? `${matching} oportunidade(s) de trabalho compatível(is) agora.` : "As áreas escolhidas orientam o recorte da descoberta."}</p>{relevantAlerts.length > 0 && <p className="mt-3 rounded-lg border border-[#b7ded5] bg-[#effaf6] p-3 text-sm font-semibold text-[#176c61]">{relevantAlerts.length} nova(s) demanda(s) compatível(is): {relevantAlerts.slice(0, 2).map((alert) => alert.title).join("; ")}{relevantAlerts.length > 2 ? "…" : ""}</p>}
+      </PreferenceGroup>
+      <PreferenceGroup id="volunteer-preferences" title="Interesses em voluntariado" description="Temas e iniciativas que você quer acompanhar" summary={volunteerSummary} open={openSection === "volunteer"} onToggle={() => setOpenSection(openSection === "volunteer" ? null : "volunteer")}>
+        <label className="relative block max-w-[520px]"><span className="sr-only">Buscar interesse em voluntariado</span><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8b98]" /><input aria-label="Buscar interesse em voluntariado" value={volunteerQuery} onChange={(event) => setVolunteerQuery(event.target.value)} placeholder="Buscar interesse em voluntariado" className="w-full rounded-lg border border-line bg-white py-3 pl-9 pr-3 text-sm text-navy placeholder:text-[#91a0aa]" /></label>
+        <p className="mt-5 text-xs font-black uppercase tracking-[.12em] text-[#738593]">Selecionados</p><div className="mt-2 flex flex-wrap gap-2">{volunteerInterests.length ? volunteerInterests.map((interest) => <label key={interest} className="cursor-pointer rounded-full border border-blue bg-[#edf6fb] px-3 py-2 text-sm font-bold text-blue"><input type="checkbox" aria-label={`Remover ${interest}`} checked onChange={() => toggleVolunteerInterest(interest)} className="sr-only" />{interest} ×</label>) : <p className="text-sm text-[#718291]">Nenhum interesse selecionado ainda.</p>}</div>
+        <p className="mt-5 text-xs font-black uppercase tracking-[.12em] text-[#738593]">Outros interesses</p><div className="mt-2 flex flex-wrap gap-2">{filteredVolunteerInterests.filter((interest) => !volunteerInterests.includes(interest)).map((interest) => <label key={interest} className="cursor-pointer rounded-full border border-line bg-white px-3 py-2 text-sm font-bold text-[#637688] hover:border-blue"><input type="checkbox" aria-label={interest} checked={false} onChange={() => toggleVolunteerInterest(interest)} className="sr-only" />{interest}</label>)}</div>
+      </PreferenceGroup>
+      {canFollowPublic && <PreferenceGroup id="business-preferences" title="Oportunidades de negócio" description="Contratações relacionadas às suas atividades" summary={publicOpportunities ? "Poder público · Ativado" : "Poder público · Desativado"} open={openSection === "business"} onToggle={() => setOpenSection(openSection === "business" ? null : "business")}>
+        <label className="flex cursor-pointer gap-3"><input type="checkbox" aria-label="Quero acompanhar oportunidades com o poder público" checked={publicOpportunities} onChange={togglePublicOpportunities} className="mt-1 h-4 w-4 accent-[#8a5a00]" /><span><strong className="block text-sm text-navy">Quero acompanhar oportunidades com o poder público</strong><span className="mt-1 block text-sm leading-6 text-[#637688]">Veja contratações relacionadas às suas atividades. Consulte sempre os requisitos oficiais.</span></span></label>
+      </PreferenceGroup>}
+    </div>
+    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <Link href="/profile" className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-4 transition hover:border-blue"><span><span className="block text-base font-bold text-navy">Território de referência</span><span className="mt-1 block text-sm text-[#637688]">{residence.municipality} · {residence.state}</span><span className="mt-2 block text-sm font-bold text-blue">Editar no Perfil</span></span><Tag size={18} className="shrink-0 text-blue" /></Link>
+      <Link href="/settings" className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-white p-4 transition hover:border-blue"><span><span className="block text-base font-bold text-navy">Avisos e notificações</span><span className="mt-1 block text-sm text-[#637688]">{notifications ? "Ativados" : "Desativados"}</span><span className="mt-2 inline-flex items-center gap-2 text-sm font-bold text-blue"><Bell size={15} /> Configurar</span></span><Tag size={18} className="shrink-0 text-blue" /></Link>
+    </div>
   </section>;
 }

@@ -1,29 +1,30 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { demoDiscoveryItems } from "../lib/discovery";
 
 test("percurso principal: perfil, descoberta, detalhe e interação", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "OFLIX conecta trabalho, serviços e voluntariado em Sergipe." })).toBeVisible();
-  await page.getByRole("link", { name: "Entrar na demonstração" }).click();
+  await expect(page.getByRole("heading", { name: "OFLIX é um hub territorial de oportunidades." })).toBeVisible();
+  await page.getByRole("link", { name: "Entrar na demonstração" }).first().click();
   await page.waitForURL("**/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await expect(page.getByRole("heading", { name: "Olá, Hugo." })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Navegação principal" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Buscar", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Navegação principal" }).getByRole("button", { name: "Buscar", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Serviço hoje", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Preferências", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Escolha o que você quer acompanhar.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("group", { name: "O que você procura em trabalho" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Desenvolvimento e carreira" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Atividades de trabalho autônomo" })).toBeVisible();
-  await expect(page.getByRole("group", { name: "Interesses em voluntariado" })).toBeVisible();
-  await page.getByRole("checkbox", { name: "Educação e leitura", exact: true }).check({ force: true });
-  await page.getByRole("group", { name: "Interesses em voluntariado" }).getByRole("checkbox", { name: "Meio ambiente", exact: true }).check({ force: true });
-  await expect(page.getByRole("heading", { name: "Oportunidades relacionadas aos seus interesses" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /visão territorial geral/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Oportunidades de trabalho/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Desenvolvimento profissional/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Áreas e atividades/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Interesses em voluntariado/ })).toBeVisible();
+  await expect(page.getByLabel("Nível de escolaridade")).toHaveCount(0);
+  await page.getByRole("button", { name: /Interesses em voluntariado/ }).click();
+  await page.locator("label").filter({ hasText: "Educação e leitura" }).first().click({ force: true });
+  await expect(page.getByRole("link", { name: /Território de referência/ })).toBeVisible();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible();
   await expect(page.getByPlaceholder("Buscar profissão, atividade ou oportunidade")).toBeVisible();
@@ -131,7 +132,7 @@ test("menu da conta abre perfil, configurações e saída", async ({ page }) => 
   await page.getByRole("menuitem", { name: "Meu perfil" }).click();
   await page.waitForURL("**/profile");
   await expect(page.getByRole("heading", { name: "Hugo Silva" })).toBeVisible();
-  await expect(page.getByText("Pessoa em busca de oportunidades e conexões locais.")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Identidade profissional" }).getByText("Pessoa em busca de oportunidades e conexões locais.")).toBeVisible();
   await page.getByRole("button", { name: "Abrir menu de Hugo Silva" }).click();
   await page.getByRole("menuitem", { name: "Configurações" }).click();
   await page.waitForURL("**/settings");
@@ -147,6 +148,7 @@ test("organização publica demanda autônoma com múltiplas atividades", async 
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
+  await page.getByRole("button", { name: /Publicar oportunidade/ }).click();
   await expect(page.getByRole("heading", { name: "Publicar demanda de trabalho" })).toBeVisible();
   await page.getByRole("button", { name: "Nova demanda" }).click();
   await page.getByLabel("Frente", { exact: true }).selectOption("service");
@@ -161,6 +163,7 @@ test("organização publica demanda autônoma com múltiplas atividades", async 
   await page.getByRole("button", { name: "Trocar perfil" }).click();
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
+  await page.getByRole("button", { name: /Áreas e atividades/ }).click();
   await page.getByRole("checkbox", { name: "Eletricista" }).check({ force: true });
   await expect(page.getByText(/nova\(s\) demanda\(s\) compatível\(is\)/)).toBeVisible();
 });
@@ -206,20 +209,28 @@ test("pessoa opta por compartilhar perfil e organização consulta banco de tale
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
+  await page.getByRole("button", { name: /Oportunidades de trabalho/ }).click();
+  await page.getByRole("checkbox", { name: "CLT", exact: true }).check({ force: true });
+  await page.getByRole("checkbox", { name: "Voluntariado", exact: true }).check({ force: true });
+  await page.getByRole("link", { name: "Perfil", exact: true }).click();
+  await page.waitForURL("**/profile");
   await expect(page.getByRole("heading", { name: "Banco de talentos" })).toHaveCount(0);
+  await page.getByRole("button", { name: /Território/ }).click();
   await expect(page.getByLabel("Município onde você mora")).toHaveValue("Aracaju");
   await expect(page.getByLabel("Estado onde você mora")).toHaveValue("SE");
   await page.getByLabel("Município onde você mora").fill("Lagarto");
-  await page.getByRole("checkbox", { name: "CLT", exact: true }).check({ force: true });
-  await page.getByRole("checkbox", { name: "Voluntariado", exact: true }).check({ force: true });
+  await page.getByRole("button", { name: /Formação/ }).click();
   await page.getByLabel("Nível de escolaridade").selectOption("Graduação");
   await page.getByRole("checkbox", { name: "Tipo de curso: Comunicação" }).check();
   await page.getByLabel("Nome do curso").fill("Comunicação social");
   await page.getByLabel("Especialização ou pós-graduação").fill("Comunicação comunitária");
+  await page.getByRole("button", { name: /Currículo/ }).click();
   await page.getByLabel("Currículo no modelo OFLIX").setInputFiles(path.resolve("public/Modelo_Curriculo.docx"));
-  await expect(page.getByText(/Arquivo anexado: Modelo_Curriculo.docx/)).toBeVisible();
+  await expect(page.getByText(/Arquivo atual: Modelo_Curriculo.docx/)).toBeVisible();
   await page.getByRole("checkbox", { name: "Confirmo que estou usando o modelo de currículo OFLIX" }).check();
+  await page.getByRole("button", { name: /Banco de talentos/ }).click();
   await page.getByRole("checkbox", { name: "Permitir que instituições encontrem meu perfil" }).check();
+  await page.goto("/demo");
   await page.getByRole("button", { name: "Trocar perfil" }).click();
   await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
   await page.getByRole("button", { name: "Talentos", exact: true }).first().click();
@@ -248,6 +259,52 @@ test("mobile não cria overflow horizontal na landing", async ({ page }) => {
   expect(overflow).toBe(false);
 });
 
+test("landing apresenta o hub territorial sem a definição antiga", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "OFLIX é um hub territorial de oportunidades." })).toBeVisible();
+  await expect(page.getByText(/trabalho, serviços, concursos, capacitação e voluntariado/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Uma descoberta ampla, com caminhos claros." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Da descoberta à inteligência territorial." })).toBeVisible();
+  await expect(page.getByText("OFLIX conecta trabalho, serviços e voluntariado em Sergipe.", { exact: true })).toHaveCount(0);
+  await page.getByRole("link", { name: "Entrar na demonstração" }).first().click();
+  await page.waitForURL("**/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+});
+
+test("Home da pessoa busca no hub, mostra território e abre atalhos", async ({ page, request }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await expect(page.getByText("Descubra oportunidades para trabalhar, aprender e crescer em Aracaju.")).toBeVisible();
+  const apiResponse = await request.get("/api/opportunities");
+  const payload = await apiResponse.json();
+  const internalFormalInAracaju = payload.formal.filter((item: { location: { municipality: string } }) => item.location.municipality === "Aracaju").length;
+  const externalJobsInAracaju = demoDiscoveryItems.filter((item) => item.kind === "external_job" && item.location.municipality === "Aracaju").length;
+  const territory = page.getByRole("region", { name: "Na demonstração em Aracaju" });
+  await expect(territory.getByText(String(internalFormalInAracaju + externalJobsInAracaju), { exact: true }).first()).toBeVisible();
+  await page.getByLabel("O que você está procurando?").fill("eletricista");
+  await page.getByRole("form", { name: "Buscar oportunidades" }).getByRole("button", { name: "Buscar", exact: true }).click();
+  await expect(page).toHaveURL(/\/demo\?view=discover&q=eletricista/);
+  await expect(page.getByPlaceholder("Buscar profissão, atividade ou oportunidade")).toHaveValue("eletricista");
+  await page.getByRole("button", { name: "Início", exact: true }).click();
+  await page.getByRole("button", { name: /Concursos/ }).click();
+  await expect(page).toHaveURL(/\/demo\?view=discover&type=public_exam/);
+  await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible();
+});
+
+test("Preferências edita áreas progressivamente sem expor identidade profissional", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
+  await expect(page.getByLabel("Nível de escolaridade")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Avisos e notificações/ })).toBeVisible();
+  await page.getByRole("button", { name: /Áreas e atividades/ }).click();
+  await page.getByLabel("Buscar área ou profissão").fill("Eletricista");
+  await page.locator("label").filter({ hasText: "Eletricista" }).first().click({ force: true });
+  await expect(page.getByRole("button", { name: /Áreas e atividades.*Eletricista/ })).toBeVisible();
+});
+
 test("Buscar reúne profissão, capacitação e concurso sem expor poder público comum", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
@@ -271,6 +328,7 @@ test("pessoa autônoma ativa oportunidades públicas de forma explícita", async
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Amanda Figueiredo/ }).click();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
+  await page.getByRole("button", { name: /Oportunidades de negócio/ }).click();
   const publicPreference = page.getByRole("checkbox", { name: "Quero acompanhar oportunidades com o poder público" });
   await expect(publicPreference).not.toBeChecked();
   await publicPreference.check();

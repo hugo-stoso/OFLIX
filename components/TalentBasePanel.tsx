@@ -2,16 +2,12 @@
 
 import { MessageCircle, Search, Send, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { COURSE_TYPES, EDUCATION_LEVELS, type CourseType, type EducationLevel, type VolunteerInterest, type WorkPreference } from "@/lib/domain";
+import { COURSE_TYPES, EDUCATION_LEVELS, type CourseType, type EducationLevel, type WorkPreference } from "@/lib/domain";
+import { readTalentDirectory, type TalentDirectoryRecord } from "@/lib/profile-storage";
 
 type Talent = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
-type TalentProfile = { profileId: string; name: string; summary: string; capabilities: string; location: { state?: string; municipality: string; district: string }; workPreferences: WorkPreference[]; activities: string[]; volunteerInterests?: VolunteerInterest[]; visible: boolean; updatedAt: string; educationLevel?: EducationLevel | ""; courseTypes?: CourseType[]; courseName?: string; specialization?: string; curriculumFileName?: string; curriculumDataUrl?: string };
-const talentDirectoryKey = "oflix-talent-bank-profiles";
+type TalentProfile = TalentDirectoryRecord;
 const workFilters: Array<"Todos" | WorkPreference> = ["Todos", "CLT", "Estágio", "Serviços autônomos", "Voluntariado"];
-
-function readDirectory() {
-  try { return JSON.parse(window.localStorage.getItem(talentDirectoryKey) ?? "[]") as TalentProfile[]; } catch { return []; }
-}
 
 export function TalentBasePanel({ ownerId, talents }: { ownerId: string; talents: Talent[] }) {
   const [directory, setDirectory] = useState<TalentProfile[]>([]);
@@ -24,7 +20,7 @@ export function TalentBasePanel({ ownerId, talents }: { ownerId: string; talents
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    const load = () => setDirectory(readDirectory().filter((profile) => profile.visible));
+    const load = () => setDirectory(readTalentDirectory().filter((profile) => profile.visible));
     load();
     window.addEventListener("oflix-talent-bank-changed", load);
     return () => window.removeEventListener("oflix-talent-bank-changed", load);

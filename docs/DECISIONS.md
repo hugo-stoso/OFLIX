@@ -38,6 +38,14 @@ O modelo usa UF, município e bairro/região. Para o banco de talentos, a pessoa
 
 A landing é curta. A descoberta usa listas densas e legíveis. Cada frente usa seu próprio verbo de ação. A visão de analista evita nomes e números inventados; seus agregados vêm do seed e das interações.
 
+## Arquitetura de informação: intenção versus identidade
+
+A complexidade crescente do hub não deve ser transferida para um formulário único. Landing, Início, Buscar, Preferências e Perfil têm responsabilidades explícitas: explicar, resumir, explorar, personalizar e descrever a pessoa. Preferências usa progressive disclosure, com uma visão inicial de resumos e somente um grupo detalhado aberto por vez.
+
+Dados que descrevem quem a pessoa é — formação, currículo, residência e publicação no banco de talentos — pertencem ao Perfil. Preferências guardam apenas aquilo que a pessoa deseja acompanhar ou receber na descoberta. A extração preserva as chaves locais existentes (`oflix-talent-bank-profiles`, `oflix-residence-*`, `oflix-talent-bank-visible-*`, preferências e currículo) e não limpa nem renomeia dados antigos.
+
+A Home de pessoa prioriza busca, território, atalhos e recomendações curtas. A Home de organização não copia a experiência de pessoa e mantém publicação, talentos e Serviço para hoje como ações próprias. Os números territoriais são derivados dos itens visíveis da demonstração e são acompanhados da indicação `Dados da demonstração`; não há KPI hardcoded.
+
 ## Descoberta da marca
 
 O domínio técnico `oflix-six.vercel.app` é mantido como implantação atual, mas não é tratado como a identidade final da marca. A landing e os metadados usam “OFLIX” e “Sergipe” de forma explícita, com dados estruturados `WebSite` e favicon próprio. Um domínio próprio com OFLIX deve ser registrado e conectado pelo responsável quando houver disponibilidade; a posição para a busca genérica depende do Google e de sinais externos, então não é prometida pelo produto.

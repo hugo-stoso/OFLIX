@@ -14,6 +14,18 @@ OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em d
 - Proveniência visível em itens externos; `DEMO DATA` é identificado quando não há fonte legitimamente integrada.
 - Adapter server-side do PNCP com timeout, normalização, deduplicação conservadora, cache curto e fallback.
 
+## Arquitetura de informação
+
+As superfícies têm responsabilidades diferentes e complementares:
+
+- Landing (`/`): explica o que é a OFLIX como hub territorial.
+- Início (`/demo`): resume o que existe para a pessoa ou organização agora, com território, busca e atalhos.
+- Buscar: reúne a descoberta completa sem apagar a semântica de cada universo.
+- Preferências: guarda apenas o que a pessoa deseja acompanhar; a edição acontece progressivamente.
+- Perfil (`/profile`): descreve quem a pessoa é profissionalmente, incluindo formação, currículo, banco de talentos e território.
+
+Formação, currículo, residência e publicação no banco de talentos permanecem nas mesmas chaves de `localStorage`, mas foram retirados da visão inicial de Preferências. Nenhuma migração limpa ou renomeia dados existentes.
+
 ## Evolução do hub nesta execução
 
 - `PERSON` descobre trabalho, serviços, voluntariado, cursos, concursos públicos, processos seletivos e vagas externas DEMO DATA.

@@ -4,8 +4,8 @@ import "./globals.css";
 
 const siteUrl = getSiteUrl();
 const siteName = "OFLIX";
-const siteTitle = "OFLIX | Trabalho, serviços e voluntariado em Sergipe";
-const siteDescription = "OFLIX é a plataforma territorial de Sergipe para encontrar trabalho formal, serviços autônomos e voluntariado em um só lugar.";
+const siteTitle = "OFLIX | Hub territorial de oportunidades em Sergipe";
+const siteDescription = "OFLIX é um hub territorial de Sergipe para descobrir trabalho, serviços, concursos, capacitação e voluntariado a partir da realidade local.";
 
 export const metadata: Metadata = {
   title: siteTitle,

@@ -31,7 +31,7 @@
 - Navegação principal responsiva com cinco destinos: pessoa (Início, Buscar, Serviço hoje, Preferências, Perfil) e organização (Início, Buscar, Serviço hoje, Talentos, Perfil); analista permanece em sua visão territorial dedicada.
 - Busca reorganizada com campo dominante, alternância simples entre ofertas e demandas, filtros ativos visíveis e filtros secundários recolhidos no mobile.
 - Detalhe da oportunidade com ação contextual persistente em barra fixa no mobile; landing sem overflow horizontal em 390 px.
-- Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844.
+- Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844; a última validação no build de produção passou 38/38 cenários.
 - SEO técnico da aplicação com metadata canonical/Open Graph, `robots.txt` e `sitemap.xml` para a publicação pública.
 - SEO de marca reforçado com título e descrição “OFLIX · Sergipe”, dados estruturados `WebSite`, favicon próprio e copy textual explícita na landing.
 - Hub de descoberta unificado com `DiscoveryItem`, chips para trabalho, serviços, voluntariado, concursos, capacitação e poder público quando permitido, com relação determinística por profissão e detalhe DEMO DATA; a semântica das origens permanece separada.
@@ -39,6 +39,13 @@
 - Capacidade `canSupplyPublic` no perfil demo, com acesso contextual a oportunidades públicas para organização fornecedora e pessoa autônoma opt-in.
 - Proveniência visível, rotas de detalhe para itens DEMO DATA e estados de fonte com fallback.
 - Adapter server-side PNCP preparado com consulta pública oficial, timeout, cache curto, normalização e deduplicação conservadora; a UI só consulta no contexto público elegível e oferece nova tentativa sem expor detalhes técnicos do conector.
+- Revisão de arquitetura de informação implementada: landing explica o hub; Home resume o recorte contextual; Buscar permanece a descoberta completa; Preferências guarda intenção; Perfil concentra identidade profissional.
+- Preferências refatoradas para progressive disclosure com resumo de Trabalho, Desenvolvimento profissional, Áreas e atividades, Voluntariado, Poder público quando elegível, território e avisos; formação, currículo e banco de talentos não aparecem na visão inicial.
+- Formação, currículo, visibilidade do banco de talentos e residência movidos para grupos progressivos em Perfil, usando os helpers compartilhados de `lib/profile-storage.ts` e preservando as chaves locais existentes.
+- Home de pessoa recebeu busca principal, resumo territorial derivado dos `DiscoveryItem` visíveis, atalhos para Trabalho/Serviços/Concursos/Capacitação/Voluntariado, recomendações limitadas e teaser de Serviço para hoje; Home de organização ficou separada e publica sob demanda.
+- Landing pública ampliada com “O que você encontra”, “Para quem”, “Como funciona”, inteligência territorial, Sergipe e CTA final, sem números inventados ou associação oficial.
+- Ranking de descoberta passou a dar pesos determinísticos para preferências de cursos, concursos, CLT, estágio, serviços autônomos e voluntariado.
+- Smoke tests Playwright ampliados para landing, busca da Home, contagem territorial derivada, atalhos do hub, Preferências progressivas e preservação do Banco de talentos.
 - Publicação pública em `https://oflix-six.vercel.app`: VALIDAÇÃO NECESSÁRIA após esta evolução; a validação local está verde, mas a sincronização do build publicado precisa ser confirmada no ambiente Vercel.
 
 ## VALIDAÇÃO NECESSÁRIA

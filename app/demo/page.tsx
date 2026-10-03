@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BarChart3, CircleAlert, Loader2, MapPin, RefreshCw, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRight, BarChart3, CircleAlert, Loader2, MapPin, RefreshCw, Search, Sparkles } from "lucide-react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DemoHeader } from "@/components/DemoHeader";
 import { DemoNavigation, type DemoView } from "@/components/DemoNavigation";
 import { DiscoveryRow } from "@/components/DiscoveryRow";
@@ -14,6 +14,7 @@ import { ProfilePicker } from "@/components/ProfilePicker";
 import { PublicOpportunityPanel } from "@/components/PublicOpportunityPanel";
 import { ServiceCallComposer } from "@/components/ServiceCallComposer";
 import { ServiceCallPanel } from "@/components/ServiceCallPanel";
+import { ServiceCallTeaser } from "@/components/ServiceCallTeaser";
 import { TalentBasePanel } from "@/components/TalentBasePanel";
 import { canDiscoverPublicOpportunities, DISCOVERY_FILTER_LABELS, discoveryItemMatchesFilter, type DiscoveryFilterKind, type DiscoveryItem, type OpportunityKind } from "@/lib/domain";
 import { demoDiscoveryItems, discoveryReasons, internalToDiscoveryItem, rankDiscoveryItems } from "@/lib/discovery";
@@ -39,6 +40,8 @@ export default function DemoPage() {
   const [publicationMode, setPublicationMode] = useState<PublicationMode>("demands");
   const [activeView, setActiveView] = useState<DemoView>("home");
   const [personComposerOpen, setPersonComposerOpen] = useState(false);
+  const [organizationComposerOpen, setOrganizationComposerOpen] = useState(false);
+  const [homeSearch, setHomeSearch] = useState("");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [municipality, setMunicipality] = useState("");
@@ -221,6 +224,13 @@ export default function DemoPage() {
   const allOpportunities = useMemo(() => Object.values(opportunities).flat(), [opportunities]);
   const ownedOpportunities = useMemo(() => selectedProfile ? allOpportunities.filter((opportunity) => opportunity.owner.id === selectedProfile.id) : [], [allOpportunities, selectedProfile]);
   const homeMatches = useMemo(() => rankDiscoveryItems(discoveryItems, { activities: savedActivities, workPreferences: savedWorkPreferences, municipality: selectedProfile?.location.municipality }).slice(0, 4), [discoveryItems, savedActivities, savedWorkPreferences, selectedProfile?.location.municipality]);
+  const territoryItems = useMemo(() => discoveryItems.filter((item) => item.location.municipality === selectedProfile?.location.municipality), [discoveryItems, selectedProfile?.location.municipality]);
+  const homeCounts = useMemo(() => ({
+    work: territoryItems.filter((item) => item.kind === "formal" || item.kind === "external_job").length,
+    services: territoryItems.filter((item) => item.kind === "service").length,
+    publicExams: territoryItems.filter((item) => item.kind === "public_exam" || item.kind === "public_selection").length,
+    courses: territoryItems.filter((item) => item.kind === "course").length,
+  }), [territoryItems]);
 
   async function refreshPublicOpportunities() {
     setPublicLoading(true); setPublicError("");
@@ -237,6 +247,8 @@ export default function DemoPage() {
   function chooseProfile(id: string) {
     setSelectedId(id);
     setActiveView("home");
+    setOrganizationComposerOpen(false);
+    setPersonComposerOpen(false);
     setActiveFilter("all");
     resetFilters();
     window.localStorage.setItem("oflix-demo-profile", id);
@@ -249,8 +261,10 @@ export default function DemoPage() {
     setSearch(""); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); setFavoritesOnly(false);
   }
 
-  function goToDiscovery(filter: DiscoveryFilterKind = "all") {
+  function goToDiscovery(filter: DiscoveryFilterKind = "all", nextSearch?: string) {
+    resetFilters();
     setActiveFilter(filter);
+    if (nextSearch !== undefined) setSearch(nextSearch);
     setActiveView("discover");
     window.scrollTo({ top: 0, behavior: "auto" });
   }
@@ -263,6 +277,16 @@ export default function DemoPage() {
   function openPersonComposer() {
     setPersonComposerOpen(true);
     window.setTimeout(() => document.getElementById("person-offer")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
+  function openOrganizationComposer() {
+    setOrganizationComposerOpen(true);
+    window.setTimeout(() => document.getElementById("publish-opportunity")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
+  function submitHomeSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    goToDiscovery("all", homeSearch.trim());
   }
 
   function addCreatedOpportunity(opportunity: Opportunity) {
@@ -300,17 +324,25 @@ export default function DemoPage() {
       <DemoNavigation profileType={selectedProfile.type} activeView={activeView} onNavigate={goTo} />
 
       {activeView === "home" && <section aria-labelledby="home-title">
-        <div className="demo-hero"><div><p className="eyebrow">Início</p><h1 id="home-title" className="mt-2 max-w-[720px] text-3xl font-black leading-tight tracking-[-.045em] text-navy sm:text-5xl">{isPerson ? `Olá, ${selectedProfile.name.split(" ")[0]}.` : `Olá, ${selectedProfile.name}.`}</h1><p className="body-copy mt-3 max-w-[650px]">{isPerson ? "Encontre uma oportunidade que combine com o que você procura." : "Veja o que sua organização pode fazer agora no território."}</p></div><div className="demo-hero-note"><Sparkles size={18} className="text-blue" /><span>{isPerson ? "Oportunidades próximas" : "Conexões do território"}</span></div></div>
-        <div className="mt-7 grid gap-3 sm:grid-cols-3" aria-label="Ações rápidas">
-          <button type="button" className="quick-action quick-action-primary" onClick={() => isPerson ? goTo("discover") : document.getElementById("publish-opportunity")?.scrollIntoView({ behavior: "smooth", block: "start" })}><span><span className="quick-action-kicker">Principal</span><strong>{isPerson ? "Encontrar trabalho" : "Publicar oportunidade"}</strong></span><ArrowRight size={18} /></button>
-          <button type="button" className="quick-action" onClick={() => goTo("today")}><span><span className="quick-action-kicker">Agora</span><strong>Serviço para hoje</strong></span><ArrowRight size={18} /></button>
-          <button type="button" className="quick-action" onClick={() => isPerson ? openPersonComposer() : goTo("talents")}><span><span className="quick-action-kicker">Atalho</span><strong>{isPerson ? "Oferecer meu trabalho" : "Encontrar talentos"}</strong></span><ArrowRight size={18} /></button>
-        </div>
+        <div className="demo-hero"><div><p className="eyebrow">Início</p><h1 id="home-title" className="mt-2 max-w-[720px] text-3xl font-black leading-tight tracking-[-.045em] text-navy sm:text-5xl">{isPerson ? `Olá, ${selectedProfile.name.split(" ")[0]}.` : `Olá, ${selectedProfile.name}.`}</h1><p className="body-copy mt-3 max-w-[700px]">{isPerson ? `Descubra oportunidades para trabalhar, aprender e crescer em ${selectedProfile.location.municipality}.` : "Veja o que sua organização pode fazer agora no território."}</p></div><div className="demo-hero-note"><Sparkles size={18} className="text-blue" /><span>{isPerson ? "Oportunidades no seu território" : "Conexões do território"}</span></div></div>
 
-        {isPerson ? <><section className="mt-10" aria-labelledby="home-opportunities-title"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Para você</p><h2 id="home-opportunities-title" className="mt-2 text-2xl font-bold tracking-[-.03em] text-navy">Oportunidades em destaque</h2><p className="mt-1 text-sm text-[#637688]">Um recorte misto de trabalho, serviços, capacitação e caminhos públicos.</p></div><button type="button" className="subtle-link" onClick={() => goToDiscovery()}>Ver tudo</button></div><div className="panel mt-4 px-5 sm:px-8">{homeMatches.length ? homeMatches.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} />) : <p className="py-8 text-sm text-[#637688]">Nenhuma oportunidade disponível agora.</p>}</div></section>{personComposerOpen && <div id="person-offer" className="mt-8 scroll-mt-4"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /></div>}{showPublicPanel && <PublicOpportunityPanel items={publicItems} onExplore={() => goToDiscovery("public_procurement")} profileLabel={selectedProfile.name} />}</> : <><section id="publish-opportunity" className="mt-10 scroll-mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /><section className="panel p-5 sm:p-6"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Acompanhar</p><h2 className="mt-2 text-xl font-bold text-navy">Minhas oportunidades</h2></div><span className="text-sm font-bold text-blue">{ownedOpportunities.length}</span></div><div className="mt-4 divide-y divide-line">{ownedOpportunities.length ? ownedOpportunities.map((opportunity) => <div key={opportunity.id} className="flex items-center justify-between gap-4 py-3"><span className="min-w-0"><strong className="block truncate text-sm text-navy">{opportunity.title}</strong><span className="text-xs text-[#718291]">{opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : opportunity.requiredActivities?.join(" · ") ?? opportunity.category}</span></span><span className="status status-success">Publicada</span></div>) : <p className="py-4 text-sm text-[#637688]">Você ainda não publicou uma oportunidade.</p>}</div><button type="button" className="subtle-link mt-4" onClick={() => goToDiscovery()}>Ver oportunidades do território →</button></section></section>{showPublicPanel && <PublicOpportunityPanel items={publicItems} onExplore={() => goToDiscovery("public_procurement")} profileLabel={selectedProfile.name} />}</>}
+        {isPerson ? <>
+          <form className="panel mt-7 p-5 sm:p-6" onSubmit={submitHomeSearch} aria-label="Buscar oportunidades"><label htmlFor="home-discovery-search" className="block text-base font-bold text-navy">O que você está procurando?</label><div className="mt-3 flex flex-col gap-2 sm:flex-row"><div className="relative min-w-0 flex-1"><Search size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8b98]" /><input id="home-discovery-search" aria-label="O que você está procurando?" value={homeSearch} onChange={(event) => setHomeSearch(event.target.value)} placeholder="Cargo, profissão, curso ou oportunidade" className="w-full rounded-lg border border-line bg-white py-3 pl-10 pr-3 text-sm text-navy placeholder:text-[#91a0aa]" /></div><button type="submit" className="button-primary"><Search size={16} /> Buscar</button></div><p className="mt-3 text-xs text-[#718291]">Exemplos: Eletricista · Administração · Tecnologia</p></form>
+          <section className="mt-8 rounded-2xl border border-[#c9dce8] bg-[#f5fafc] p-5 sm:p-6" aria-labelledby="territory-summary-title"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="eyebrow">Recorte territorial</p><h2 id="territory-summary-title" className="mt-2 text-2xl font-black tracking-[-.03em] text-navy">Na demonstração em {selectedProfile.location.municipality}</h2><p className="mt-2 text-sm text-[#637688]">Dados da demonstração · oportunidades permitidas para este perfil.</p></div><div className="sm:text-right"><p className="text-3xl font-black text-navy">{homeCounts.work || "Nenhuma"}</p><p className="text-sm font-bold text-[#637688]">{homeCounts.work === 1 ? "oportunidade de trabalho" : "oportunidades de trabalho"}</p></div></div><div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-[#d5e4ec] pt-4 text-sm font-semibold text-[#53687c]">{homeCounts.services > 0 && <span>{homeCounts.services} serviços</span>}{homeCounts.publicExams > 0 && <span>{homeCounts.publicExams} concursos e seleções</span>}{homeCounts.courses > 0 && <span>{homeCounts.courses} capacitações</span>}</div></section>
+          <section className="mt-8" aria-labelledby="hub-shortcuts-title"><div><p className="eyebrow">O que você encontra</p><h2 id="hub-shortcuts-title" className="mt-2 text-2xl font-bold tracking-[-.03em] text-navy">Explore oportunidades</h2></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><button type="button" className="quick-action" onClick={() => goToDiscovery("employment")}><span><strong>Trabalho</strong><span className="mt-1 block text-sm font-normal text-[#637688]">Vagas, estágio e oportunidades externas</span></span><ArrowRight size={18} /></button><button type="button" className="quick-action" onClick={() => goToDiscovery("service")}><span><strong>Serviços</strong><span className="mt-1 block text-sm font-normal text-[#637688]">Trabalho autônomo e demandas locais</span></span><ArrowRight size={18} /></button><button type="button" className="quick-action" onClick={() => goToDiscovery("public_exam")}><span><strong>Concursos</strong><span className="mt-1 block text-sm font-normal text-[#637688]">Concursos e seleções públicas</span></span><ArrowRight size={18} /></button><button type="button" className="quick-action" onClick={() => goToDiscovery("course")}><span><strong>Capacitação</strong><span className="mt-1 block text-sm font-normal text-[#637688]">Cursos e qualificação</span></span><ArrowRight size={18} /></button><button type="button" className="quick-action" onClick={() => goToDiscovery("volunteer")}><span><strong>Voluntariado</strong><span className="mt-1 block text-sm font-normal text-[#637688]">Ações e iniciativas</span></span><ArrowRight size={18} /></button>{showPublicPanel && <button type="button" className="quick-action" onClick={() => goToDiscovery("public_procurement")}><span><strong>Poder público</strong><span className="mt-1 block text-sm font-normal text-[#637688]">Oportunidades para sua atividade</span></span><ArrowRight size={18} /></button>}</div></section>
+          <div className="mt-5 flex flex-wrap items-center gap-3"><span className="text-sm text-[#637688]">Você também pode apresentar sua força de trabalho.</span><button type="button" className="subtle-link" onClick={openPersonComposer}>Oferecer meu trabalho</button></div><section className="mt-8" aria-labelledby="home-opportunities-title"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Para você</p><h2 id="home-opportunities-title" className="mt-2 text-2xl font-bold tracking-[-.03em] text-navy">Recomendado para você</h2><p className="mt-1 text-sm text-[#637688]">Um recorte misto, priorizado pelas suas atividades e preferências.</p></div><button type="button" className="subtle-link" onClick={() => goToDiscovery()}>Ver tudo</button></div><div className="panel mt-4 px-5 sm:px-8">{homeMatches.length ? homeMatches.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} />) : <p className="py-8 text-sm text-[#637688]">Nenhuma oportunidade disponível agora.</p>}</div></section>
+          {personComposerOpen && <div id="person-offer" className="mt-8 scroll-mt-4"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /></div>}
+          <ServiceCallTeaser profile={selectedProfile} onOpen={() => goTo("today")} />
+          {showPublicPanel && <PublicOpportunityPanel items={publicItems} onExplore={() => goToDiscovery("public_procurement")} profileLabel={selectedProfile.name} />}
+        </> : <>
+          <section className="mt-7 grid gap-3 sm:grid-cols-3" aria-label="Ações da organização"><button type="button" className="quick-action quick-action-primary" onClick={openOrganizationComposer}><span><span className="quick-action-kicker">Principal</span><strong>Publicar oportunidade</strong></span><ArrowRight size={18} /></button><button type="button" className="quick-action" onClick={() => goTo("talents")}><span><span className="quick-action-kicker">Pessoas</span><strong>Encontrar talentos</strong></span><ArrowRight size={18} /></button><button type="button" className="quick-action" onClick={() => goTo("today")}><span><span className="quick-action-kicker">Agora</span><strong>Serviço para hoje</strong></span><ArrowRight size={18} /></button></section>
+          {organizationComposerOpen && <section id="publish-opportunity" className="mt-8 scroll-mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /><section className="panel p-5 sm:p-6"><div className="flex items-end justify-between gap-4"><div><p className="eyebrow">Acompanhar</p><h2 className="mt-2 text-xl font-bold text-navy">Minhas oportunidades</h2></div><span className="text-sm font-bold text-blue">{ownedOpportunities.length}</span></div><div className="mt-4 divide-y divide-line">{ownedOpportunities.length ? ownedOpportunities.map((opportunity) => <div key={opportunity.id} className="flex items-center justify-between gap-4 py-3"><span className="min-w-0"><strong className="block truncate text-sm text-navy">{opportunity.title}</strong><span className="text-xs text-[#718291]">{opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : opportunity.requiredActivities?.join(" · ") ?? opportunity.category}</span></span><span className="status status-success">Publicada</span></div>) : <p className="py-4 text-sm text-[#637688]">Você ainda não publicou uma oportunidade.</p>}</div></section></section>}
+          <ServiceCallTeaser profile={selectedProfile} onOpen={() => goTo("today")} />
+          {showPublicPanel && <PublicOpportunityPanel items={publicItems} onExplore={() => goToDiscovery("public_procurement")} profileLabel={selectedProfile.name} />}
+        </>}
       </section>}
 
-      {activeView === "preferences" && isPerson && <section aria-labelledby="preferences-title"><div className="page-intro"><p className="eyebrow">Preferências</p><h1 id="preferences-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Escolha o que você quer acompanhar.</h1><p className="body-copy mt-3 max-w-[650px]">Suas escolhas orientam os destaques e o recorte territorial da sua experiência.</p></div><InterestSelector profile={selectedProfile} matches={[...opportunities.formal, ...opportunities.service].map((opportunity) => ({ title: opportunity.title, category: opportunity.category, requiredActivities: opportunity.requiredActivities }))} /><PersonalTerritoryPanel profileId={selectedProfile.id} /></section>}
+      {activeView === "preferences" && isPerson && <section aria-labelledby="preferences-title"><div className="page-intro"><p className="eyebrow">Preferências</p><h1 id="preferences-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Escolha o que você quer acompanhar.</h1><p className="body-copy mt-3 max-w-[650px]">Preferências guardam sua intenção de descoberta. Formação, currículo, território e banco de talentos ficam no Perfil.</p></div><InterestSelector profile={selectedProfile} matches={[...opportunities.formal, ...opportunities.service].map((opportunity) => ({ title: opportunity.title, category: opportunity.category, requiredActivities: opportunity.requiredActivities }))} /><details className="mt-6 rounded-2xl border border-line bg-white"><summary className="cursor-pointer list-none p-4 text-sm font-bold text-navy sm:p-5">Ver recorte territorial detalhado</summary><div className="border-t border-line px-1 pb-1"><PersonalTerritoryPanel profileId={selectedProfile.id} /></div></details></section>}
 
       {activeView === "today" && (isPerson || isOrganization) && <section aria-labelledby="today-title"><div className="page-intro"><p className="eyebrow">Serviço para hoje</p><h1 id="today-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Resolva uma necessidade de hoje.</h1><p className="body-copy mt-3 max-w-[650px]">Abra ou encontre um chamado com atividade, horário e território aproximado.</p></div><div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]"><ServiceCallComposer profile={selectedProfile} /><ServiceCallPanel profile={selectedProfile} /></div></section>}
 

@@ -247,6 +247,12 @@ export function rankDiscoveryItems(items: DiscoveryItem[], context: RankingConte
       else if (term && haystack.includes(term)) score += 70;
       if (activities.some((activity) => itemActivities.some((value) => value.includes(activity) || activity.includes(value)))) score += 30;
       if (municipality && normalized(item.location.municipality) === municipality) score += 20;
+      if (context.workPreferences?.includes("Cursos e capacitação") && item.kind === "course") score += 22;
+      if (context.workPreferences?.some((preference) => ["Concursos públicos", "Processos seletivos públicos"].includes(preference)) && (item.kind === "public_exam" || item.kind === "public_selection")) score += 22;
+      if (context.workPreferences?.includes("CLT") && item.modality === "CLT") score += 14;
+      if (context.workPreferences?.includes("Estágio") && item.modality === "Estágio") score += 14;
+      if (context.workPreferences?.includes("Serviços autônomos") && item.kind === "service") score += 14;
+      if (context.workPreferences?.includes("Voluntariado") && item.kind === "volunteer") score += 14;
       if (item.status && /abert|dispon|publicad/i.test(item.status)) score += 5;
       if (item.deadline) score += 2;
       return { item, score, index };
@@ -266,6 +272,10 @@ export function discoveryReasons(item: DiscoveryItem, context: RankingContext & 
   if (context.municipality && normalized(item.location.municipality) === normalized(context.municipality)) reasons.push(`Esta oportunidade fica em ${item.location.municipality}.`);
   if ((item.kind === "public_exam" || item.kind === "public_selection") && context.workPreferences?.some((preference) => ["Concursos públicos", "Processos seletivos públicos"].includes(preference))) reasons.push("Você acompanha concursos e processos seletivos públicos.");
   if (item.kind === "course" && context.workPreferences?.includes("Cursos e capacitação")) reasons.push("Você selecionou cursos e capacitação.");
+  if (item.modality === "CLT" && context.workPreferences?.includes("CLT")) reasons.push("Você acompanha oportunidades CLT.");
+  if (item.modality === "Estágio" && context.workPreferences?.includes("Estágio")) reasons.push("Você acompanha oportunidades de estágio.");
+  if (item.kind === "service" && context.workPreferences?.includes("Serviços autônomos")) reasons.push("Você acompanha serviços autônomos.");
+  if (item.kind === "volunteer" && context.workPreferences?.includes("Voluntariado")) reasons.push("Você acompanha voluntariado.");
   if (item.kind === "public_procurement" && context.publicEnabled) reasons.push("Você ativou oportunidades com o poder público.");
   return reasons.slice(0, 2);
 }

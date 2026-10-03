@@ -20,6 +20,11 @@
 - [x] Preferências demonstrativas para concursos, processos seletivos e cursos/capacitação.
 - [x] Proveniência explícita e DEMO DATA para fontes ainda não autorizadas.
 - [x] Capacidades demonstrativas para separar organização fornecedora, organização não fornecedora e pessoa autônoma opt-in.
+- [x] Landing pública reposicionada como hub territorial, com seções de descoberta, públicos, funcionamento, inteligência e Sergipe.
+- [x] Home de pessoa com busca principal, resumo territorial derivado, atalhos para universos, recomendações curtas e teasers contextuais.
+- [x] Home de organização separada da Home de pessoa, com publicação sob demanda, talentos e Serviço para hoje.
+- [x] Preferências reorganizadas por progressive disclosure; formação, currículo, banco de talentos e território movidos para o Perfil sem limpar `localStorage`.
+- [x] Perfil de pessoa organizado em resumo profissional, formação, currículo, banco de talentos e território.
 
 ## MVP
 
