@@ -54,6 +54,10 @@ O domínio técnico `oflix-six.vercel.app` é mantido como implantação atual, 
 
 Em vez de expor listas completas de todos os módulos na home, a demo usa uma home curta e uma navegação contextual por persona. Pessoas recebem Início, Buscar, Serviço hoje, Preferências e Perfil; organizações recebem Início, Buscar, Serviço hoje, Talentos e Perfil. A navegação é uma barra curta no desktop e uma bottom navigation persistente no mobile. `Buscar` reúne os universos permitidos sem misturar suas entidades; publicação, preferências, chamados e banco de talentos continuam sendo os fluxos existentes, apresentados em destinos focados. O analista permanece separado na inteligência territorial para não misturar leitura institucional com operação.
 
+O seletor de Ofertas e Demandas é contextual: aparece apenas em `Empregos` e `Serviços`, onde existe uma distinção operacional entre quem apresenta trabalho e quem contrata. Em `Todos`, cursos, concursos, voluntariado e oportunidades públicas, a ausência do seletor evita sugerir uma semântica de mercado que não se aplica; o estado interno de publicação não filtra esses universos.
+
+A landing usa uma demonstração conceitual de busca transversal e três pilares editoriais — trabalho e oportunidades, desenvolvimento profissional, negócios e poder público — para explicar a proposta sem repetir os mesmos cinco universos em duas grades.
+
 ## Mobile first da busca e do detalhe
 
 O campo de busca permanece visível; categoria, território, modalidade formal e favoritos ficam em um grupo recolhível em telas estreitas, com chips para filtros ativos. A ação da oportunidade também fica disponível em uma barra fixa no mobile, preservando a mesma ação contextual do desktop. A mudança é deliberadamente de apresentação e alcance, não de regra de negócio.

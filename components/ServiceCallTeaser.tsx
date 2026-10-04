@@ -20,6 +20,7 @@ function storedActivities(profile: Profile) {
 export function ServiceCallTeaser({ profile, onOpen }: { profile: Profile; onOpen: () => void }) {
   const [compatibleCount, setCompatibleCount] = useState<number | null>(null);
   const isAutonomous = profile.type === "PERSON" && profile.capabilities.toLowerCase().includes("serviços autônomos");
+  const isOrganization = profile.type === "ORGANIZATION";
 
   useEffect(() => {
     if (!isAutonomous) return;
@@ -33,5 +34,9 @@ export function ServiceCallTeaser({ profile, onOpen }: { profile: Profile; onOpe
     return () => { cancelled = true; };
   }, [isAutonomous, profile]);
 
-  return <section className="panel mt-8 border-[#c9dce8] bg-[#f5fafc] p-5 sm:p-6" aria-labelledby="service-teaser-title"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">Serviço para hoje</p><h2 id="service-teaser-title" className="mt-2 text-xl font-bold text-navy">{isAutonomous && compatibleCount ? `${compatibleCount} chamado(s) compatível(is) hoje` : "Precisa de alguém hoje?"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#637688]">{isAutonomous && compatibleCount ? "Chamados abertos para atividades que você acompanha." : "Abra um chamado para profissionais da região ou acompanhe solicitações compatíveis."}</p></div><div className="rounded-lg bg-white p-2 text-blue"><Clock3 size={19} /></div></div><button type="button" className="button-secondary mt-5" onClick={onOpen}><Wrench size={16} /> {isAutonomous && compatibleCount ? "Ver chamados" : "Serviço para hoje"} <ArrowRight size={15} /></button></section>;
+  const title = isAutonomous ? compatibleCount ? `${compatibleCount} ${compatibleCount === 1 ? "chamado compatível" : "chamados compatíveis"} hoje` : "Nenhum chamado compatível agora" : isOrganization ? "Precisa de um profissional hoje?" : "Precisa de alguém hoje?";
+  const description = isAutonomous ? compatibleCount ? "Chamados abertos para atividades que você acompanha." : "Continue acompanhando novas solicitações para suas atividades." : "Abra um chamado para profissionais da região.";
+  const action = isAutonomous ? compatibleCount ? "Ver chamados" : "Ver Serviço para hoje" : "Serviço para hoje";
+
+  return <section className="panel mt-8 border-[#c9dce8] bg-[#f5fafc] p-5 sm:p-6" aria-labelledby="service-teaser-title"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">Serviço para hoje</p><h2 id="service-teaser-title" className="mt-2 text-xl font-bold text-navy">{title}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#637688]">{description}</p></div><div className="rounded-lg bg-white p-2 text-blue"><Clock3 size={19} /></div></div><button type="button" className="button-secondary mt-5" onClick={onOpen}><Wrench size={16} /> {action} <ArrowRight size={15} /></button></section>;
 }

@@ -31,7 +31,7 @@
 - Navegação principal responsiva com cinco destinos: pessoa (Início, Buscar, Serviço hoje, Preferências, Perfil) e organização (Início, Buscar, Serviço hoje, Talentos, Perfil); analista permanece em sua visão territorial dedicada.
 - Busca reorganizada com campo dominante, alternância simples entre ofertas e demandas, filtros ativos visíveis e filtros secundários recolhidos no mobile.
 - Detalhe da oportunidade com ação contextual persistente em barra fixa no mobile; landing sem overflow horizontal em 390 px.
-- Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844; a última validação no build de produção passou 38/38 cenários.
+- Smoke tests Playwright atualizados para cobrir a navegação principal e executados em desktop 1440×900 e mobile 390×844; a última validação no build de produção passou 48/48 cenários.
 - SEO técnico da aplicação com metadata canonical/Open Graph, `robots.txt` e `sitemap.xml` para a publicação pública.
 - SEO de marca reforçado com título e descrição “OFLIX · Sergipe”, dados estruturados `WebSite`, favicon próprio e copy textual explícita na landing.
 - Hub de descoberta unificado com `DiscoveryItem`, chips para trabalho, serviços, voluntariado, concursos, capacitação e poder público quando permitido, com relação determinística por profissão e detalhe DEMO DATA; a semântica das origens permanece separada.
@@ -44,6 +44,8 @@
 - Formação, currículo, visibilidade do banco de talentos e residência movidos para grupos progressivos em Perfil, usando os helpers compartilhados de `lib/profile-storage.ts` e preservando as chaves locais existentes.
 - Home de pessoa recebeu busca principal, resumo territorial derivado dos `DiscoveryItem` visíveis, atalhos para Trabalho/Serviços/Concursos/Capacitação/Voluntariado, recomendações limitadas e teaser de Serviço para hoje; Home de organização ficou separada e publica sob demanda.
 - Landing pública ampliada com “O que você encontra”, “Para quem”, “Como funciona”, inteligência territorial, Sergipe e CTA final, sem números inventados ou associação oficial.
+- Refinamento cirúrgico de UX implementado: hero público com busca transversal conceitual, três pilares sem repetição, copy de públicos revisada, atalhos compactos no mobile, contagem territorial com pluralização correta, estados de Serviço para hoje por papel e bloco “Minhas oportunidades” visível antes do composer da organização.
+- Oferta/Demanda agora é contextual aos universos de mercado (`Empregos` e `Serviços`); fica oculto em `Todos`, `Voluntariado`, `Concursos`, `Capacitação` e demais universos sem semântica operacional de mercado.
 - Ranking de descoberta passou a dar pesos determinísticos para preferências de cursos, concursos, CLT, estágio, serviços autônomos e voluntariado.
 - Smoke tests Playwright ampliados para landing, busca da Home, contagem territorial derivada, atalhos do hub, Preferências progressivas e preservação do Banco de talentos.
 - Publicação pública em `https://oflix-six.vercel.app`: VALIDAÇÃO NECESSÁRIA após esta evolução; a validação local está verde, mas a sincronização do build publicado precisa ser confirmada no ambiente Vercel.
