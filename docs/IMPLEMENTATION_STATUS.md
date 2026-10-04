@@ -7,7 +7,7 @@
 - Modelo separado de perfis, território, três frentes e interações.
 - Landing, seleção de persona, descoberta, detalhe e navegação principal.
 - Ações contextuais funcionais com persistência e feedback de sucesso/duplicidade.
-- Visão territorial inicial derivada de dados operacionais.
+- Observatório Territorial municipal com mapa coroplético SVG dos 75 municípios de Sergipe, derivado da Malha Municipal Digital do IBGE 2024, seleção municipal, métricas operacionais, ranking sincronizado, legenda e painel acessível.
 - Documentação permanente e smoke tests do percurso principal.
 - Deploy de produção da demo no Vercel com seed DEMO em armazenamento efêmero do runtime.
 - Landing revisada com a mensagem de posicionamento do produto.
@@ -72,7 +72,7 @@
 - O diretório opt-in do banco de talentos e as preferências de tipos de trabalho são locais ao navegador da demonstração; a API de interesses já limita o acesso a organizações, mas a publicação do perfil ainda não tem persistência compartilhada nem autorização de produção.
 - Município e Estado informados no perfil são dados locais da demonstração; ainda não há validação cadastral, persistência compartilhada ou autorização de produção para esse dado.
 - Chamados de serviço estão persistidos no SQLite da demo e têm disputa de primeiro aceite no endpoint, mas ainda não há push real, contato seguro, endereço exato pós-aceite, expiração automática, pagamento ou operação multi-região de produção.
-- Inteligência territorial prova o caminho de dados e o gráfico de empregos; a autorização geral e o recorte por interesse estão implementados na demo, mas ainda não há demanda não atendida nem séries históricas.
+- Inteligência territorial municipal prova o caminho de dados, o mapa e o gráfico de empregos; a autorização geral e o recorte por interesse estão implementados na demo, mas ainda não há demanda não atendida nem séries históricas.
 
 ## PENDENTE
 
@@ -82,12 +82,14 @@
 - Notificações server-side e integração OAuth com Google Agenda.
 - Canal oficial/autorização para ComprasNet.SE; a ausência é intencional e não há scraping.
 - Primeira fonte autorizada de vagas externas, cursos ou concursos reais.
+- Oferta × demanda, lacunas territoriais e capacitação × demanda: o modelo atual não sustenta conclusões institucionais sem inventar método ou misturar dados locais; permanecem pendentes.
 
 ## FUTURO
 
 - Capacidades múltiplas por perfil.
 - Coordenadas opcionais e camadas cartográficas responsáveis.
 - Busca territorial, matching, notificações e indicadores evolutivos.
+- Sinais externos autorizados no mapa, separados das métricas operacionais OFLIX.
 
 ## DESCARTADO
 

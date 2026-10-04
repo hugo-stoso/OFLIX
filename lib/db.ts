@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { WORK_ACTIVITIES, type OpportunityKind } from "@/lib/domain";
+import type { MunicipalityAggregate } from "@/lib/territory";
 
 export type Location = { id: string; state: string; municipality: string; district: string };
 export type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; canSupplyPublic: boolean; isDemo: boolean; location: Location };
@@ -209,10 +210,51 @@ export function territoryData() {
   const db = database();
   const count = (table: string) => Number(db.prepare(`SELECT COUNT(*) total FROM ${table}`).get()?.total ?? 0);
   const formal = count("formal_opportunities"); const service = count("service_offers"); const volunteer = count("volunteer_opportunities"); const interactions = count("interactions");
-  const territorial = db.prepare(`SELECT l.municipality, l.district, COUNT(i.id) total FROM locations l JOIN (SELECT id target_id, location_id FROM formal_opportunities UNION ALL SELECT id target_id, location_id FROM service_offers UNION ALL SELECT id target_id, location_id FROM volunteer_opportunities) o ON o.location_id = l.id LEFT JOIN interactions i ON i.target_id = o.target_id GROUP BY l.municipality, l.district ORDER BY total DESC, l.municipality ASC`).all().map((row) => ({ municipality: String(row.municipality), district: String(row.district), total: Number(row.total) }));
+  const territorial = db.prepare(`SELECT l.municipality, l.district, COUNT(DISTINCT o.target_id) opportunities, COUNT(i.id) total FROM locations l JOIN (SELECT id target_id, location_id FROM formal_opportunities UNION ALL SELECT id target_id, location_id FROM service_offers UNION ALL SELECT id target_id, location_id FROM volunteer_opportunities) o ON o.location_id = l.id LEFT JOIN interactions i ON i.target_id = o.target_id GROUP BY l.municipality, l.district ORDER BY total DESC, l.municipality ASC`).all().map((row) => ({ municipality: String(row.municipality), district: String(row.district), opportunities: Number(row.opportunities), total: Number(row.total) }));
   const categories = db.prepare(`SELECT 'formal' front, category, COUNT(*) total FROM formal_opportunities GROUP BY category UNION ALL SELECT 'service' front, category, COUNT(*) total FROM service_offers GROUP BY category UNION ALL SELECT 'volunteer' front, category, COUNT(*) total FROM volunteer_opportunities GROUP BY category ORDER BY front, category`).all().map((row) => ({ front: String(row.front), category: String(row.category), total: Number(row.total) }));
   const employmentByRegion = db.prepare(`SELECT l.municipality, l.district, o.employment_type, COUNT(*) total FROM formal_opportunities o JOIN locations l ON l.id = o.location_id GROUP BY l.municipality, l.district, o.employment_type ORDER BY l.municipality, l.district, o.employment_type`).all().map((row) => ({ municipality: String(row.municipality), district: String(row.district), employmentType: String(row.employment_type) as FormalEmploymentType, total: Number(row.total) }));
-  return { fronts: [{ key: "formal", label: "Trabalho formal", total: formal }, { key: "service", label: "Serviços autônomos", total: service }, { key: "volunteer", label: "Voluntariado", total: volunteer }], totalOpportunities: formal + service + volunteer, interactions, territorial, categories, employmentByRegion };
+  const categoryRows = db.prepare(`
+    SELECT l.municipality, 'formal' front, o.category, COUNT(*) total,
+      SUM(CASE WHEN o.employment_type = 'CLT' THEN 1 ELSE 0 END) clt,
+      SUM(CASE WHEN o.employment_type = 'INTERNSHIP' THEN 1 ELSE 0 END) internship,
+      COUNT(i.id) interactions
+    FROM formal_opportunities o
+    JOIN locations l ON l.id = o.location_id
+    LEFT JOIN interactions i ON i.target_type = 'FORMAL' AND i.target_id = o.id
+    GROUP BY l.municipality, o.category
+    UNION ALL
+    SELECT l.municipality, 'service' front, o.category, COUNT(*) total, 0 clt, 0 internship, COUNT(i.id) interactions
+    FROM service_offers o
+    JOIN locations l ON l.id = o.location_id
+    LEFT JOIN interactions i ON i.target_type = 'SERVICE' AND i.target_id = o.id
+    GROUP BY l.municipality, o.category
+    UNION ALL
+    SELECT l.municipality, 'volunteer' front, o.category, COUNT(*) total, 0 clt, 0 internship, COUNT(i.id) interactions
+    FROM volunteer_opportunities o
+    JOIN locations l ON l.id = o.location_id
+    LEFT JOIN interactions i ON i.target_type = 'VOLUNTEER' AND i.target_id = o.id
+    GROUP BY l.municipality, o.category
+    ORDER BY municipality, front, category
+  `).all();
+  const ibgeCodes: Record<string, string> = { Aracaju: "2800308", Lagarto: "2803500", "Nossa Senhora do Socorro": "2804805" };
+  const municipalityMap = new Map<string, MunicipalityAggregate>();
+  for (const row of categoryRows) {
+    const municipality = String(row.municipality);
+    const aggregate = municipalityMap.get(municipality) ?? { municipality, ibgeCode: ibgeCodes[municipality], opportunities: 0, formal: 0, clt: 0, internship: 0, services: 0, volunteer: 0, interactions: 0, categories: [] };
+    const front = String(row.front) as "formal" | "service" | "volunteer";
+    const total = Number(row.total);
+    const category = { front, category: String(row.category), total, interactions: Number(row.interactions), clt: Number(row.clt), internship: Number(row.internship) };
+    aggregate.categories.push(category);
+    aggregate.opportunities += total;
+    aggregate.interactions += category.interactions;
+    if (front === "formal") { aggregate.formal += total; aggregate.clt += category.clt; aggregate.internship += category.internship; }
+    if (front === "service") aggregate.services += total;
+    if (front === "volunteer") aggregate.volunteer += total;
+    municipalityMap.set(municipality, aggregate);
+  }
+  const municipalities = Array.from(municipalityMap.values()).sort((a, b) => b.opportunities - a.opportunities || a.municipality.localeCompare(b.municipality));
+  const activeMunicipalities = municipalities.filter((municipality) => municipality.opportunities > 0 || municipality.interactions > 0).length;
+  return { fronts: [{ key: "formal", label: "Trabalho formal", total: formal }, { key: "service", label: "Serviços autônomos", total: service }, { key: "volunteer", label: "Voluntariado", total: volunteer }], totalOpportunities: formal + service + volunteer, interactions, activeMunicipalities, territorial, categories, employmentByRegion, municipalities };
 }
 
 function emptyInterestTerritoryData(activities: string[]) {

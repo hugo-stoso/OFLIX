@@ -2,7 +2,17 @@
 
 ## Aplicação
 
-Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing está em `/`; a experiência demo em `/demo`; o perfil detalhado em `/profile`; as preferências da demo em `/settings`; a visão agregada geral em `/demo/analyst`; o recorte territorial por interesses aparece na própria experiência de pessoas; e os detalhes ficam em `/opportunity/[id]?kind=formal|service|volunteer`.
+Aplicação única Next.js com App Router, TypeScript e Tailwind CSS. A landing está em `/`; a experiência demo em `/demo`; o perfil detalhado em `/profile`; as preferências da demo em `/settings`; o Observatório Territorial agregado em `/demo/analyst`; o recorte territorial por interesses aparece na própria experiência de pessoas; e os detalhes ficam em `/opportunity/[id]?kind=formal|service|volunteer`.
+
+### Observatório Territorial
+
+`app/demo/analyst/page.tsx` mantém o estado local `selectedMunicipality`, `selectedMetric` e `selectedCategory`. A página carrega `GET /api/territory?profileId=profile-analista` e a malha local `public/geo/sergipe-municipalities-2024.geojson`. `components/TerritoryMap.tsx` transforma os polígonos GeoJSON em caminhos SVG focáveis; `MunicipalityRanking.tsx` e `MunicipalitySummary.tsx` usam o mesmo estado, mantendo mapa, seletor, ranking e painel sincronizados.
+
+O GeoJSON é derivado da Malha Municipal Digital do IBGE, versão 2024, arquivo estadual de Sergipe (`SE_Municipios_2024.zip`). A fonte oficial é [geoftp.ibge.gov.br/.../UFs/SE](https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_municipais/municipio_2024/UFs/SE/). O shapefile SIRGAS 2000 foi convertido para GeoJSON geográfico, simplificado com Ramer–Douglas–Peucker em tolerância de `0.001` grau e recortado somente para Sergipe. O script reprodutível é `scripts/prepare-ibge-sergipe-geojson.mjs`; a saída contém 75 municípios, `municipality`, `ibgeCode` e `state`.
+
+O servidor agrega por município com `GROUP BY` nas tabelas reais de oportunidades e interações, sem uma consulta por município. O contrato geral inclui `municipalities[]` com `municipality`, `ibgeCode` quando validado, `opportunities`, `formal`, `clt`, `internship`, `services`, `volunteer`, `interactions` e `categories[]`. A métrica `activeMunicipalities` significa município com pelo menos uma oportunidade operacional ou interação. A base atual ainda não armazena o código IBGE em `locations`; os três nomes presentes no seed têm mapeamento explícito e validado contra a malha. A API territorial de pessoas continua no escopo `interests` e não recebe a visão geral.
+
+O mapa representa somente volumes da base OFLIX DEMO DATA. Empregos são oportunidades formais, serviços são registros de `service_offers`, voluntariado vem de `volunteer_opportunities` e interações são contagens por alvo localizado no município. Sinais externos, cursos, concursos, vagas externas e PNCP continuam fora da projeção operacional do mapa.
 
 A descoberta técnica usa metadata do Next.js, canonical e Open Graph no layout raiz, além de `/robots.txt` e `/sitemap.xml` para orientar rastreadores. `NEXT_PUBLIC_SITE_URL` pode fixar o domínio público; em um deploy Vercel sem essa variável, o app usa os hosts de produção fornecidos pela plataforma e mantém `localhost:3000` apenas como fallback local.
 

@@ -10,6 +10,7 @@ OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em d
 - Detalhes com ações semânticas por frente: candidatura, solicitação de contato e interesse em participar.
 - Registro de `Interaction` em SQLite, com prevenção de duplicação simples.
 - Primeira visão de inteligência territorial calculada sobre as mesmas oportunidades e interações.
+- Observatório Territorial com mapa coroplético local dos 75 municípios de Sergipe, seleção municipal, métricas operacionais, ranking sincronizado e leitura agregada sem identificação individual.
 - Hub de descoberta unificado em `Buscar`: relaciona trabalho, serviços, voluntariado, capacitação, concursos/processos seletivos, vagas externas e, quando permitido, oportunidades com o poder público, sem apagar a semântica de cada origem.
 - Proveniência visível em itens externos; `DEMO DATA` é identificado quando não há fonte legitimamente integrada.
 - Adapter server-side do PNCP com timeout, normalização, deduplicação conservadora, cache curto e fallback.
@@ -35,6 +36,8 @@ Formação, currículo, residência e publicação no banco de talentos permanec
 - Nenhum scraping é feito. ComprasNet.SE e vagas/cursos/concursos reais permanecem pendentes de API, feed ou autorização documentada.
 
 Os dados do seed são DEMO DATA, fictícios e substituíveis. Nenhum dado pessoal da proposta de inscrição deve ser incluído no repositório.
+
+O mapa do Observatório usa a Malha Municipal Digital do IBGE, versão 2024, recortada para Sergipe e simplificada para web. O artefato local mantém nome oficial e código IBGE; ausência de registros OFLIX deixa o município neutro e não significa ausência de atividade econômica real. As métricas do mapa contam somente oportunidades formais, serviços, voluntariado e interações da base operacional da demonstração. Cursos, concursos, vagas externas e sinais de contratação pública permanecem separados.
 
 ## Stack
 

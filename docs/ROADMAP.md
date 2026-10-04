@@ -26,6 +26,8 @@
 - [x] Refinamento de UX da descoberta: hero transversal, pilares editoriais, atalhos mobile compactos, estados por papel e seletor de Oferta/Demanda contextual ao mercado.
 - [x] Preferências reorganizadas por progressive disclosure; formação, currículo, banco de talentos e território movidos para o Perfil sem limpar `localStorage`.
 - [x] Perfil de pessoa organizado em resumo profissional, formação, currículo, banco de talentos e território.
+- [x] Observatório Territorial municipal com malha oficial IBGE 2024 de Sergipe, GeoJSON local simplificado, mapa SVG acessível, métricas operacionais, seleção municipal, ranking sincronizado, legenda e painel de município sem registros.
+- [x] Agregação SQL municipal com oportunidades, CLT, estágio, serviços, voluntariado, interações e categorias; API geral permanece restrita ao perfil analista.
 
 ## MVP
 
@@ -43,6 +45,8 @@
 - [ ] Registrar e conectar domínio próprio da marca, caso esteja disponível, e acompanhar indexação no Google Search Console.
 - [ ] Matching e notificações responsáveis com entrega server-side.
 - [ ] OAuth e criação confirmada de eventos no Google Agenda.
-- [ ] Coordenadas opcionais, mapas e recortes territoriais configuráveis.
+- [ ] Coordenadas opcionais e recortes territoriais configuráveis, somente após governança; o mapa municipal agregado do Observatório já está implementado sem coordenadas.
 - [ ] Indicadores de demanda não atendida e séries históricas.
 - [ ] Integração com instituições parceiras após validação de governança.
+- [ ] Sinais externos autorizados no Observatório, separados da operação OFLIX e com linguagem de sinal de contratação pública.
+- [ ] Oferta × demanda, lacunas territoriais e capacitação × demanda após modelo de dados institucional e metodologia revisada.

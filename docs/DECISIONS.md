@@ -34,6 +34,14 @@ A primeira etapa não implementa autenticação. A seleção de uma persona fict
 
 O modelo usa UF, município e bairro/região. Para o banco de talentos, a pessoa informa manualmente o município e o Estado onde mora; não há API de mapas, geocodificação, permissão de localização ou coleta de coordenadas. Isso evita chaves e dependências externas e deixa claro que o dado compartilhado é territorial, não um endereço exato. A estrutura de `Location` permite evolução futura sem reescrever oportunidades.
 
+## Observatório Territorial municipal
+
+O Observatório Territorial utiliza o município como principal unidade de exploração espacial. O mapa coroplético usa limites oficiais da Malha Municipal Digital do IBGE, versão 2024, armazenados localmente em uma versão GeoJSON simplificada para web. Ele é permitido porque responde funcionalmente onde a atividade operacional da OFLIX aparece; não é um mapa de calor econômico, não usa geolocalização, não exibe pessoas ou coordenadas individuais e não entra no fluxo operacional comum de `PERSON`.
+
+Antes, mapas não eram necessários para a descoberta operacional e por isso foram evitados. Agora o perfil institucional possui justificativa funcional para cartografia agregada: Sergipe → município → indicadores → atividades → leitura territorial. A ausência de registros OFLIX representa ausência de registros na demonstração, não ausência de empregos ou oportunidades reais. A identificação usa o nome oficial do município e códigos IBGE somente nos municípios do seed que têm correspondência validada; não houve migração ampla de `locations`.
+
+O mapa operacional não incorpora automaticamente cursos, concursos, vagas externas ou sinais de contratação pública. Uma futura camada de “Sinais de contratação pública” deverá usar linguagem de sinal de contratação ou atividade econômica pública, nunca “empregos gerados”.
+
 ## UX
 
 A landing é curta. A descoberta usa listas densas e legíveis. Cada frente usa seu próprio verbo de ação. A visão de analista evita nomes e números inventados; seus agregados vêm do seed e das interações.
@@ -69,6 +77,10 @@ CLT e Estágio são atributos explícitos de oportunidades formais. Trabalhadore
 ## Desvios e limites
 
 O fluxo de publicação, a base de talentos e o chat foram adicionados como experiências demonstráveis, mas continuam sem autorização, persistência compartilhada, moderação ou entrega de mensagens. O link do Google Agenda usa um template confirmável pelo usuário, sem OAuth. A UI apresenta organizações na descoberta, mas separa gestão, candidatos e oportunidades ofertadas em blocos próprios; a projeção de `Buscar` continua unificada.
+
+## Limites metodológicos do Observatório
+
+Oferta × demanda, lacunas territoriais e capacitação × demanda não são calculadas nesta versão: o modelo persistido atual não sustenta uma relação institucional confiável sem misturar estado local do navegador ou DEMO DATA externo. Esses itens permanecem `PENDENTE`/`FUTURO`. O Observatório entrega contagens de oportunidades e interações, não empregabilidade, desenvolvimento econômico, PIB, desemprego ou escassez de mão de obra.
 
 ## Oferta, demanda e banco de talentos
 

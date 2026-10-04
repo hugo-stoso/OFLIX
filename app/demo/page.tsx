@@ -16,7 +16,7 @@ import { ServiceCallComposer } from "@/components/ServiceCallComposer";
 import { ServiceCallPanel } from "@/components/ServiceCallPanel";
 import { ServiceCallTeaser } from "@/components/ServiceCallTeaser";
 import { TalentBasePanel } from "@/components/TalentBasePanel";
-import { canDiscoverPublicOpportunities, DISCOVERY_FILTER_LABELS, discoveryItemMatchesFilter, type DiscoveryFilterKind, type DiscoveryItem, type OpportunityKind } from "@/lib/domain";
+import { ANALYST_PROFILE_ID, canDiscoverPublicOpportunities, DISCOVERY_FILTER_LABELS, discoveryItemMatchesFilter, type DiscoveryFilterKind, type DiscoveryItem, type OpportunityKind } from "@/lib/domain";
 import { demoDiscoveryItems, discoveryReasons, internalToDiscoveryItem, rankDiscoveryItems } from "@/lib/discovery";
 import { formatWorkOpportunityCount } from "@/lib/ui-copy";
 
@@ -86,7 +86,10 @@ export default function DemoPage() {
 
   useEffect(() => {
     const stored = window.localStorage.getItem("oflix-demo-profile");
-    if (stored) setSelectedId(stored);
+    if (stored) {
+      setSelectedId(stored);
+      if (stored === ANALYST_PROFILE_ID) { window.location.replace("/demo/analyst"); return; }
+    }
     const onFavoritesChanged = () => setFavoriteVersion((version) => version + 1);
     window.addEventListener("oflix-favorites-changed", onFavoritesChanged);
     Promise.all([fetch("/api/profiles"), fetch("/api/opportunities")])

@@ -45,12 +45,13 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await page.getByRole("button", { name: "Trocar perfil" }).click();
   await page.getByRole("button", { name: /Observatório Território Aberto/ }).click();
   await page.waitForURL("**/demo/analyst");
-  await expect(page.getByRole("heading", { name: "O que as conexões começam a revelar." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Entenda como oportunidades e conexões se distribuem pelo território." })).toBeVisible();
   await expect(page.getByText("Distribuição por frente")).toBeVisible();
-  await expect(page.getByText("Empregos na região")).toBeVisible();
+  await expect(page.getByText("Empregos no território")).toBeVisible();
+  await expect(page.getByText("Mapa coroplético municipal")).toBeVisible();
   await page.goto("/demo");
   await page.waitForURL("**/demo/analyst");
-  await expect(page.getByRole("heading", { name: "O que as conexões começam a revelar." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Entenda como oportunidades e conexões se distribuem pelo território." })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Navegação principal" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Trocar perfil" }).first()).toBeVisible();
   await page.getByRole("button", { name: "Trocar perfil" }).first().click();
@@ -84,6 +85,54 @@ test("API territorial entrega somente o escopo autorizado", async ({ request }) 
   expect((await request.get("/api/talents")).status()).toBe(401);
   expect((await request.get("/api/talents?profileId=profile-ana")).status()).toBe(403);
   expect((await request.get("/api/talents?profileId=profile-coletivo")).ok()).toBe(true);
+});
+
+test("API territorial agrega municípios e preserva as métricas operacionais", async ({ request }) => {
+  const response = await request.get("/api/territory?profileId=profile-analista");
+  expect(response.ok()).toBe(true);
+  const territory = await response.json();
+  expect(territory.municipalities).toEqual(expect.arrayContaining([
+    expect.objectContaining({ municipality: "Aracaju", ibgeCode: "2800308" }),
+    expect.objectContaining({ municipality: "Lagarto", ibgeCode: "2803500" }),
+    expect.objectContaining({ municipality: "Nossa Senhora do Socorro", ibgeCode: "2804805" }),
+  ]));
+  expect(territory.municipalities.reduce((total: number, municipality: { opportunities: number }) => total + municipality.opportunities, 0)).toBe(territory.totalOpportunities);
+  expect(territory.municipalities.reduce((total: number, municipality: { interactions: number }) => total + municipality.interactions, 0)).toBe(territory.interactions);
+  expect(territory.municipalities.find((municipality: { municipality: string }) => municipality.municipality === "Lagarto")).toMatchObject({ formal: 2, clt: 1, internship: 1, services: 1, volunteer: 2, interactions: 1 });
+  expect(territory.activeMunicipalities).toBe(3);
+});
+
+test("Observatório explora município, métrica e município sem registros", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Observatório Território Aberto/ }).click();
+  await page.waitForURL("**/demo/analyst");
+  await expect(page.getByRole("heading", { name: "Entenda como oportunidades e conexões se distribuem pelo território." })).toBeVisible();
+  await expect(page.locator(".territory-map-path")).toHaveCount(75);
+  await page.getByLabel("Território", { exact: true }).selectOption({ label: "Lagarto" });
+  await expect(page.getByRole("heading", { name: "Lagarto", exact: true })).toBeVisible();
+  await expect(page.getByText("Este recorte atualiza os indicadores")).toBeVisible();
+  await expect(page.getByText("Empregos formais")).toBeVisible();
+  await page.getByLabel(/Lagarto, Oportunidades/).focus();
+  await page.getByLabel(/Lagarto, Oportunidades/).press("Enter");
+  await expect(page.getByRole("button", { name: /Voltar para Sergipe/ })).toBeVisible();
+  await page.getByRole("button", { name: "Empregos", exact: true }).click();
+  await expect(page.getByText("métrica: Empregos")).toBeVisible();
+  await page.getByLabel("Território", { exact: true }).selectOption({ label: "Amparo do São Francisco" });
+  await expect(page.getByText("Este município ainda não possui registros na base desta demonstração.")).toBeVisible();
+  await page.getByLabel("Território", { exact: true }).selectOption({ label: "Sergipe" });
+  await expect(page.getByRole("heading", { name: "Sergipe", exact: true })).toBeVisible();
+  await expect(page.getByText("Dados da demonstração").first()).toBeVisible();
+});
+
+test("malha local contém somente os municípios oficiais de Sergipe", async ({ request }) => {
+  const response = await request.get("/geo/sergipe-municipalities-2024.geojson");
+  expect(response.ok()).toBe(true);
+  const geometry = await response.json();
+  expect(geometry.properties).toMatchObject({ source: "IBGE Malha Municipal Digital", year: 2024, state: "SE" });
+  expect(geometry.features).toHaveLength(75);
+  expect(geometry.features.map((feature: { properties: { municipality: string } }) => feature.properties.municipality)).toEqual(expect.arrayContaining(["Aracaju", "Lagarto", "Nossa Senhora do Socorro"]));
+  expect(geometry.features.every((feature: { properties: { state: string } }) => feature.properties.state === "SE")).toBe(true);
 });
 
 test("chamado de serviço é entregue por atividade e aceito uma única vez", async ({ request }) => {

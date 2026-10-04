@@ -30,15 +30,15 @@ Dados que descrevem quem a pessoa é — formação, currículo, residência e p
 
 ## Territorialidade
 
-A localização precisa suportar UF, município e bairro/região. A primeira fase não exige coordenada exata, mapas, geocodificação ou APIs externas.
+A localização suporta UF, município e bairro/região. O Observatório institucional agora usa cartografia agregada por município, sem coordenada exata, geocodificação, localização do usuário ou APIs de mapas. A malha local vem da Malha Municipal Digital do IBGE, versão 2024, somente para Sergipe.
 
 ## Inteligência territorial
 
-O futuro ciclo é: atividade na plataforma → conexão entre oferta e demanda → geração de dados → inteligência territorial. Os indicadores devem ser agregados e não expor nomes ou dados pessoais.
+O ciclo demonstrado é: atividade na plataforma → conexão entre oferta e demanda → geração de dados → inteligência territorial. O Observatório começa em Sergipe, permite selecionar um município e responde com indicadores, atividades e detalhes agregados daquele recorte. Os indicadores não expõem nomes ou dados pessoais; município sem registro permanece neutro e não deve ser lido como ausência de atividade econômica real.
 
 ## Escopo da demo
 
-Landing, perfis fictícios persistidos durante a navegação, hub de descoberta unificado em `Buscar`, detalhe contextual, `Interaction` funcional, preferências ampliadas e visão territorial inicial. A projeção de descoberta reúne os universos permitidos para cada perfil; as entidades e regras semânticas continuam separadas na origem. O hub público usa DEMO DATA por padrão e disponibiliza um adapter server-side contextual para consulta pública do PNCP.
+Landing, perfis fictícios persistidos durante a navegação, hub de descoberta unificado em `Buscar`, detalhe contextual, `Interaction` funcional, preferências ampliadas e Observatório Territorial municipal. A projeção de descoberta reúne os universos permitidos para cada perfil; as entidades e regras semânticas continuam separadas na origem. O hub público usa DEMO DATA por padrão e disponibiliza um adapter server-side contextual para consulta pública do PNCP. O mapa principal não mistura sinais externos, cursos, concursos ou vagas externas nas métricas operacionais.
 
 ## Fontes e proveniência
 
@@ -50,7 +50,7 @@ Autenticação real, publicação e gestão de oportunidades, ingestão real de 
 
 ## Não objetivos desta fase
 
-Não são objetivos: autenticação de produção, pagamentos, integração de mapas, geocodificação, backend separado, microsserviços, dados reais de pessoas ou um dashboard definitivo.
+Não são objetivos: autenticação de produção, pagamentos, ingestão de fontes externas não autorizadas, geocodificação, backend separado, microsserviços, dados reais de pessoas, GIS complexo ou uma série histórica definitiva. O mapa é permitido apenas no Observatório institucional e não representa localização individual.
 
 ## Questões abertas
 
