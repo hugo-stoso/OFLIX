@@ -48,7 +48,7 @@
 - Oferta/Demanda agora é contextual aos universos de mercado (`Empregos` e `Serviços`); fica oculto em `Todos`, `Voluntariado`, `Concursos`, `Capacitação` e demais universos sem semântica operacional de mercado.
 - Ranking de descoberta passou a dar pesos determinísticos para preferências de cursos, concursos, CLT, estágio, serviços autônomos e voluntariado.
 - Smoke tests Playwright ampliados para landing, busca da Home, contagem territorial derivada, atalhos do hub, Preferências progressivas e preservação do Banco de talentos.
-- Publicação pública em `https://oflix-six.vercel.app`: VALIDAÇÃO NECESSÁRIA após esta evolução; a validação local está verde, mas a sincronização do build publicado precisa ser confirmada no ambiente Vercel.
+- Publicação pública em `https://oflix-six.vercel.app`: IMPLEMENTADO e validado após esta evolução; o build publicado exibe o hero transversal, os três pilares editoriais e a copy revisada da landing.
 
 ## VALIDAÇÃO NECESSÁRIA
 
