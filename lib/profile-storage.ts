@@ -7,7 +7,8 @@ export type EducationData = {
   specialization: string;
   curriculumFileName: string;
   curriculumDataUrl: string;
-  curriculumConfirmed: boolean;
+  /** Kept only so older demo records can be read; publishing no longer depends on it. */
+  curriculumConfirmed?: boolean;
 };
 
 export type ResidenceData = { state: string; municipality: string };

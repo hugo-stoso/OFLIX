@@ -5,6 +5,7 @@ import { InteractionAction } from "@/components/InteractionAction";
 import { DemoHeader } from "@/components/DemoHeader";
 import { OpportunityIcon } from "@/components/OpportunityIcon";
 import { VolunteerReminder } from "@/components/VolunteerReminder";
+import { VolunteerParticipation } from "@/components/VolunteerParticipation";
 import { opportunityMeta, type OpportunityKind } from "@/lib/domain";
 import { findOpportunity } from "@/lib/db";
 
@@ -42,6 +43,9 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
               {record.schedule && <div><dt className="eyebrow">Quando</dt><dd className="mt-2 font-bold text-navy">{record.schedule}</dd></div>}
               {record.employmentType && <div><dt className="eyebrow">Vínculo</dt><dd className="mt-2 font-bold text-navy">{record.employmentType === "INTERNSHIP" ? "Estágio" : "CLT"}</dd></div>}
               {kind === "service" && record.requiredActivities?.length ? <div className="sm:col-span-2"><dt className="eyebrow">Atividades autônomas demandadas</dt><dd className="mt-2 flex flex-wrap gap-2">{record.requiredActivities.map((activity) => <span key={activity} className="rounded-full bg-[#edf6fb] px-3 py-1.5 text-sm font-bold text-blue">{activity}</span>)}</dd></div> : null}
+              {kind === "volunteer" && record.desiredVolunteers ? <div><dt className="eyebrow">Vagas de participação</dt><dd className="mt-2 font-bold text-navy">Até {record.desiredVolunteers} pessoas</dd></div> : null}
+              {kind === "volunteer" && record.requirements ? <div className="sm:col-span-2"><dt className="eyebrow">Requisitos práticos</dt><dd className="mt-2 leading-6 text-[#637688]">{record.requirements}</dd></div> : null}
+              {kind === "volunteer" && record.institutionalGuidance ? <div className="sm:col-span-2"><dt className="eyebrow">Orientação da equipe</dt><dd className="mt-2 leading-6 text-[#637688]">{record.institutionalGuidance}</dd></div> : null}
             </dl>
             {kind === "volunteer" && record.schedule && <VolunteerReminder opportunityId={record.id} title={record.title} description={record.description} schedule={record.schedule} eventDate={record.eventDate} location={`${record.location.municipality} · ${record.location.district}`} />}
           </article>
@@ -49,11 +53,11 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
             <p className="eyebrow">Próximo passo</p>
             <h2 className="mt-3 text-xl font-bold tracking-[-.02em] text-navy">{meta.action}</h2>
             <p className="mt-3 text-sm leading-6 text-[#607286]">A ação fica registrada como uma interação da demonstração e ajuda a compor a leitura agregada do território.</p>
-            <div className="mt-6 hidden lg:block"><InteractionAction targetId={record.id} kind={kind} ownerId={record.owner.id} /></div>
+            <div className="mt-6 hidden lg:block">{kind === "volunteer" ? <VolunteerParticipation opportunityId={record.id} ownerId={record.owner.id} /> : <InteractionAction targetId={record.id} kind={kind} ownerId={record.owner.id} />}</div>
             <p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-[#788995]">Perfil de demonstração · sem contato real ou autenticação de produção.</p>
           </aside>
         </div>
-        <div className="detail-mobile-action lg:hidden"><InteractionAction targetId={record.id} kind={kind} ownerId={record.owner.id} /></div>
+        <div className="detail-mobile-action lg:hidden">{kind === "volunteer" ? <VolunteerParticipation opportunityId={record.id} ownerId={record.owner.id} /> : <InteractionAction targetId={record.id} kind={kind} ownerId={record.owner.id} />}</div>
       </div>
     </main>
   );

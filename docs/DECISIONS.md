@@ -22,6 +22,12 @@ Cursos, concursos públicos, processos seletivos, vagas externas e contrataçõe
 
 O tipo `ORGANIZATION` não é suficiente sozinho para liberar licitações. A menor extensão adotada foi `profiles.can_supply_public`, marcada apenas para a organização fornecedora da demonstração. `PERSON` não ganha um novo tipo de conta: a capacidade autônoma existente mais um opt-in local explícito, desligado por padrão inclusive para perfis antigos, determinam o acesso contextual. A interface sempre usa “pode interessar ao seu perfil” e “verifique os requisitos do edital”, sem inferir elegibilidade jurídica.
 
+## Tipos organizacionais e voluntariado
+
+`ORGANIZATION` permanece o tipo técnico para preservar compatibilidade, mas `organization_kind` define a capacidade operacional: `COMPANY` publica CLT/estágio, demandas de serviço, usa talentos e pode descobrir PNCP quando `can_supply_public`; `NONPROFIT` prioriza ações voluntárias e também pode publicar trabalho/serviço e usar talentos; `PUBLIC_INSTITUTION` publica ações voluntárias e gerencia suas próprias inscrições, sem formal, talentos, serviço para hoje ou fornecimento PNCP. As funções de política ficam em `lib/domain.ts` para impedir autorização espalhada em cópias de `capabilities`.
+
+O voluntariado usa uma tabela de participação própria em vez de tratar interesse como simples evento: `INTERESTED → CONFIRMED → PARTICIPATED`. A pessoa não precisa de currículo para participar; somente a organização dona da ação pode confirmar ou registrar participação. Requisitos práticos e orientação institucional são campos explícitos e a copy não usa salário/benefícios.
+
 ## Matching explicável
 
 O primeiro matching é determinístico e legível: busca, tags, atividade/categoria, município e preferência selecionada. A explicação aparece como “Por que apareceu para você?” e não usa porcentagens arbitrárias nem IA generativa. Relações entre profissão e capacitação são relações de categoria/interesse, nunca causalidade.
@@ -86,4 +92,4 @@ Oferta × demanda, lacunas territoriais e capacitação × demanda não são cal
 
 Oferta de trabalho pertence à pessoa que apresenta sua força de trabalho; demanda pertence à empresa, instituição ou outro contratante. O mural aplica essa distinção por perfil: contratantes nunca recebem as demandas de outras organizações. Pessoas podem compartilhar voluntariamente um perfil de talento para que organizações pesquisem ofertas de trabalho, inclusive CLT, estágio, serviços autônomos e voluntariado.
 
-O currículo segue o modelo fornecido pelo produto e fica obrigatório antes do opt-in do banco de talentos. Na demo, o arquivo `.docx` é lido e guardado como dado local do navegador para permitir o download pela organização no mesmo percurso. Isso é uma simulação de armazenamento: produção deve validar o template no servidor e usar armazenamento de arquivos com consentimento e controles de acesso.
+O currículo é livre em PDF ou DOCX, até 5 MB, preservando o nome original e sem análise de conteúdo nesta demo. O legado `curriculumConfirmed` é apenas compatibilidade de leitura e não bloqueia o opt-in; não há limpeza das chaves antigas do `localStorage`. Produção deve validar tipo/tamanho no servidor e usar armazenamento de arquivos com consentimento e controles de acesso.

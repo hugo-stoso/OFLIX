@@ -109,6 +109,48 @@ export function canDiscoverPublicOpportunities(profile: { type: ProfileType; can
 }
 
 export type ProfileType = "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST";
+export type OrganizationKind = "COMPANY" | "NONPROFIT" | "PUBLIC_INSTITUTION";
+
+export type PolicyProfile = {
+  type: ProfileType;
+  organizationKind?: OrganizationKind | null;
+  canSupplyPublic?: boolean;
+};
+
+export function organizationKindLabel(kind?: OrganizationKind | null) {
+  if (kind === "COMPANY") return "Empresa";
+  if (kind === "NONPROFIT") return "ONG / OSC";
+  if (kind === "PUBLIC_INSTITUTION") return "Instituição pública";
+  return "Organização";
+}
+
+export function canPublishFormal(profile: PolicyProfile) {
+  return profile.type === "ORGANIZATION" && (profile.organizationKind === "COMPANY" || profile.organizationKind === "NONPROFIT");
+}
+
+export function canPublishServiceDemand(profile: PolicyProfile) {
+  return profile.type === "ORGANIZATION" && (profile.organizationKind === "COMPANY" || profile.organizationKind === "NONPROFIT");
+}
+
+export function canPublishVolunteer(profile: PolicyProfile) {
+  return profile.type === "ORGANIZATION" && (profile.organizationKind === "NONPROFIT" || profile.organizationKind === "PUBLIC_INSTITUTION");
+}
+
+export function canUseTalentDirectory(profile: PolicyProfile) {
+  return profile.type === "ORGANIZATION" && (profile.organizationKind === "COMPANY" || profile.organizationKind === "NONPROFIT");
+}
+
+export function canUseServiceToday(profile: PolicyProfile) {
+  return profile.type === "PERSON" || (profile.type === "ORGANIZATION" && (profile.organizationKind === "COMPANY" || profile.organizationKind === "NONPROFIT"));
+}
+
+export function canManageVolunteers(profile: PolicyProfile) {
+  return profile.type === "ORGANIZATION" && (profile.organizationKind === "NONPROFIT" || profile.organizationKind === "PUBLIC_INSTITUTION");
+}
+
+export function canDiscoverPublicProcurement(profile: PolicyProfile) {
+  return profile.type === "ORGANIZATION" && Boolean(profile.canSupplyPublic);
+}
 
 export const opportunityMeta: Record<OpportunityKind, { label: string; action: string; verb: string }> = {
   formal: { label: "Trabalho formal", action: "Candidatar-se", verb: "candidatura" },

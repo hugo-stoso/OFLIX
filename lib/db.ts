@@ -1,13 +1,15 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { WORK_ACTIVITIES, type OpportunityKind } from "@/lib/domain";
+import { canManageVolunteers, canPublishFormal, canPublishServiceDemand, canPublishVolunteer, canUseServiceToday, canUseTalentDirectory, type OpportunityKind, type OrganizationKind, WORK_ACTIVITIES } from "@/lib/domain";
 import type { MunicipalityAggregate } from "@/lib/territory";
 
 export type Location = { id: string; state: string; municipality: string; district: string };
-export type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; summary: string; capabilities: string; canSupplyPublic: boolean; isDemo: boolean; location: Location };
+export type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; organizationKind?: OrganizationKind; operatingArea?: string; summary: string; capabilities: string; canSupplyPublic: boolean; isDemo: boolean; location: Location };
 export type FormalEmploymentType = "CLT" | "INTERNSHIP";
-export type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; owner: { id: string; name: string }; ownerType: Profile["type"]; location: Location; availability?: string; schedule?: string; eventDate?: string; employmentType?: FormalEmploymentType; requiredActivities?: string[] };
+export type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; owner: { id: string; name: string }; ownerType: Profile["type"]; location: Location; availability?: string; schedule?: string; eventDate?: string; employmentType?: FormalEmploymentType; requiredActivities?: string[]; requirements?: string; desiredVolunteers?: number; institutionalGuidance?: string };
+export type VolunteerParticipationStatus = "INTERESTED" | "CONFIRMED" | "PARTICIPATED";
+export type VolunteerParticipation = { id: string; opportunityId: string; opportunityTitle: string; organizerId: string; organizerName: string; personProfileId: string; personName: string; status: VolunteerParticipationStatus; createdAt: string; confirmedAt?: string; participatedAt?: string };
 export type ServiceCallStatus = "OPEN" | "ACCEPTED";
 export type ServiceCall = { id: string; title: string; activity: string; description: string; serviceDay: string; timeWindow: string; status: ServiceCallStatus; requester: { id: string; name: string; type: Profile["type"] }; location: Location; acceptedBy?: { id: string; name: string }; createdAt: string; acceptedAt?: string };
 
@@ -40,13 +42,14 @@ function seedDemoData(db: DatabaseLike) {
   for (const row of locations) insert("INSERT INTO locations (id, state, municipality, district) VALUES (?, ?, ?, ?)", ...row);
 
   const profiles = [
-    ["profile-ana", "Hugo Silva", "PERSON", "Pessoa em busca de oportunidades e conexões locais.", "Candidato formal · Voluntário", "loc-aracaju-centro", "0"],
-    ["profile-coletivo", "Coletivo Horizonte (demonstração)", "ORGANIZATION", "Organização fictícia para demonstrar publicação de oportunidades.", "Empresa · Ações comunitárias", "loc-aracaju-sao-jose", "1"],
-    ["profile-instituto", "Instituto Ponte Aberta (demonstração)", "ORGANIZATION", "Organização fictícia com atuação em desenvolvimento territorial.", "Organização sem fins lucrativos · Voluntariado", "loc-lagarto-cidade-nova", "0"],
-    ["profile-rafael", "Amanda Figueiredo (demonstração)", "PERSON", "Profissional autônoma que atende demandas residenciais.", "Manutenção residencial · Serviços autônomos", "loc-lagarto-centro", "0"],
-    ["profile-analista", "Observatório Território Aberto (demonstração)", "INSTITUTIONAL_ANALYST", "Persona fictícia para leitura agregada do território.", "Inteligência territorial · Análise agregada", "loc-aracaju-centro", "0"],
+    ["profile-ana", "Hugo Silva", "PERSON", "Pessoa em busca de oportunidades e conexões locais.", "Candidato formal · Voluntário", "", "", "loc-aracaju-centro", "0"],
+    ["profile-coletivo", "Coletivo Horizonte (demonstração)", "ORGANIZATION", "Empresa fictícia para demonstrar publicação de trabalho e serviços.", "Empresa · Ações comunitárias", "COMPANY", "Aracaju e municípios próximos", "loc-aracaju-sao-jose", "1"],
+    ["profile-instituto", "Instituto Ponte Aberta (demonstração)", "ORGANIZATION", "ONG / OSC fictícia com atuação em desenvolvimento territorial.", "Voluntariado · Desenvolvimento local", "NONPROFIT", "Lagarto e comunidades parceiras", "loc-lagarto-cidade-nova", "0"],
+    ["profile-instituicao-publica", "Secretaria Demo de Cidadania (fictícia)", "ORGANIZATION", "Instituição pública fictícia para demonstrar ações voluntárias de interesse coletivo.", "Ações voluntárias · Gestão de participantes", "PUBLIC_INSTITUTION", "Aracaju e equipamentos públicos parceiros", "loc-aracaju-centro", "0"],
+    ["profile-rafael", "Amanda Figueiredo (demonstração)", "PERSON", "Profissional autônoma que atende demandas residenciais.", "Manutenção residencial · Serviços autônomos", "", "", "loc-lagarto-centro", "0"],
+    ["profile-analista", "Observatório Território Aberto (demonstração)", "INSTITUTIONAL_ANALYST", "Persona fictícia para leitura agregada do território.", "Inteligência territorial · Análise agregada", "", "", "loc-aracaju-centro", "0"],
   ];
-  for (const row of profiles) insert("INSERT INTO profiles (id, name, type, summary, capabilities, location_id, can_supply_public) VALUES (?, ?, ?, ?, ?, ?, ?)", ...row);
+  for (const row of profiles) insert("INSERT INTO profiles (id, name, type, summary, capabilities, organization_kind, operating_area, location_id, can_supply_public) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", ...row);
 
   insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-operations", "Assistente de operações locais", "A pessoa apoiará a organização de rotas, conferência de estoque, contato com parceiros e registro de indicadores simples da operação. A rotina combina trabalho em equipe, acompanhamento de prazos e presença no território.", "Operações", "profile-coletivo", "loc-aracaju-centro", "CLT");
   insert("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)", "formal-attendance", "Técnico de atendimento", "Atendimento presencial e remoto para uma rede de serviços em expansão, com acolhimento de solicitações, organização de agenda e encaminhamento para as áreas responsáveis. Buscamos comunicação clara e escuta ativa.", "Atendimento", "profile-coletivo", "loc-socorro-taicoca", "CLT");
@@ -62,10 +65,12 @@ function seedDemoData(db: DatabaseLike) {
   insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", "volunteer-health", "Apoio à feira de saúde", "Recepção, organização de fluxo e apoio à comunicação em uma ação comunitária de orientação e prevenção. A pessoa voluntária recebe um roteiro de atividades e atua sempre junto da equipe responsável pela feira.", "Saúde", "profile-instituto", "loc-lagarto-cidade-nova", "Uma manhã, com escala prévia", "2026-10-10T08:00:00-03:00");
   insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", "volunteer-park", "Cuidado coletivo da praça", "Mobilização para limpeza leve, plantio de mudas e pintura de sinalização em uma praça do bairro. A iniciativa oferece materiais, divisão de tarefas e uma conversa final sobre manutenção do espaço comum.", "Meio ambiente", "profile-instituto", "loc-aracaju-sao-jose", "Domingo, das 8h às 11h", "2026-10-18T08:00:00-03:00");
   insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", "volunteer-digital", "Oficina de inclusão digital", "Apoio a pessoas idosas durante uma oficina prática sobre celular, serviços públicos digitais e segurança básica. É possível atuar no acolhimento, na orientação individual ou na organização do espaço.", "Inclusão digital", "profile-instituto", "loc-lagarto-centro", "Quartas-feiras, no fim da tarde", "2026-10-21T17:30:00-03:00");
+  insert("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date, requirements, desired_volunteers, institutional_guidance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", "volunteer-public-citizenship", "Apoio ao mutirão de cidadania", "Ação voluntária fictícia de apoio à orientação de moradores sobre serviços públicos, acolhimento e organização do fluxo no equipamento público.", "Direitos e cidadania", "profile-instituicao-publica", "loc-aracaju-centro", "Uma manhã, com escala prévia", "2026-11-07T08:00:00-03:00", "Escuta respeitosa, pontualidade e disponibilidade para seguir a orientação da equipe.", "8", "A ação é gratuita, não substitui atendimento público e será acompanhada por servidoras e servidores responsáveis.");
   insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-1", "profile-ana", "FORMAL", "formal-operations", "APPLY");
   insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-2", "profile-ana", "VOLUNTEER", "volunteer-reading", "VOLUNTEER_INTEREST");
   insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-3", "profile-rafael", "SERVICE", "service-design", "CONTACT_REQUEST");
   insert("INSERT INTO interactions (id, actor_profile_id, target_type, target_id, action) VALUES (?, ?, ?, ?, ?)", "interaction-demo-4", "profile-ana", "SERVICE", "service-maintenance", "CONTACT_REQUEST");
+  insert("INSERT INTO volunteer_participants (id, opportunity_id, person_profile_id, status) VALUES (?, ?, ?, ?)", "volunteer-participation-demo-1", "volunteer-reading", "profile-ana", "INTERESTED");
 }
 
 function database() {
@@ -79,10 +84,11 @@ function database() {
     db.exec(`
       PRAGMA foreign_keys = ON;
       CREATE TABLE IF NOT EXISTS locations (id TEXT PRIMARY KEY, state TEXT NOT NULL, municipality TEXT NOT NULL, district TEXT NOT NULL, UNIQUE(state, municipality, district));
-      CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, summary TEXT NOT NULL, capabilities TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 1, location_id TEXT NOT NULL REFERENCES locations(id), can_supply_public INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE IF NOT EXISTS profiles (id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, summary TEXT NOT NULL, capabilities TEXT NOT NULL, organization_kind TEXT, operating_area TEXT, is_demo INTEGER NOT NULL DEFAULT 1, location_id TEXT NOT NULL REFERENCES locations(id), can_supply_public INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS formal_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organization_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), status TEXT NOT NULL DEFAULT 'OPEN', employment_type TEXT NOT NULL DEFAULT 'CLT');
       CREATE TABLE IF NOT EXISTS service_offers (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, provider_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), availability TEXT NOT NULL, required_activities TEXT NOT NULL DEFAULT '');
-      CREATE TABLE IF NOT EXISTS volunteer_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organizer_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), schedule TEXT NOT NULL, event_date TEXT);
+      CREATE TABLE IF NOT EXISTS volunteer_opportunities (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT NOT NULL, category TEXT NOT NULL, organizer_id TEXT NOT NULL REFERENCES profiles(id), location_id TEXT NOT NULL REFERENCES locations(id), schedule TEXT NOT NULL, event_date TEXT, requirements TEXT NOT NULL DEFAULT '', desired_volunteers INTEGER, institutional_guidance TEXT NOT NULL DEFAULT '');
+      CREATE TABLE IF NOT EXISTS volunteer_participants (id TEXT PRIMARY KEY, opportunity_id TEXT NOT NULL REFERENCES volunteer_opportunities(id) ON DELETE CASCADE, person_profile_id TEXT NOT NULL REFERENCES profiles(id), status TEXT NOT NULL DEFAULT 'INTERESTED', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, confirmed_at TEXT, participated_at TEXT, UNIQUE(opportunity_id, person_profile_id));
       CREATE TABLE IF NOT EXISTS interactions (id TEXT PRIMARY KEY, actor_profile_id TEXT NOT NULL REFERENCES profiles(id), target_type TEXT NOT NULL, target_id TEXT NOT NULL, action TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(actor_profile_id, target_type, target_id));
       CREATE TABLE IF NOT EXISTS service_calls (id TEXT PRIMARY KEY, requester_profile_id TEXT NOT NULL REFERENCES profiles(id), title TEXT NOT NULL, activity TEXT NOT NULL, description TEXT NOT NULL, location_id TEXT NOT NULL REFERENCES locations(id), service_day TEXT NOT NULL, time_window TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'OPEN', accepted_by_profile_id TEXT REFERENCES profiles(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, accepted_at TEXT);
       CREATE INDEX IF NOT EXISTS idx_profiles_type ON profiles(type);
@@ -93,6 +99,14 @@ function database() {
     try { db.exec("ALTER TABLE service_offers ADD COLUMN required_activities TEXT NOT NULL DEFAULT ''"); } catch { /* coluna já existe */ }
     try { db.exec("ALTER TABLE volunteer_opportunities ADD COLUMN event_date TEXT"); } catch { /* coluna já existe */ }
     try { db.exec("ALTER TABLE profiles ADD COLUMN can_supply_public INTEGER NOT NULL DEFAULT 0"); } catch { /* coluna já existe */ }
+    try { db.exec("ALTER TABLE profiles ADD COLUMN organization_kind TEXT"); } catch { /* coluna já existe */ }
+    try { db.exec("ALTER TABLE profiles ADD COLUMN operating_area TEXT"); } catch { /* coluna já existe */ }
+    try { db.exec("ALTER TABLE volunteer_opportunities ADD COLUMN requirements TEXT NOT NULL DEFAULT ''"); } catch { /* coluna já existe */ }
+    try { db.exec("ALTER TABLE volunteer_opportunities ADD COLUMN desired_volunteers INTEGER"); } catch { /* coluna já existe */ }
+    try { db.exec("ALTER TABLE volunteer_opportunities ADD COLUMN institutional_guidance TEXT NOT NULL DEFAULT ''"); } catch { /* coluna já existe */ }
+    db.exec("CREATE TABLE IF NOT EXISTS volunteer_participants (id TEXT PRIMARY KEY, opportunity_id TEXT NOT NULL REFERENCES volunteer_opportunities(id) ON DELETE CASCADE, person_profile_id TEXT NOT NULL REFERENCES profiles(id), status TEXT NOT NULL DEFAULT 'INTERESTED', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, confirmed_at TEXT, participated_at TEXT, UNIQUE(opportunity_id, person_profile_id))");
+    db.prepare("UPDATE profiles SET organization_kind = 'COMPANY', operating_area = 'Aracaju e municípios próximos' WHERE id = 'profile-coletivo' AND organization_kind IS NULL").run();
+    db.prepare("UPDATE profiles SET organization_kind = 'NONPROFIT', operating_area = 'Lagarto e comunidades parceiras' WHERE id = 'profile-instituto' AND organization_kind IS NULL").run();
     db.prepare("UPDATE profiles SET can_supply_public = 1 WHERE id = 'profile-coletivo'").run();
     globalForDb.oflixInitialized = true;
     seedDemoData(db);
@@ -102,14 +116,14 @@ function database() {
 
 export function ensureDatabase() { return database(); }
 function locationFrom(row: Row): Location { return { id: String(row.location_id), state: String(row.state), municipality: String(row.municipality), district: String(row.district) }; }
-function profileFrom(row: Row): Profile { return { id: String(row.id), name: String(row.name), type: String(row.type) as Profile["type"], summary: String(row.summary), capabilities: String(row.capabilities), canSupplyPublic: Boolean(row.can_supply_public), isDemo: Boolean(row.is_demo), location: locationFrom(row) }; }
-const profileSelect = `SELECT p.id, p.name, p.type, p.summary, p.capabilities, p.can_supply_public, p.is_demo, l.id AS location_id, l.state, l.municipality, l.district FROM profiles p JOIN locations l ON l.id = p.location_id`;
+function profileFrom(row: Row): Profile { return { id: String(row.id), name: String(row.name), type: String(row.type) as Profile["type"], ...(row.organization_kind ? { organizationKind: String(row.organization_kind) as OrganizationKind } : {}), ...(row.operating_area ? { operatingArea: String(row.operating_area) } : {}), summary: String(row.summary), capabilities: String(row.capabilities), canSupplyPublic: Boolean(row.can_supply_public), isDemo: Boolean(row.is_demo), location: locationFrom(row) }; }
+const profileSelect = `SELECT p.id, p.name, p.type, p.organization_kind, p.operating_area, p.summary, p.capabilities, p.can_supply_public, p.is_demo, l.id AS location_id, l.state, l.municipality, l.district FROM profiles p JOIN locations l ON l.id = p.location_id`;
 
 export function listProfiles() { return database().prepare(`${profileSelect} ORDER BY p.type, p.name`).all().map(profileFrom); }
 
 function opportunityFrom(row: Row, kind: OpportunityKind): Opportunity {
   const requiredActivities = String(row.required_activities ?? "").split("|").map((activity) => activity.trim()).filter(Boolean);
-  return { id: String(row.id), title: String(row.title), description: String(row.description), category: String(row.category), kind, owner: { id: String(row.owner_id), name: String(row.owner_name) }, ownerType: String(row.owner_type) as Profile["type"], location: locationFrom(row), ...(row.availability ? { availability: String(row.availability) } : {}), ...(row.schedule ? { schedule: String(row.schedule) } : {}), ...(row.event_date ? { eventDate: String(row.event_date) } : {}), ...(row.employment_type ? { employmentType: String(row.employment_type) as FormalEmploymentType } : {}), ...(requiredActivities.length ? { requiredActivities } : {}) };
+  return { id: String(row.id), title: String(row.title), description: String(row.description), category: String(row.category), kind, owner: { id: String(row.owner_id), name: String(row.owner_name) }, ownerType: String(row.owner_type) as Profile["type"], location: locationFrom(row), ...(row.availability ? { availability: String(row.availability) } : {}), ...(row.schedule ? { schedule: String(row.schedule) } : {}), ...(row.event_date ? { eventDate: String(row.event_date) } : {}), ...(row.employment_type ? { employmentType: String(row.employment_type) as FormalEmploymentType } : {}), ...(requiredActivities.length ? { requiredActivities } : {}), ...(kind === "volunteer" && row.requirements ? { requirements: String(row.requirements) } : {}), ...(kind === "volunteer" && row.desired_volunteers ? { desiredVolunteers: Number(row.desired_volunteers) } : {}), ...(kind === "volunteer" && row.institutional_guidance ? { institutionalGuidance: String(row.institutional_guidance) } : {}) };
 }
 const joinedLocation = `JOIN locations l ON l.id = o.location_id`;
 export function listOpportunities() {
@@ -125,6 +139,20 @@ export function findOpportunity(id: string, kind: OpportunityKind) {
   const ownerField = kind === "formal" ? "organization_id" : kind === "service" ? "provider_id" : "organizer_id";
   const row = database().prepare(`SELECT o.*, p.id owner_id, p.name owner_name, p.type owner_type, l.id location_id, l.state, l.municipality, l.district FROM ${table} o JOIN profiles p ON p.id = o.${ownerField} ${joinedLocation} WHERE o.id = ?`).get(id);
   return row ? opportunityFrom(row, kind) : null;
+}
+
+export function createOpportunity(input: { ownerProfileId: string; kind: OpportunityKind; title: string; description: string; category: string; employmentType?: FormalEmploymentType; requiredActivities?: string[]; schedule?: string; eventDate?: string; requirements?: string; desiredVolunteers?: number; institutionalGuidance?: string }) {
+  const db = database();
+  const owner = db.prepare("SELECT id, name, type, organization_kind, location_id FROM profiles WHERE id = ?").get(input.ownerProfileId);
+  if (!owner) return { error: "owner_not_found" as const };
+  const policyProfile = { type: String(owner.type) as Profile["type"], organizationKind: owner.organization_kind as OrganizationKind | null };
+  const allowed = input.kind === "formal" ? canPublishFormal(policyProfile) : input.kind === "service" ? policyProfile.type === "PERSON" || canPublishServiceDemand(policyProfile) : canPublishVolunteer(policyProfile);
+  if (!allowed) return { error: "permission_denied" as const };
+  const id = `${input.kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  if (input.kind === "formal") db.prepare("INSERT INTO formal_opportunities (id, title, description, category, organization_id, location_id, employment_type) VALUES (?, ?, ?, ?, ?, ?, ?)").run(id, input.title, input.description, input.category, input.ownerProfileId, owner.location_id, input.employmentType ?? "CLT");
+  if (input.kind === "service") db.prepare("INSERT INTO service_offers (id, title, description, category, provider_id, location_id, availability, required_activities) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(id, input.title, input.description, input.category, input.ownerProfileId, owner.location_id, input.schedule ?? "A combinar", (input.requiredActivities ?? []).join("|"));
+  if (input.kind === "volunteer") db.prepare("INSERT INTO volunteer_opportunities (id, title, description, category, organizer_id, location_id, schedule, event_date, requirements, desired_volunteers, institutional_guidance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(id, input.title, input.description, input.category, input.ownerProfileId, owner.location_id, input.schedule ?? "A combinar", input.eventDate ?? null, input.requirements ?? "", input.desiredVolunteers ?? null, input.institutionalGuidance ?? "");
+  return { opportunity: findOpportunity(id, input.kind) };
 }
 
 export type TalentInterest = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string; createdAt: string };
@@ -145,8 +173,8 @@ export function listTalentInterests(): TalentInterest[] {
 }
 
 export function canAccessTalentBank(profileId: string) {
-  const profile = database().prepare("SELECT type FROM profiles WHERE id = ?").get(profileId);
-  return profile?.type === "ORGANIZATION";
+  const profile = database().prepare("SELECT type, organization_kind FROM profiles WHERE id = ?").get(profileId);
+  return Boolean(profile && canUseTalentDirectory({ type: String(profile.type) as Profile["type"], organizationKind: profile.organization_kind as OrganizationKind | null }));
 }
 
 function serviceCallFrom(row: Row): ServiceCall {
@@ -161,9 +189,9 @@ const serviceCallSelect = `SELECT c.*, requester.id requester_id, requester.name
 
 export function listServiceCalls(profileId: string, activities: string[], today: string) {
   const db = database();
-  const profile = db.prepare("SELECT type FROM profiles WHERE id = ?").get(profileId);
+  const profile = db.prepare("SELECT type, organization_kind FROM profiles WHERE id = ?").get(profileId);
   if (!profile) return [] as ServiceCall[];
-  if (profile.type === "ORGANIZATION") return db.prepare(`${serviceCallSelect} WHERE c.requester_profile_id = ? ORDER BY c.created_at DESC`).all(profileId).map(serviceCallFrom);
+  if (profile.type === "ORGANIZATION" && canUseServiceToday({ type: "ORGANIZATION", organizationKind: profile.organization_kind as OrganizationKind | null })) return db.prepare(`${serviceCallSelect} WHERE c.requester_profile_id = ? ORDER BY c.created_at DESC`).all(profileId).map(serviceCallFrom);
   if (profile.type !== "PERSON") return [] as ServiceCall[];
   if (!activities.length) return db.prepare(`${serviceCallSelect} WHERE c.requester_profile_id = ? ORDER BY c.created_at DESC`).all(profileId).map(serviceCallFrom);
   const placeholders = activities.map(() => "?").join(", ");
@@ -173,8 +201,8 @@ export function listServiceCalls(profileId: string, activities: string[], today:
 export function createServiceCall(input: { requesterProfileId: string; activity: string; title: string; description: string; serviceDay: string; timeWindow: string }) {
   const db = database();
   if (!WORK_ACTIVITIES.some((activity) => activity === input.activity)) return { error: "activity_invalid" as const };
-  const requester = db.prepare("SELECT id, type, location_id FROM profiles WHERE id = ?").get(input.requesterProfileId);
-  if (!requester || (requester.type !== "PERSON" && requester.type !== "ORGANIZATION")) return { error: "requester_invalid" as const };
+  const requester = db.prepare("SELECT id, type, organization_kind, location_id FROM profiles WHERE id = ?").get(input.requesterProfileId);
+  if (!requester || !canUseServiceToday({ type: String(requester.type) as Profile["type"], organizationKind: requester.organization_kind as OrganizationKind | null })) return { error: "requester_invalid" as const };
   const id = `service-call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   db.prepare("INSERT INTO service_calls (id, requester_profile_id, title, activity, description, location_id, service_day, time_window) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(id, input.requesterProfileId, input.title, input.activity, input.description, requester.location_id, input.serviceDay, input.timeWindow);
   const row = db.prepare(`${serviceCallSelect} WHERE c.id = ?`).get(id);
@@ -204,6 +232,54 @@ export function createInteraction(input: { actorProfileId: string; targetType: s
     if (String(error).includes("UNIQUE constraint failed")) return { duplicate: true, selfOwned: false };
     throw error;
   }
+}
+
+const volunteerParticipationSelect = `SELECT vp.id, vp.opportunity_id, o.title opportunity_title, o.organizer_id, organizer.name organizer_name, vp.person_profile_id, person.name person_name, vp.status, vp.created_at, vp.confirmed_at, vp.participated_at FROM volunteer_participants vp JOIN volunteer_opportunities o ON o.id = vp.opportunity_id JOIN profiles organizer ON organizer.id = o.organizer_id JOIN profiles person ON person.id = vp.person_profile_id`;
+
+function volunteerParticipationFrom(row: Row): VolunteerParticipation {
+  return { id: String(row.id), opportunityId: String(row.opportunity_id), opportunityTitle: String(row.opportunity_title), organizerId: String(row.organizer_id), organizerName: String(row.organizer_name), personProfileId: String(row.person_profile_id), personName: String(row.person_name), status: String(row.status) as VolunteerParticipationStatus, createdAt: String(row.created_at), ...(row.confirmed_at ? { confirmedAt: String(row.confirmed_at) } : {}), ...(row.participated_at ? { participatedAt: String(row.participated_at) } : {}) };
+}
+
+export function listVolunteerParticipations(profileId: string) {
+  const db = database();
+  const personRows = db.prepare(`${volunteerParticipationSelect} WHERE vp.person_profile_id = ? ORDER BY vp.created_at DESC`).all(profileId).map(volunteerParticipationFrom);
+  const ownedRows = db.prepare(`${volunteerParticipationSelect} WHERE o.organizer_id = ? ORDER BY vp.created_at DESC`).all(profileId).map(volunteerParticipationFrom);
+  return { person: personRows, owned: ownedRows };
+}
+
+export function createVolunteerParticipation(input: { opportunityId: string; personProfileId: string }) {
+  const db = database();
+  const opportunity = db.prepare("SELECT id FROM volunteer_opportunities WHERE id = ?").get(input.opportunityId);
+  const person = db.prepare("SELECT id, type FROM profiles WHERE id = ?").get(input.personProfileId);
+  if (!opportunity) return { error: "opportunity_not_found" as const };
+  if (person?.type !== "PERSON") return { error: "person_required" as const };
+  try {
+    const id = `volunteer-participant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    db.prepare("INSERT INTO volunteer_participants (id, opportunity_id, person_profile_id) VALUES (?, ?, ?)").run(id, input.opportunityId, input.personProfileId);
+    const row = db.prepare(`${volunteerParticipationSelect} WHERE vp.id = ?`).get(id);
+    return { participation: row ? volunteerParticipationFrom(row) : null };
+  } catch (error) {
+    if (String(error).includes("UNIQUE constraint failed")) {
+      const row = db.prepare(`${volunteerParticipationSelect} WHERE vp.opportunity_id = ? AND vp.person_profile_id = ?`).get(input.opportunityId, input.personProfileId);
+      return { duplicate: true as const, participation: row ? volunteerParticipationFrom(row) : null };
+    }
+    throw error;
+  }
+}
+
+export function updateVolunteerParticipation(input: { participationId: string; organizerProfileId: string; action: "confirm" | "participate" }) {
+  const db = database();
+  const organizer = db.prepare("SELECT type, organization_kind FROM profiles WHERE id = ?").get(input.organizerProfileId);
+  if (!organizer || !canManageVolunteers({ type: String(organizer.type) as Profile["type"], organizationKind: organizer.organization_kind as OrganizationKind | null })) return { error: "organizer_not_allowed" as const };
+  const current = db.prepare("SELECT vp.status FROM volunteer_participants vp JOIN volunteer_opportunities o ON o.id = vp.opportunity_id WHERE vp.id = ? AND o.organizer_id = ?").get(input.participationId, input.organizerProfileId);
+  if (!current) return { error: "participation_not_owned" as const };
+  if (input.action === "confirm" && current.status !== "INTERESTED") return { error: "invalid_transition" as const };
+  if (input.action === "participate" && current.status !== "CONFIRMED") return { error: "invalid_transition" as const };
+  const next = input.action === "confirm" ? "CONFIRMED" : "PARTICIPATED";
+  const timestampColumn = input.action === "confirm" ? "confirmed_at" : "participated_at";
+  db.prepare(`UPDATE volunteer_participants SET status = ?, ${timestampColumn} = CURRENT_TIMESTAMP WHERE id = ?`).run(next, input.participationId);
+  const row = db.prepare(`${volunteerParticipationSelect} WHERE vp.id = ?`).get(input.participationId);
+  return { participation: row ? volunteerParticipationFrom(row) : null };
 }
 
 export function territoryData() {
@@ -325,5 +401,5 @@ export function territoryDataForProfile(profileId: string, activities: string[])
   return interestTerritoryData(activities);
 }
 
-export function resetDatabase() { database().exec("DELETE FROM service_calls; DELETE FROM interactions; DELETE FROM formal_opportunities; DELETE FROM service_offers; DELETE FROM volunteer_opportunities; DELETE FROM profiles; DELETE FROM locations;"); }
+export function resetDatabase() { database().exec("DELETE FROM service_calls; DELETE FROM interactions; DELETE FROM volunteer_participants; DELETE FROM formal_opportunities; DELETE FROM service_offers; DELETE FROM volunteer_opportunities; DELETE FROM profiles; DELETE FROM locations;"); }
 export function seedRow(sql: string, ...params: string[]) { database().prepare(sql).run(...params); }

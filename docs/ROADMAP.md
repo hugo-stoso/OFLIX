@@ -12,7 +12,7 @@
 - [x] Área demo de publicação, minhas oportunidades, base de talentos e conversa iniciada pelo demandante.
 - [x] Gráfico de empregos formais por região.
 - [x] Separação semântica entre oferta de pessoas e demanda de contratantes, com isolamento das demandas entre organizações.
-- [x] Filtros de banco de talentos por escolaridade e tipo de curso, além de currículo baseado no modelo fornecido.
+- [x] Filtros de banco de talentos por escolaridade e tipo de curso, além de currículo livre em PDF/DOCX.
 - [x] Navegação horizontal por tarefa e preferências ampliadas para atividades autônomas e interesses de voluntariado.
 - [x] Reforço de SEO de marca com metadata, dados estruturados, favicon e mensagem explícita de OFLIX em Sergipe.
 - [x] Camada de descoberta unificada sem apagar a semântica das três frentes originais.
@@ -28,6 +28,9 @@
 - [x] Perfil de pessoa organizado em resumo profissional, formação, currículo, banco de talentos e território.
 - [x] Observatório Territorial municipal com malha oficial IBGE 2024 de Sergipe, GeoJSON local simplificado, mapa SVG acessível, métricas operacionais, seleção municipal, ranking sincronizado, legenda e painel de município sem registros.
 - [x] Agregação SQL municipal com oportunidades, CLT, estágio, serviços, voluntariado, interações e categorias; API geral permanece restrita ao perfil analista.
+- [x] Tipos de organização (`COMPANY`, `NONPROFIT`, `PUBLIC_INSTITUTION`) com políticas centrais e persona de instituição pública fictícia.
+- [x] Ações voluntárias para ONG/OSC e instituição pública, com requisitos, orientação, inscrições persistidas e ciclo `INTERESTED → CONFIRMED → PARTICIPATED` com ownership.
+- [x] Currículo livre em PDF/DOCX até 5 MB, preservando nome original e sem modelo obrigatório.
 
 ## MVP
 
@@ -36,7 +39,7 @@
 - [ ] Publicação, edição, moderação e encerramento de oportunidades persistentes.
 - [ ] Busca, filtros e estados de demanda com autorização real.
 - [ ] Governança de dados, consentimento e políticas de retenção.
-- [ ] Armazenamento seguro e compartilhado de currículos, com validação server-side do modelo e download autorizado.
+- [ ] Armazenamento seguro e compartilhado de currículos, com validação server-side de PDF/DOCX e download autorizado.
 - [ ] Validar operação do provider PNCP em produção, observar limites e persistir cache/última atualização conforme a infraestrutura existente permitir.
 - [ ] Integrar cursos, concursos e vagas externas somente após confirmar API, feed, licença ou autorização oficial.
 

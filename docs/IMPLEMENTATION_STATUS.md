@@ -2,6 +2,10 @@
 
 ## IMPLEMENTADO
 
+- Fase A: perfis de empresa, ONG/OSC e instituição pública fictícia, com políticas centrais de publicação, talentos, Serviço para hoje, voluntariado e descoberta de PNCP.
+- Fase A: ações voluntárias com requisitos práticos, quantidade desejada, orientação institucional e ciclo persistido `INTERESTED → CONFIRMED → PARTICIPATED`; confirmação e participação exigem propriedade da organização.
+- Fase A: currículo livre em PDF/DOCX de até 5 MB, nome original preservado e `curriculumConfirmed` legado ignorado para autorização.
+
 - Aplicação Next.js única com TypeScript e Tailwind.
 - Persistência local SQLite via `node:sqlite` e seed DEMO DATA.
 - Modelo separado de perfis, território, três frentes e interações.
@@ -22,7 +26,7 @@
 - Menu de conta funcional no cabeçalho, com Meu perfil, Configurações e Sair; perfil detalhado com resumo, tipo, competências e território demonstrativo.
 - Descoberta separada entre Ofertas de trabalho publicadas por pessoas e Demandas de trabalho publicadas por contratantes; organizações veem apenas suas próprias demandas, além das ofertas de pessoas.
 - Banco de talentos com compartilhamento opcional, escolaridade, tipo de curso, especialização/pós-graduação, download do modelo de currículo e anexo `.docx` disponível para contratantes.
-- Banco de talentos opt-in para pessoas interessadas em CLT, estágio, serviços autônomos e/ou voluntariado; organizações podem pesquisar perfis compartilhados sem restringir pela distância e iniciar conversa sobre remuneração, benefícios e próximos passos.
+- Banco de talentos opt-in para pessoas interessadas em CLT, estágio, serviços autônomos e/ou voluntariado; organizações permitidas podem pesquisar perfis compartilhados sem restringir pela distância e iniciar conversa sobre próximos passos.
 - Banco de talentos permite informar manualmente município e Estado de moradia, deixa esse dado explícito para contratantes e não solicita acesso à localização, ao Google Maps ou a coordenadas.
 - Chamadas de serviço para o dia, abertas por pessoas ou instituições com atividade, janela e território aproximado; autônomos compatíveis recebem a chamada por polling/alerta do navegador e o primeiro aceite é protegido por atualização condicional no servidor.
 - Navegação da conta reorganizada por objetivos, com Início, Buscar, Serviço para hoje, Preferências ou Talentos e Perfil; no mobile os destinos ficam em bottom navigation e no desktop em uma barra curta.

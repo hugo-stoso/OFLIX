@@ -1,4 +1,3 @@
-import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { demoDiscoveryItems } from "../lib/discovery";
 import { formatWorkOpportunityCount } from "../lib/ui-copy";
@@ -201,17 +200,17 @@ test("organização publica demanda autônoma com múltiplas atividades", async 
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
   await page.getByRole("button", { name: /Publicar oportunidade/ }).click();
-  await expect(page.getByRole("heading", { name: "Publicar demanda de trabalho" })).toBeVisible();
-  await page.getByRole("button", { name: "Nova demanda" }).click();
+  await expect(page.getByRole("heading", { name: "Publicar uma oportunidade" })).toBeVisible();
+  await page.getByRole("button", { name: "Nova publicação" }).click();
   await page.getByLabel("Frente", { exact: true }).selectOption("service");
   await expect(page.getByText("Tipos de trabalho autônomo demandados")).toBeVisible();
   await page.getByRole("checkbox", { name: "Eletricista" }).check();
   await page.getByRole("checkbox", { name: "Manutenção" }).check();
   await page.getByLabel("Título").fill("Eletricista para instalação de evento");
   await page.getByLabel("Descrição completa").fill("Demanda de instalação e manutenção para uma atividade comunitária.");
-  await page.getByRole("button", { name: "Publicar demanda" }).click();
-  await expect(page.getByText(/Demanda criada na demonstração/)).toBeVisible();
-  await expect(page.getByText("Eletricista · Manutenção")).toBeVisible();
+  await page.locator("form").getByRole("button", { name: "Publicar oportunidade" }).click();
+  await expect(page.getByText(/Publicação criada na demonstração/)).toBeVisible();
+  await expect(page.getByText("Eletricista · Manutenção").first()).toBeVisible();
   await page.getByRole("button", { name: "Trocar perfil" }).click();
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
@@ -231,7 +230,7 @@ test("autônomo divulga sua força de trabalho separadamente", async ({ page }) 
   await page.getByLabel("Título").fill("Rafael · instalações e manutenção");
   await page.getByLabel("Descrição completa").fill("Disponibilidade para atendimentos residenciais e pequenos reparos.");
   await page.getByRole("button", { name: "Publicar oferta" }).click();
-  await expect(page.getByText(/Oferta criada na demonstração/)).toBeVisible();
+  await expect(page.getByText(/Publicação criada na demonstração/)).toBeVisible();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByRole("button", { name: /Serviços/ }).click();
   await page.getByRole("tab", { name: /Ofertas/ }).click();
@@ -278,15 +277,14 @@ test("pessoa opta por compartilhar perfil e organização consulta banco de tale
   await page.getByLabel("Nome do curso").fill("Comunicação social");
   await page.getByLabel("Especialização ou pós-graduação").fill("Comunicação comunitária");
   await page.getByRole("button", { name: /Currículo/ }).click();
-  await page.getByLabel("Currículo no modelo OFLIX").setInputFiles(path.resolve("public/Modelo_Curriculo.docx"));
-  await expect(page.getByText(/Arquivo atual: Modelo_Curriculo.docx/)).toBeVisible();
-  await page.getByRole("checkbox", { name: "Confirmo que estou usando o modelo de currículo OFLIX" }).check();
+  await page.getByLabel("Currículo em PDF ou DOCX").setInputFiles({ name: "curriculo-hugo.pdf", mimeType: "application/pdf", buffer: Buffer.from("DEMO DATA") });
+  await expect(page.getByText(/Arquivo atual: curriculo-hugo.pdf/)).toBeVisible();
   await page.getByRole("button", { name: /Banco de talentos/ }).click();
-  await page.getByRole("checkbox", { name: "Permitir que instituições encontrem meu perfil" }).check();
+  await page.getByRole("checkbox", { name: "Permitir que organizações encontrem meu perfil" }).check();
   await page.goto("/demo");
   await page.getByRole("button", { name: "Trocar perfil" }).click();
   await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
-  await page.getByRole("button", { name: "Talentos", exact: true }).first().click();
+  await page.getByRole("button", { name: "Pessoas", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Base de talentos" })).toBeVisible();
   await expect(page.getByText("Hugo Silva")).toBeVisible();
   const sharedProfile = page.locator("article").filter({ hasText: "Hugo Silva" }).first();
@@ -372,7 +370,7 @@ test("Home da organização mostra suas oportunidades antes do composer", async 
   await expect(page.getByText(/oportunidades publicadas/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Publicar demanda de trabalho" })).toHaveCount(0);
   await page.getByRole("button", { name: /Publicar oportunidade/ }).click();
-  await expect(page.getByRole("heading", { name: "Publicar demanda de trabalho" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Publicar uma oportunidade" })).toBeVisible();
 });
 
 test("Ofertas e Demandas aparecem somente nos universos de mercado", async ({ page }) => {
