@@ -7,6 +7,7 @@ import { DemoHeader } from "@/components/DemoHeader";
 import { DemoNavigation, type DemoView } from "@/components/DemoNavigation";
 import { DiscoveryRow } from "@/components/DiscoveryRow";
 import { InterestSelector } from "@/components/InterestSelector";
+import { MarketKnowledgeTeaser } from "@/components/MarketKnowledgeTeaser";
 import { OpportunityComposer } from "@/components/OpportunityComposer";
 import { OpportunityFilters } from "@/components/OpportunityFilters";
 import { PersonalTerritoryPanel } from "@/components/PersonalTerritoryPanel";
@@ -22,7 +23,7 @@ import { demoDiscoveryItems, discoveryReasons, internalToDiscoveryItem, rankDisc
 import { formatWorkOpportunityCount } from "@/lib/ui-copy";
 
 type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; organizationKind?: OrganizationKind; operatingArea?: string; summary: string; capabilities: string; canSupplyPublic: boolean; location: { state: string; municipality: string; district: string } };
-type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; location: { municipality: string; district: string }; owner: { id: string; name: string }; ownerType: Profile["type"]; employmentType?: "CLT" | "INTERNSHIP"; eventDate?: string; requiredActivities?: string[]; schedule?: string; requirements?: string; desiredVolunteers?: number; institutionalGuidance?: string };
+type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; location: { municipality: string; district: string }; owner: { id: string; name: string }; ownerType: Profile["type"]; employmentType?: "CLT" | "INTERNSHIP"; compensation?: { min: number; max?: number; currency: "BRL"; period: "MONTHLY"; kind: "SALARY" | "INTERNSHIP_STIPEND" }; eventDate?: string; requiredActivities?: string[]; schedule?: string; requirements?: string; desiredVolunteers?: number; institutionalGuidance?: string };
 type Talent = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
 type PublicationMode = "offers" | "demands";
 function favoriteIds() {
@@ -251,7 +252,13 @@ export default function DemoPage() {
   const officialTypes = useMemo(() => Array.from(new Set(filterScopedItems.map((item) => item.officialType).filter(Boolean) as string[])).sort(), [filterScopedItems]);
   const allOpportunities = useMemo(() => Object.values(opportunities).flat(), [opportunities]);
   const ownedOpportunities = useMemo(() => selectedProfile ? allOpportunities.filter((opportunity) => opportunity.owner.id === selectedProfile.id) : [], [allOpportunities, selectedProfile]);
-  const ownedOpportunityPreview = useMemo(() => [...ownedOpportunities].sort((left, right) => Number(/-\d{10,}-/.test(right.id) || right.id.startsWith("local-")) - Number(/-\d{10,}-/.test(left.id) || left.id.startsWith("local-"))).slice(0, 3), [ownedOpportunities]);
+  const ownedOpportunityPreview = useMemo(() => [...ownedOpportunities].sort((left, right) => {
+    const isCreated = (id: string) => id.startsWith("local-") || /^(formal|service|volunteer)-\d{10,}-/.test(id);
+    const createdDifference = Number(isCreated(right.id)) - Number(isCreated(left.id));
+    if (createdDifference) return createdDifference;
+    const timestamp = (id: string) => Number(id.match(/(?:local|opportunity)-(\d+)/)?.[1] ?? 0);
+    return timestamp(right.id) - timestamp(left.id);
+  }).slice(0, 3), [ownedOpportunities]);
   const homeMatches = useMemo(() => rankDiscoveryItems(discoveryItems, { activities: savedActivities, workPreferences: savedWorkPreferences, municipality: selectedProfile?.location.municipality }).slice(0, 4), [discoveryItems, savedActivities, savedWorkPreferences, selectedProfile?.location.municipality]);
   const territoryItems = useMemo(() => discoveryItems.filter((item) => item.location.municipality === selectedProfile?.location.municipality), [discoveryItems, selectedProfile?.location.municipality]);
   const homeCounts = useMemo(() => ({
@@ -370,6 +377,7 @@ export default function DemoPage() {
           {personComposerOpen && <div id="person-offer" className="mt-8 scroll-mt-4"><OpportunityComposer key={selectedProfile.id} profile={selectedProfile} onCreated={addCreatedOpportunity} /></div>}
           <ServiceCallTeaser profile={selectedProfile} onOpen={() => goTo("today")} />
           {showPublicPanel && <PublicOpportunityPanel items={publicItems} onExplore={() => goToDiscovery("public_procurement")} profileLabel={selectedProfile.name} />}
+          <MarketKnowledgeTeaser audience="person" />
         </> : <>
           <section className="mt-7 grid gap-3 sm:grid-cols-3" aria-label="Ações da organização">{canPublishActions && <button type="button" className="quick-action quick-action-primary" onClick={openOrganizationComposer}><span><span className="quick-action-kicker">Principal</span><strong>{isPublicInstitution ? "Publicar ação voluntária" : "Publicar oportunidade"}</strong></span><ArrowRight size={18} /></button>}{canUseTalents && <button type="button" className="quick-action" onClick={() => goTo("talents")}><span><span className="quick-action-kicker">Pessoas</span><strong>Encontrar talentos</strong></span><ArrowRight size={18} /></button>}{canUseToday && <button type="button" className="quick-action" onClick={() => goTo("today")}><span><span className="quick-action-kicker">Agora</span><strong>Serviço para hoje</strong></span><ArrowRight size={18} /></button>}</section>
           <section className="panel mt-8 p-5 sm:p-6" aria-labelledby="organization-activity-title"><div className="flex items-start justify-between gap-4"><div><p className="eyebrow">Sua organização</p><h2 id="organization-activity-title" className="mt-2 text-xl font-bold text-navy">Minhas oportunidades</h2><p className="mt-2 text-sm leading-6 text-[#637688]">{ownedOpportunities.length === 1 ? "1 oportunidade publicada" : `${ownedOpportunities.length} oportunidades publicadas`}</p></div><span className="rounded-full bg-[#edf6fb] px-3 py-1.5 text-sm font-black text-blue">{ownedOpportunities.length}</span></div>{ownedOpportunities.length ? <div className="mt-4 divide-y divide-line">{ownedOpportunityPreview.map((opportunity) => <div key={opportunity.id} className="flex items-center justify-between gap-4 py-3"><span className="min-w-0"><strong className="block truncate text-sm text-navy">{opportunity.title}</strong><span className="text-xs text-[#718291]">{opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : opportunity.requiredActivities?.join(" · ") ?? opportunity.category}</span></span><span className="status status-success">Publicada</span></div>)}</div> : <p className="mt-4 text-sm text-[#637688]">Você ainda não publicou uma oportunidade.</p>}<button type="button" className="subtle-link mt-4" onClick={openOrganizationComposer}>{ownedOpportunities.length ? "Ver / gerenciar oportunidades" : "Publicar sua primeira oportunidade"}</button></section>
@@ -377,6 +385,7 @@ export default function DemoPage() {
           {canUseToday && <ServiceCallTeaser profile={selectedProfile} onOpen={() => goTo("today")} />}
           {canManageVolunteerActions && <VolunteerManagementPanel organizerId={selectedProfile.id} />}
           {showPublicPanel && <PublicOpportunityPanel items={publicItems} onExplore={() => goToDiscovery("public_procurement")} profileLabel={selectedProfile.name} />}
+          <MarketKnowledgeTeaser audience="organization" />
         </>}
       </section>}
 

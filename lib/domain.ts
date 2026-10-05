@@ -1,3 +1,5 @@
+import type { Compensation } from "@/lib/compensation";
+
 export type OpportunityKind = "formal" | "service" | "volunteer";
 export type DiscoveryKind = OpportunityKind | "course" | "public_exam" | "public_selection" | "external_job" | "public_procurement";
 export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "AUTHORIZED_PARTNER";
@@ -79,6 +81,7 @@ export type DiscoveryItem = {
   demo?: boolean;
   officialType?: string;
   salary?: string;
+  compensation?: Compensation;
   modality?: string;
   education?: string;
   duration?: string;

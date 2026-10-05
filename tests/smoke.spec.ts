@@ -1,6 +1,12 @@
+import { execFileSync } from "node:child_process";
 import { expect, test } from "@playwright/test";
+import path from "node:path";
 import { demoDiscoveryItems } from "../lib/discovery";
 import { formatWorkOpportunityCount } from "../lib/ui-copy";
+
+test.beforeAll(() => {
+  execFileSync(process.execPath, [path.resolve("prisma/seed.cjs")], { stdio: "ignore" });
+});
 
 test("percurso principal: perfil, descoberta, detalhe e interação", async ({ page }) => {
   test.setTimeout(60_000);

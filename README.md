@@ -14,6 +14,7 @@ OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em d
 - Hub de descoberta unificado em `Buscar`: relaciona trabalho, serviços, voluntariado, capacitação, concursos/processos seletivos, vagas externas e, quando permitido, oportunidades com o poder público, sem apagar a semântica de cada origem.
 - Proveniência visível em itens externos; `DEMO DATA` é identificado quando não há fonte legitimamente integrada.
 - Adapter server-side do PNCP com timeout, normalização, deduplicação conservadora, cache curto e fallback.
+- Superfície complementar `Mercado & Conhecimento` com remuneração anunciada estruturada, biblioteca de legislação oficial e artigos reais via OpenAlex.
 
 ## Arquitetura de informação
 
@@ -24,6 +25,11 @@ As superfícies têm responsabilidades diferentes e complementares:
 - Buscar: reúne a descoberta completa sem apagar a semântica de cada universo.
 - Preferências: guarda apenas o que a pessoa deseja acompanhar; a edição acontece progressivamente.
 - Perfil (`/profile`): descreve quem a pessoa é profissionalmente, incluindo formação, currículo, banco de talentos e território.
+- Mercado & Conhecimento (`/market`): reúne salários e mercado, legislação para trabalho e negócios e artigos & evidências, sem transformar esses conteúdos em oportunidades do `Buscar`.
+
+`Remuneração média anunciada` é calculada somente sobre vagas OFLIX com valores estruturados; faixas usam o ponto médio e publicações sem valor ficam fora do denominador. `Salário médio de admissão` é uma métrica distinta do mercado formal MTE/PDET. Nesta execução a fonte oficial foi investigada, mas não há integração segura de dados salariais oficiais: a interface informa a indisponibilidade e não inventa números.
+
+A biblioteca editorial guarda apenas fichas curtas e links oficiais. A área acadêmica usa metadata real do OpenAlex, com consulta live, cache curto e snapshot local determinístico; não armazena PDFs nem resumos gerados.
 
 Formação, currículo, residência e publicação no banco de talentos permanecem nas mesmas chaves de `localStorage`, mas foram retirados da visão inicial de Preferências. Nenhuma migração limpa ou renomeia dados existentes.
 

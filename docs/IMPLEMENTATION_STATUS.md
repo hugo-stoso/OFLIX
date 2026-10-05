@@ -53,6 +53,13 @@
 - Ranking de descoberta passou a dar pesos determinísticos para preferências de cursos, concursos, CLT, estágio, serviços autônomos e voluntariado.
 - Smoke tests Playwright ampliados para landing, busca da Home, contagem territorial derivada, atalhos do hub, Preferências progressivas e preservação do Banco de talentos.
 - Publicação pública em `https://oflix-six.vercel.app`: IMPLEMENTADO e validado após esta evolução; o build publicado exibe o hero transversal, os três pilares editoriais e a copy revisada da landing.
+- Superfície `Mercado & Conhecimento` em `/market`, acessível por teasers contextuais na Home, Observatório, detalhe de vaga e detalhe de voluntariado, sem sexto destino na navegação principal.
+- Remuneração estruturada de vagas formais com mínimo, máximo opcional, BRL, mensalidade e tipo `SALARY`/`INTERNSHIP_STIPEND`; seed DEMO com valor exato, faixa, vaga sem remuneração e bolsas.
+- Composer de organização com CLT/Estágio, não informar, valor exato ou faixa; validação positiva e persistência no SQLite via `POST /api/opportunities`.
+- Busca e detalhe exibem remuneração anunciada de forma discreta, distinguem salário de bolsa e oferecem comparação contextual com o mercado.
+- Média anunciada calculada por domínio usando ponto médio de faixas, exclusão de ausentes, município/categoria OFLIX, observações e metodologia explícita.
+- Biblioteca editorial de legislação com fichas curtas, links Planalto verificados em 05/10/2026, Reforma Tributária do Consumo composta por EC 132/2023, LC 214/2025 e LC 227/2026 e disclaimer informativo.
+- Adapter OpenAlex com normalização de ID, título, autores, ano, fonte, DOI, citações, acesso aberto, cache curto, ranking determinístico e snapshot local de metadata real; nenhum artigo fictício ou PDF é armazenado.
 
 ## VALIDAÇÃO NECESSÁRIA
 
@@ -65,6 +72,9 @@
 - Concursos, processos seletivos, cursos, vagas externas e contratações públicas estão implementados como DEMO DATA para provar a experiência; ainda não há fontes reais legítimas integradas para esses universos. A frente permanece PARCIAL/VALIDAÇÃO NECESSÁRIA.
 - O adapter PNCP está implementado e isolado, mas a disponibilidade e o comportamento da API em cada ambiente de deploy ainda precisam de validação operacional contínua; o fallback DEMO DATA é o estado determinístico padrão.
 - A deduplicação existe na normalização em memória por fonte/identificador e sinais conservadores; ainda não há agrupamento persistido nem histórico de decisões.
+
+- `Salário médio de admissão` MTE/PDET: PARCIAL. A fonte oficial foi investigada e a arquitetura/proveniência/estado indisponível estão implementados, mas nenhum valor oficial real foi integrado nesta execução por falta de canal público documentado confirmado.
+- Mapa salarial municipal do Observatório: PENDENTE. Não há dados oficiais municipais/ocupacionais integrados suficientes; o mapa operacional continua somente OFLIX.
 - Favoritos e alertas continuam focados nas entidades operacionais locais; a extensão para todos os `DiscoveryItem` é uma pendência de baixo risco.
 
 - Publicação e “Minhas oportunidades” funcionam como fluxo da demonstração; ainda não há persistência real de autoria, edição, moderação ou autorização.

@@ -26,6 +26,20 @@ O perfil demo carrega a capacidade `canSupplyPublic`. Organizações fornecedora
 
 Itens externos carregam `source`, `sourceLabel`, `sourceId`, `sourceUrl`, datas, prazo e status quando informados. A UI distingue `DEMO DATA`, `PNCP` e `OFLIX`; o CTA varia por universo (vaga original, curso ou edital/portal oficial), e nenhum item externo é contado como contratação ou emprego criado pelo OFLIX.
 
+## MERCADO & CONHECIMENTO
+
+`/market` é uma superfície complementar, fora dos cinco destinos principais. Ela possui três abas: `Salários e mercado`, `Legislação para trabalho e negócios` e `Artigos & evidências`. Entradas contextuais aparecem na Home de pessoa/organização, no Observatório, no detalhe de vaga e no detalhe de voluntariado.
+
+Remuneração de vaga é persistida em colunas numéricas de `formal_opportunities`: mínimo, máximo opcional, moeda, periodicidade e tipo (`SALARY` ou `INTERNSHIP_STIPEND`). A validação aceita apenas BRL mensal, valores positivos e máximo maior ou igual ao mínimo; campos vazios permanecem ausentes. O tipo de estágio é exibido como bolsa/remuneração de estágio, nunca como salário CLT.
+
+`lib/compensation.ts` calcula a referência de valor exato ou ponto médio de faixa. `lib/market.ts` calcula `Remuneração média anunciada`, filtrável por município e categoria OFLIX, excluindo vagas sem valor e sempre informando observações e metodologia. Isso não é `salário médio da profissão`.
+
+O indicador oficial `Salário médio de admissão` tem contrato próprio em `lib/official-market.ts`, com fonte MTE/PDET, mas permanece `unavailable` nesta execução: a página não exibe número inventado, CBO inferido ou mapa salarial. A investigação confirmou o PDET como origem oficial, mas não um endpoint público documentado seguro para integrar nesta rodada.
+
+A legislação é um catálogo editorial local (`lib/legislation.ts`) com referências curtas e links Planalto. Não são armazenados textos legais integrais nem pareceres. A Reforma Tributária do Consumo é um tópico composto por EC 132/2023, LC 214/2025 e LC 227/2026.
+
+`lib/connectors/openalex.ts` normaliza metadata real do OpenAlex, usa cache de dez minutos e tenta a consulta live. Em falha, responde com `lib/data/openalex-snapshot.ts`, um snapshot de IDs OpenAlex/DOI, autores, ano, fonte, citações e acesso aberto. O ranking é determinístico por tema, consulta, acesso aberto, atualidade e citações; citações não são tratadas como qualidade. Artigos não são `DiscoveryItem`.
+
 ## Persistência
 
 SQLite gerenciado pelo módulo nativo `node:sqlite` do Node.js. O schema SQL separa `profiles`, `locations`, `formal_opportunities`, `service_offers`, `volunteer_opportunities` e `interactions`. Em desenvolvimento, o banco fica em `prisma/dev.db` e é preparado com `npm run db:setup`. No Vercel, a demo usa um arquivo por deployment em `/tmp` e executa o seed DEMO na primeira inicialização da função, porque o filesystem do runtime não permite escrita no diretório do projeto. Essa persistência é efêmera e por instância; não representa uma camada de produção.
@@ -45,6 +59,7 @@ O ciclo de voluntariado usa `volunteer_participants`, com uma inscrição por pe
 - `POST /api/opportunities`: publica formal, demanda de serviço ou ação voluntária apenas quando a política do perfil permite.
 - `GET/POST/PATCH /api/volunteer-participation`: registra interesse de pessoa, lista inscrições da pessoa ou da organização dona e confirma/fecha participação com ownership server-side.
 - `GET /api/territory?profileId=...`: entrega a visão geral somente quando o perfil demo é `profile-analista`; para outros perfis exige atividades e retorna apenas o recorte de vagas/serviços compatíveis com esses interesses. Sem perfil, responde `401`.
+- `POST /api/opportunities` valida publicação e remuneração; `GET /api/market/announced` calcula a média anunciada por município/categoria; `GET /api/knowledge` consulta OpenAlex com fallback snapshot. Esses endpoints não alteram a descoberta unificada.
 
 ## Experiência de perfil
 
@@ -53,6 +68,8 @@ O perfil escolhido é salvo em `localStorage` com a chave `oflix-demo-profile`. 
 Favoritos, atividades de interesse, alertas de novas demandas autônomas e lembretes voluntários usam chaves separadas no `localStorage` para manter a demonstração navegável sem introduzir uma conta falsa. A conta usa a navegação contextual descrita em [Navegação contextual](#navegação-contextual) para levar a cada objetivo; a seleção de oferta/demanda fica dentro da própria busca. As preferências separam frentes de trabalho, atividades autônomas pesquisáveis e interesses de voluntariado pesquisáveis, todos com seleção múltipla. A descoberta tem dois caminhos: Ofertas de trabalho filtra publicações de pessoas; Demandas de trabalho filtra vagas e serviços publicados por contratantes. A gestão de uma organização mantém candidatos e suas próprias demandas em blocos separados, e não expõe publicações de outras organizações. O link do Google Agenda é um template de evento; não há OAuth nem escrita automática na agenda. A API também impede que o proprietário de uma oportunidade crie uma interação consigo mesmo.
 
 O banco de talentos é opt-in: pessoas escolhem múltiplos tipos de trabalho (CLT, estágio, serviços autônomos e/ou voluntariado), informam escolaridade, tipos de curso, curso, especialização/pós-graduação e o município/Estado onde moram, anexam um currículo original em PDF ou DOCX e ativam `oflix-talent-bank-visible-{profileId}`. O limite é 5 MB, o nome original é preservado e o conteúdo não é analisado nesta demo. O legado `curriculumConfirmed` continua legível, mas não é requisito; dados antigos do `localStorage` não são apagados. Formação, currículo, território e visibilidade são editados em grupos progressivos no Perfil; Preferências mostra apenas resumos e links para esse contexto. O resumo compartilhado fica no diretório local da demo; a base só é exibida para organizações permitidas, com busca por texto e filtros, sem excluir resultados por distância. O município e o Estado são preenchidos manualmente: a demo não pede permissão de localização, usa Google Maps ou coleta coordenadas. A conversa é iniciada pela instituição e oferece próximos passos sem transformar voluntariado em negociação de remuneração. Em uma futura implementação, esse diretório deve migrar para uma tabela compartilhada com consentimento, auditoria, armazenamento de arquivo e autorização real.
+
+Publicações formais feitas pelo `OpportunityComposer` passam pelo `POST /api/opportunities` e persistem no SQLite. A organização escolhe CLT ou Estágio e pode não informar remuneração, divulgar valor exato ou faixa. O detalhe e a busca usam a mesma estrutura numérica; publicações sem valor continuam funcionais e não entram na média.
 
 Chamadas de serviço seguem um fluxo separado do mural de oportunidades: pessoas e organizações podem abrir um pedido para uma atividade e uma janela do dia; autônomos consultam chamadas compatíveis, recebem polling periódico e podem ativar alertas do navegador. A chamada exibe apenas território aproximado; endereço exato e detalhes finais ficam para a conversa após a aceitação. A disputa do primeiro aceite é resolvida no servidor pela atualização condicional do SQLite, ainda com a limitação de persistência efêmera por instância no Vercel.
 

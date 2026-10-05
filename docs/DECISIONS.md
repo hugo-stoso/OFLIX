@@ -93,3 +93,19 @@ Oferta × demanda, lacunas territoriais e capacitação × demanda não são cal
 Oferta de trabalho pertence à pessoa que apresenta sua força de trabalho; demanda pertence à empresa, instituição ou outro contratante. O mural aplica essa distinção por perfil: contratantes nunca recebem as demandas de outras organizações. Pessoas podem compartilhar voluntariamente um perfil de talento para que organizações pesquisem ofertas de trabalho, inclusive CLT, estágio, serviços autônomos e voluntariado.
 
 O currículo é livre em PDF ou DOCX, até 5 MB, preservando o nome original e sem análise de conteúdo nesta demo. O legado `curriculumConfirmed` é apenas compatibilidade de leitura e não bloqueia o opt-in; não há limpeza das chaves antigas do `localStorage`. Produção deve validar tipo/tamanho no servidor e usar armazenamento de arquivos com consentimento e controles de acesso.
+
+## Mercado & Conhecimento
+
+`Buscar` continua reservado à descoberta de oportunidades. Salários, legislação e literatura científica pertencem a uma camada complementar denominada `Mercado & Conhecimento`, acessível por entradas contextuais sem transformar esses conteúdos em oportunidades.
+
+Remuneração média anunciada e salário médio de admissão são indicadores diferentes. A primeira é derivada de publicações OFLIX com remuneração estruturada; a segunda é uma estatística oficial do mercado formal segundo fonte e competência informadas. Nunca são combinadas em uma única média.
+
+A remuneração de vaga usa valores numéricos em BRL mensal, com mínimo, máximo opcional e tipo de remuneração. Faixas usam o ponto médio; ausentes são excluídas, nunca convertidas em zero. CLT é exibida como salário e estágio como bolsa/remuneração de estágio. O composer permite não informar remuneração sem bloquear a publicação.
+
+O MTE/PDET foi investigado como fonte oficial prioritária. A aplicação não presume endpoint privado nem faz scraping; como não foi confirmada uma API pública documentada segura nesta execução, a integração oficial permanece indisponível e a UI informa a limitação. Não há números fictícios com rótulo MTE, mapeamento CBO arbitrário ou mapa salarial sem dado municipal sustentado.
+
+## Legislação e artigos
+
+A legislação é editorial e curta: guarda referência, resumo, temas, públicos, data de verificação e link para Planalto. A OFLIX não copia leis integrais nem oferece parecer jurídico. A Reforma Tributária do Consumo é um tópico composto por EC 132/2023, LC 214/2025 e LC 227/2026.
+
+Artigos acadêmicos usam metadata de fonte legítima, inicialmente OpenAlex. A OFLIX recomenda por critérios determinísticos e transparentes — relevância temática, atualidade, citações e acesso aberto — sem inventar trabalhos, sem copiar conteúdo integral e sem usar número de citações como sinônimo de qualidade. A consulta live tem cache curto e fallback para snapshot real com IDs OpenAlex/DOI.

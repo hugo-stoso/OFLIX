@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, ExternalLink, MapPin } from "lucide-react";
+import { formatCompensation } from "@/lib/compensation";
 import { DISCOVERY_KIND_LABELS, type DiscoveryItem } from "@/lib/domain";
 
 function formatDate(value?: string) {
@@ -36,6 +37,7 @@ export function DiscoveryRow({ item, reason, returnTo }: { item: DiscoveryItem; 
     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#6b7d8d]">
       <span className="inline-flex items-center gap-1.5"><MapPin size={13} /> {item.location.municipality}{item.location.district ? ` · ${item.location.district}` : ""}</span>
       <span>{item.provider}</span>
+      {item.compensation && <span className="font-bold text-navy">{formatCompensation(item.compensation)}</span>}
       {item.deadline && <span>{item.deadline}</span>}
     </div>
     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#718291]">

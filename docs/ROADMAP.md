@@ -27,6 +27,8 @@
 - [x] Preferências reorganizadas por progressive disclosure; formação, currículo, banco de talentos e território movidos para o Perfil sem limpar `localStorage`.
 - [x] Perfil de pessoa organizado em resumo profissional, formação, currículo, banco de talentos e território.
 - [x] Observatório Territorial municipal com malha oficial IBGE 2024 de Sergipe, GeoJSON local simplificado, mapa SVG acessível, métricas operacionais, seleção municipal, ranking sincronizado, legenda e painel de município sem registros.
+- [x] Camada `Mercado & Conhecimento` com remuneração anunciada estruturada, legislação editorial oficial e artigos reais via OpenAlex com fallback metadata.
+- [x] Composer de vagas formais com CLT/Estágio, salário/bolsa, valor exato/faixa/não informar, validação e persistência demo.
 - [x] Agregação SQL municipal com oportunidades, CLT, estágio, serviços, voluntariado, interações e categorias; API geral permanece restrita ao perfil analista.
 - [x] Tipos de organização (`COMPANY`, `NONPROFIT`, `PUBLIC_INSTITUTION`) com políticas centrais e persona de instituição pública fictícia.
 - [x] Ações voluntárias para ONG/OSC e instituição pública, com requisitos, orientação, inscrições persistidas e ciclo `INTERESTED → CONFIRMED → PARTICIPATED` com ownership.
@@ -42,6 +44,7 @@
 - [ ] Armazenamento seguro e compartilhado de currículos, com validação server-side de PDF/DOCX e download autorizado.
 - [ ] Validar operação do provider PNCP em produção, observar limites e persistir cache/última atualização conforme a infraestrutura existente permitir.
 - [ ] Integrar cursos, concursos e vagas externas somente após confirmar API, feed, licença ou autorização oficial.
+- [ ] Integrar dados oficiais MTE/PDET com canal público documentado, competência, CBO, município e metodologia; sem inventar dados enquanto a fonte não estiver disponível.
 
 ## Pós-MVP
 
@@ -53,3 +56,5 @@
 - [ ] Integração com instituições parceiras após validação de governança.
 - [ ] Sinais externos autorizados no Observatório, separados da operação OFLIX e com linguagem de sinal de contratação pública.
 - [ ] Oferta × demanda, lacunas territoriais e capacitação × demanda após modelo de dados institucional e metodologia revisada.
+- [ ] Habilitar mapa salarial do Observatório apenas quando houver dados oficiais municipais por ocupação e uma seleção de CBO determinística.
+- [ ] Ampliar a curadoria acadêmica e revisar periodicamente o snapshot OpenAlex sem persistir textos integrais.

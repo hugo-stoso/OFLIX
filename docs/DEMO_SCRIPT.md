@@ -24,3 +24,12 @@
 3. Abrir **Preferências** e mostrar a visão curta: Trabalho, Desenvolvimento profissional, Áreas e atividades, Voluntariado, território e avisos. Abrir somente um grupo por vez; confirmar que formação e currículo não aparecem na visão inicial.
 4. Abrir **Perfil** e demonstrar Formação, Currículo, Banco de talentos e Território como seções progressivas. Anexar um PDF ou DOCX de até 5 MB e confirmar que o nome original permanece visível, sem modelo obrigatório.
 5. Com **Coletivo Horizonte**, mostrar uma Home própria com Publicar oportunidade, Encontrar talentos, Serviço para hoje e o bloco **Minhas oportunidades** antes do composer. Com **Instituto Ponte Aberta**, mostrar a publicação de uma ação voluntária e a gestão de pessoas. Com a **Secretaria Demo de Cidadania (fictícia)**, mostrar somente Ações e Voluntários, sem Serviço para hoje ou Talentos.
+
+## Roteiro Mercado & Conhecimento
+
+1. Na Home de pessoa ou organização, abrir o teaser **Mercado & Conhecimento**. Confirmar que a camada é complementar e que `Buscar` continua reservado às oportunidades.
+2. Em **Salários e mercado**, comparar `Remuneração média anunciada` de Aracaju com uma categoria OFLIX. Mostrar que valor exato entra pelo próprio valor, faixa usa ponto médio, publicação sem remuneração é excluída e o card informa o número de observações.
+3. Mostrar a caixa separada **Salário médio de admissão**. Nesta versão ela informa a indisponibilidade da integração MTE/PDET, exibe a fonte oficial investigada e não mostra número fictício nem infere CBO.
+4. Abrir uma vaga formal com remuneração e mostrar no detalhe **Remuneração anunciada**, a fonte OFLIX e o CTA **Comparar com o mercado**. Abrir uma vaga de estágio e confirmar o termo **Bolsa / remuneração de estágio**.
+5. Em **Legislação para trabalho e negócios**, abrir Lei do Estágio, Lei do Voluntariado, Lei de Licitações e Reforma Tributária do Consumo. Confirmar links Planalto, marcos separados e o aviso informativo.
+6. Em **Artigos & evidências**, trocar entre Mercado de trabalho, Gestão e Produtividade. Mostrar autor, periódico, ano, citações na base OpenAlex, acesso aberto e **Por que recomendamos**. Em indisponibilidade, o snapshot local de metadata real mantém a lista; nenhum PDF ou artigo fictício aparece.

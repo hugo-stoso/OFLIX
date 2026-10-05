@@ -6,6 +6,7 @@ import { DemoHeader } from "@/components/DemoHeader";
 import { OpportunityIcon } from "@/components/OpportunityIcon";
 import { VolunteerReminder } from "@/components/VolunteerReminder";
 import { VolunteerParticipation } from "@/components/VolunteerParticipation";
+import { formatCompensation } from "@/lib/compensation";
 import { opportunityMeta, type OpportunityKind } from "@/lib/domain";
 import { findOpportunity } from "@/lib/db";
 
@@ -47,7 +48,9 @@ export default async function OpportunityDetailPage({ params, searchParams }: Pr
               {kind === "volunteer" && record.requirements ? <div className="sm:col-span-2"><dt className="eyebrow">Requisitos práticos</dt><dd className="mt-2 leading-6 text-[#637688]">{record.requirements}</dd></div> : null}
               {kind === "volunteer" && record.institutionalGuidance ? <div className="sm:col-span-2"><dt className="eyebrow">Orientação da equipe</dt><dd className="mt-2 leading-6 text-[#637688]">{record.institutionalGuidance}</dd></div> : null}
             </dl>
+            {kind === "formal" && <section className="mt-8 rounded-2xl border border-[#c9dce8] bg-[#f5fafc] p-5 sm:p-6" aria-labelledby="announced-compensation-title"><p className="eyebrow">Remuneração anunciada</p><h2 id="announced-compensation-title" className="mt-2 text-2xl font-black tracking-[-.03em] text-navy">{formatCompensation(record.compensation)}</h2><p className="mt-2 text-sm leading-6 text-[#637688]">Fonte: OFLIX · publicação da demonstração. {record.compensation?.kind === "INTERNSHIP_STIPEND" ? "Esta publicação usa o termo bolsa / remuneração de estágio." : "Este valor é o que foi divulgado nesta vaga, não uma média do mercado."}</p><Link href={`/market?tab=salary&profession=${encodeURIComponent(record.category)}&municipality=${encodeURIComponent(record.location.municipality)}`} className="button-secondary mt-4">Comparar com o mercado</Link></section>}
             {kind === "volunteer" && record.schedule && <VolunteerReminder opportunityId={record.id} title={record.title} description={record.description} schedule={record.schedule} eventDate={record.eventDate} location={`${record.location.municipality} · ${record.location.district}`} />}
+            {kind === "volunteer" && <Link href="/market?tab=legislation&context=voluntariado" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline">Conheça a Lei do Voluntariado <ArrowLeft className="rotate-180" size={15} /></Link>}
           </article>
           <aside className="panel h-fit p-6 sm:p-7 lg:sticky lg:top-24">
             <p className="eyebrow">Próximo passo</p>

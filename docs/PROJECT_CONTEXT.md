@@ -40,9 +40,13 @@ O ciclo demonstrado é: atividade na plataforma → conexão entre oferta e dema
 
 Landing, perfis fictícios persistidos durante a navegação, hub de descoberta unificado em `Buscar`, detalhe contextual, `Interaction` funcional, preferências ampliadas e Observatório Territorial municipal. A projeção de descoberta reúne os universos permitidos para cada perfil; as entidades e regras semânticas continuam separadas na origem. O hub público usa DEMO DATA por padrão e disponibiliza um adapter server-side contextual para consulta pública do PNCP. O mapa principal não mistura sinais externos, cursos, concursos ou vagas externas nas métricas operacionais.
 
+`/market` é uma camada complementar acessada por teasers contextuais na Home, link de comparação no detalhe de vaga, link de legislação no detalhe de voluntariado e atalho do Observatório. Não é um sexto destino da navegação principal e não adiciona salários, leis ou artigos ao `DiscoveryItem`.
+
 ## Fontes e proveniência
 
 Itens originados na OFLIX continuam separados de sinais externos. Cada item externo expõe fonte, identificador quando disponível, URL canônica, datas e status. A demo não trata dados fictícios como publicação real: cursos, concursos, processos seletivos, vagas externas e contratações de exemplo são rotulados `DEMO DATA`. O PNCP é o único provider externo com adapter preparado nesta execução; ComprasNet.SE, vagas, cursos e concursos reais aguardam canal autorizado.
+
+A fonte oficial salarial investigada é o PDET/MTE, com consultas CAGED/Perfil do Município e microdados oficiais. Como não foi confirmada API pública documentada apropriada para consumo direto nesta execução, a aplicação mantém um estado indisponível com proveniência e sem valores MTE fictícios. OpenAlex possui adapter live e snapshot local de metadata real.
 
 ## Escopo futuro
 
@@ -50,7 +54,7 @@ Autenticação real, publicação e gestão de oportunidades, ingestão real de 
 
 ## Não objetivos desta fase
 
-Não são objetivos: autenticação de produção, pagamentos, ingestão de fontes externas não autorizadas, geocodificação, backend separado, microsserviços, dados reais de pessoas, GIS complexo ou uma série histórica definitiva. O mapa é permitido apenas no Observatório institucional e não representa localização individual.
+Não são objetivos: autenticação de produção, pagamentos, ingestão de fontes externas não autorizadas, geocodificação, backend separado, microsserviços, dados reais de pessoas, GIS complexo ou uma série histórica definitiva. O mapa é permitido apenas no Observatório institucional e não representa localização individual. Também não são objetivos nesta rodada inferir CBO a partir de títulos genéricos, construir mapa salarial sem dados municipais oficiais, ou tratar artigos, leis e salários como oportunidades.
 
 ## Questões abertas
 

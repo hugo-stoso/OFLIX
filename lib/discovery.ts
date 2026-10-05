@@ -1,3 +1,4 @@
+import type { Compensation } from "@/lib/compensation";
 import type { DiscoveryItem, DiscoveryKind, DiscoveryLocation, DiscoverySource } from "@/lib/domain";
 
 const demoLocation = (municipality: string): DiscoveryLocation => ({ state: "SE", municipality });
@@ -117,7 +118,7 @@ export const demoDiscoveryItems: DiscoveryItem[] = [
   },
 ];
 
-export function internalToDiscoveryItem(opportunity: { id: string; title: string; description: string; category: string; kind: "formal" | "service" | "volunteer"; location: { state?: string; municipality: string; district?: string }; owner: { name: string }; employmentType?: "CLT" | "INTERNSHIP"; requiredActivities?: string[] }): DiscoveryItem {
+export function internalToDiscoveryItem(opportunity: { id: string; title: string; description: string; category: string; kind: "formal" | "service" | "volunteer"; location: { state?: string; municipality: string; district?: string }; owner: { name: string }; employmentType?: "CLT" | "INTERNSHIP"; compensation?: Compensation; requiredActivities?: string[] }): DiscoveryItem {
   const kind: DiscoveryKind = opportunity.kind;
   return {
     id: opportunity.id,
@@ -131,6 +132,7 @@ export function internalToDiscoveryItem(opportunity: { id: string; title: string
     sourceLabel: "OFLIX · publicação da demonstração",
     status: "Disponível",
     modality: opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : undefined,
+    compensation: opportunity.compensation,
     tags: [opportunity.category, ...(opportunity.requiredActivities ?? [])],
   };
 }
