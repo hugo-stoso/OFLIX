@@ -17,7 +17,7 @@ function saveServiceAlert(opportunity: Opportunity, activities: string[]) {
   } catch { /* O fluxo segue disponível sem alertas locais. */ }
 }
 
-export function OpportunityComposer({ profile, onCreated }: { profile: Profile; onCreated: (opportunity: Opportunity) => void }) {
+export function OpportunityComposer({ profile, initialKind, onCreated }: { profile: Profile; initialKind?: OpportunityKind; onCreated: (opportunity: Opportunity) => void }) {
   const workerMode = profile.type === "PERSON";
   const availableKinds = useMemo<OpportunityKind[]>(() => workerMode ? ["service"] : [
     ...(canPublishFormal(profile) ? ["formal" as const] : []),
@@ -25,7 +25,7 @@ export function OpportunityComposer({ profile, onCreated }: { profile: Profile; 
     ...(canPublishVolunteer(profile) ? ["volunteer" as const] : []),
   ], [profile, workerMode]);
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<OpportunityKind>(availableKinds[0] ?? "volunteer");
+  const [kind, setKind] = useState<OpportunityKind>(initialKind && availableKinds.includes(initialKind) ? initialKind : availableKinds[0] ?? "volunteer");
   const [employmentType, setEmploymentType] = useState<"CLT" | "INTERNSHIP">("CLT");
   const [compensationMode, setCompensationMode] = useState<"none" | "exact" | "range">("none");
   const [compensationMin, setCompensationMin] = useState("");

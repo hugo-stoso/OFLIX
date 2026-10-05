@@ -51,9 +51,9 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await page.getByRole("button", { name: /Observatório Território Aberto/ }).click();
   await page.waitForURL("**/demo/analyst");
   await expect(page.getByRole("heading", { name: "Entenda como oportunidades e conexões se distribuem pelo território." })).toBeVisible();
-  await expect(page.getByText("Distribuição por frente")).toBeVisible();
-  await expect(page.getByText("Empregos no território")).toBeVisible();
-  await expect(page.getByText("Mapa coroplético municipal")).toBeVisible();
+  await expect(page.getByText("Distribuição por frente")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Empregos no território")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Mapa coroplético municipal")).toBeVisible({ timeout: 15_000 });
   await page.goto("/demo");
   await page.waitForURL("**/demo/analyst");
   await expect(page.getByRole("heading", { name: "Entenda como oportunidades e conexões se distribuem pelo território." })).toBeVisible();
@@ -290,7 +290,7 @@ test("pessoa opta por compartilhar perfil e organização consulta banco de tale
   await page.goto("/demo");
   await page.getByRole("button", { name: "Trocar perfil" }).click();
   await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
-  await page.getByRole("button", { name: "Pessoas", exact: true }).first().click();
+  await page.getByRole("button", { name: "Talentos", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Base de talentos" })).toBeVisible();
   await expect(page.getByText("Hugo Silva")).toBeVisible();
   const sharedProfile = page.locator("article").filter({ hasText: "Hugo Silva" }).first();

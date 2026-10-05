@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Compass, Home, Search, UserRound, UsersRound, Wrench } from "lucide-react";
 import type { OrganizationKind } from "@/lib/domain";
 
-export type DemoView = "home" | "discover" | "today" | "preferences" | "talents";
+export type DemoView = "home" | "discover" | "today" | "preferences" | "talents" | "volunteers";
 type ProfileType = "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST";
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
   onNavigate: (view: DemoView) => void;
 };
 
-const icons = { home: Home, discover: Search, today: Wrench, preferences: Compass, talents: UsersRound, profile: UserRound };
+const icons = { home: Home, discover: Search, today: Wrench, preferences: Compass, talents: UsersRound, volunteers: UsersRound, profile: UserRound };
 
 export function DemoNavigation({ profileType, organizationKind, activeView, onNavigate }: Props) {
   const isPublicInstitution = organizationKind === "PUBLIC_INSTITUTION";
@@ -23,7 +23,7 @@ export function DemoNavigation({ profileType, organizationKind, activeView, onNa
     ? [
         { key: "home", label: "Início" },
         { key: "discover", label: isPublicInstitution ? "Ações" : "Buscar" },
-        { key: "talents", label: isPublicInstitution ? "Voluntários" : "Pessoas" },
+        { key: isPublicInstitution ? "volunteers" : "talents", label: isPublicInstitution ? "Voluntários" : organizationKind === "COMPANY" ? "Talentos" : "Pessoas" },
         ...(!isPublicInstitution ? [{ key: "today" as DemoView, label: "Serviço hoje" }] : []),
         { key: "profile", label: "Perfil" },
       ]

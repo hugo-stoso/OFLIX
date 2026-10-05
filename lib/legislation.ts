@@ -37,5 +37,6 @@ export const legislationCards: LegislationCard[] = [
 export function contextualLegislation(context?: string) {
   if (!context) return legislationCards;
   const normalized = context.toLocaleLowerCase("pt-BR");
-  return legislationCards.filter((card) => card.relatedContexts.some((item) => normalized.includes(item) || item.includes(normalized)));
+  const aliases = normalized.includes("volunt") ? ["voluntariado"] : normalized.includes("estág") || normalized.includes("estag") ? ["estágio"] : normalized.includes("licita") || normalized.includes("contrata") || normalized.includes("públic") || normalized.includes("public") ? ["contratação pública"] : [normalized];
+  return legislationCards.filter((card) => card.relatedContexts.some((item) => aliases.some((alias) => alias.includes(item) || item.includes(alias))));
 }

@@ -24,7 +24,7 @@ As três frentes de trabalho normalmente ficam dispersas. O OFLIX propõe um pon
 
 ## Arquitetura de informação
 
-As superfícies da demo respondem a perguntas diferentes: a landing explica o hub; Início resume o que existe para o perfil agora; Buscar revela a descoberta completa; Preferências registra a intenção de acompanhamento; Perfil concentra a identidade profissional. A organização também mantém uma experiência própria de publicação, talentos e serviço para hoje, sem receber os formulários de pessoa.
+As superfícies da demo respondem a perguntas diferentes: a landing explica o hub; Início resume o que existe para o perfil agora; Buscar revela a descoberta completa; Preferências registra a intenção de acompanhamento; Perfil concentra a identidade profissional. A organização também mantém uma experiência própria de publicação e Serviço para hoje. Empresa usa Talentos; ONG/OSC usa Pessoas com Voluntários e Talentos separados; instituição pública usa Voluntários para gestão de participantes, sem receber o diretório privado de talentos.
 
 Dados que descrevem quem a pessoa é — formação, currículo, residência e publicação no banco de talentos — pertencem ao Perfil. Preferências guardam apenas aquilo que a pessoa deseja acompanhar ou receber na descoberta.
 

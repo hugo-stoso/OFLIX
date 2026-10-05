@@ -59,10 +59,20 @@ export function normalizeOpenAlexWork(record: Record<string, unknown>, query = "
   return { openAlexId: id, title, authors: authorNames(record), year: Number(record.publication_year ?? 0), source: sourceName(record), ...(typeof record.doi === "string" && record.doi ? { doi: record.doi } : {}), citedByCount: Number(record.cited_by_count ?? 0), openAccess, ...(url ? { url } : {}), topics: topicFor(query, record), reason: openAccess ? "Disponível em acesso aberto segundo a metadata do OpenAlex." : "Relacionado ao tema pesquisado na base OpenAlex." };
 }
 
+function searchTokens(value: string) {
+  return value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/\s+/).filter((token) => token.length > 2);
+}
+
 function snapshotFor(topic?: string, query?: string) {
-  const normalized = `${topic ?? ""} ${query ?? ""}`.toLocaleLowerCase("pt-BR");
-  const matching = openAlexSnapshot.filter((article) => !normalized || article.topics.some((item) => normalized.includes(item.toLocaleLowerCase("pt-BR")) || item.toLocaleLowerCase("pt-BR").includes(normalized)) || article.title.toLocaleLowerCase("pt-BR").includes(normalized));
-  return matching.length ? matching : openAlexSnapshot;
+  const normalizedTopic = topic?.toLocaleLowerCase("pt-BR");
+  const queryTokens = searchTokens(query ?? "");
+  const matching = openAlexSnapshot.filter((article) => {
+    const articleText = searchTokens(`${article.title} ${article.topics.join(" ")}`).join(" ");
+    const matchesQuery = queryTokens.length === 0 || queryTokens.some((token) => articleText.includes(token));
+    const matchesTopic = queryTokens.length > 0 || !normalizedTopic || article.topics.some((item) => item.toLocaleLowerCase("pt-BR") === normalizedTopic);
+    return matchesQuery && matchesTopic;
+  });
+  return queryTokens.length > 0 ? matching : matching.length ? matching : openAlexSnapshot;
 }
 
 export function rankAcademicArticles(items: AcademicArticle[], topic?: string, query?: string) {

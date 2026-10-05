@@ -27,6 +27,8 @@ As superfícies têm responsabilidades diferentes e complementares:
 - Perfil (`/profile`): descreve quem a pessoa é profissionalmente, incluindo formação, currículo, banco de talentos e território.
 - Mercado & Conhecimento (`/market`): reúne salários e mercado, legislação para trabalho e negócios e artigos & evidências, sem transformar esses conteúdos em oportunidades do `Buscar`.
 
+Na navegação organizacional, empresas recebem `Talentos`, ONG/OSC recebe `Pessoas` com abas `Voluntários` e `Talentos`, e instituição pública recebe `Voluntários` para gestão de participantes. A Home da ONG/OSC prioriza mobilização e publicação de ações voluntárias, sem retirar CLT, estágio ou serviços profissionais do composer.
+
 `Remuneração média anunciada` é calculada somente sobre vagas OFLIX com valores estruturados; faixas usam o ponto médio e publicações sem valor ficam fora do denominador. `Salário médio de admissão` é uma métrica distinta do mercado formal MTE/PDET. Nesta execução a fonte oficial foi investigada, mas não há integração segura de dados salariais oficiais: a interface informa a indisponibilidade e não inventa números.
 
 A biblioteca editorial guarda apenas fichas curtas e links oficiais. A área acadêmica usa metadata real do OpenAlex, com consulta live, cache curto e snapshot local determinístico; não armazena PDFs nem resumos gerados.

@@ -48,6 +48,32 @@ test("seletor diferencia instituição pública e não oferece navegação de se
   await expect(page.getByRole("button", { name: "Encontrar talentos", exact: true })).toHaveCount(0);
 });
 
+test("instituição pública abre a gestão de voluntários sem banco de talentos", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Secretaria Demo de Cidadania/ }).click();
+  await page.getByRole("button", { name: "Voluntários", exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: "Acompanhe as pessoas das suas ações." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Base de talentos" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Encontrar talentos", exact: true })).toHaveCount(0);
+});
+
+test("ONG diferencia voluntários e talentos e prioriza a ação voluntária", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Instituto Ponte Aberta/ }).click();
+  await expect(page.getByText("Mobilize pessoas para sua causa e acompanhe suas ações no território.")).toBeVisible();
+  await page.getByRole("button", { name: "Publicar ação voluntária", exact: true }).first().click();
+  await page.getByRole("button", { name: "Nova ação voluntária" }).click();
+  await expect(page.getByLabel("Frente", { exact: true })).toHaveValue("volunteer");
+  await page.getByRole("button", { name: "Pessoas", exact: true }).first().click();
+  await expect(page.getByRole("tab", { name: "Voluntários" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Talentos" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Gestão de voluntariado" })).toBeVisible();
+  await page.getByRole("tab", { name: "Talentos" }).click();
+  await expect(page.getByRole("heading", { name: "Base de talentos" })).toBeVisible();
+});
+
 test("currículo livre aceita PDF e preserva o nome sem modelo obrigatório", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });

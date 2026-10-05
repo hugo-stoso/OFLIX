@@ -66,7 +66,7 @@ O domínio técnico `oflix-six.vercel.app` é mantido como implantação atual, 
 
 ## Navegação por objetivo
 
-Em vez de expor listas completas de todos os módulos na home, a demo usa uma home curta e uma navegação contextual por persona. Pessoas recebem Início, Buscar, Serviço hoje, Preferências e Perfil; organizações recebem Início, Buscar, Serviço hoje, Talentos e Perfil. A navegação é uma barra curta no desktop e uma bottom navigation persistente no mobile. `Buscar` reúne os universos permitidos sem misturar suas entidades; publicação, preferências, chamados e banco de talentos continuam sendo os fluxos existentes, apresentados em destinos focados. O analista permanece separado na inteligência territorial para não misturar leitura institucional com operação.
+Em vez de expor listas completas de todos os módulos na home, a demo usa uma home curta e uma navegação contextual por persona. Pessoas recebem Início, Buscar, Serviço hoje, Preferências e Perfil; empresas recebem Talentos; ONG/OSC recebe Pessoas; instituição pública recebe Voluntários. A navegação é uma barra curta no desktop e uma bottom navigation persistente no mobile. `Buscar` reúne os universos permitidos sem misturar suas entidades; publicação, preferências, chamados e banco de talentos continuam sendo os fluxos existentes, apresentados em destinos focados. O analista permanece separado na inteligência territorial para não misturar leitura institucional com operação.
 
 O seletor de Ofertas e Demandas é contextual: aparece apenas em `Empregos` e `Serviços`, onde existe uma distinção operacional entre quem apresenta trabalho e quem contrata. Em `Todos`, cursos, concursos, voluntariado e oportunidades públicas, a ausência do seletor evita sugerir uma semântica de mercado que não se aplica; o estado interno de publicação não filtra esses universos.
 
@@ -84,6 +84,8 @@ CLT e Estágio são atributos explícitos de oportunidades formais. Trabalhadore
 
 O fluxo de publicação, a base de talentos e o chat foram adicionados como experiências demonstráveis, mas continuam sem autorização, persistência compartilhada, moderação ou entrega de mensagens. O link do Google Agenda usa um template confirmável pelo usuário, sem OAuth. A UI apresenta organizações na descoberta, mas separa gestão, candidatos e oportunidades ofertadas em blocos próprios; a projeção de `Buscar` continua unificada.
 
+A navegação organizacional é contextual: `COMPANY` recebe `Talentos`; `NONPROFIT` recebe `Pessoas`, com abas separadas de `Voluntários` e `Talentos`; `PUBLIC_INSTITUTION` recebe `Voluntários`, que abre exclusivamente a gestão de participantes. Instituição pública nunca recebe o diretório privado de talentos.
+
 ## Limites metodológicos do Observatório
 
 Oferta × demanda, lacunas territoriais e capacitação × demanda não são calculadas nesta versão: o modelo persistido atual não sustenta uma relação institucional confiável sem misturar estado local do navegador ou DEMO DATA externo. Esses itens permanecem `PENDENTE`/`FUTURO`. O Observatório entrega contagens de oportunidades e interações, não empregabilidade, desenvolvimento econômico, PIB, desemprego ou escassez de mão de obra.
@@ -92,7 +94,9 @@ Oferta × demanda, lacunas territoriais e capacitação × demanda não são cal
 
 Oferta de trabalho pertence à pessoa que apresenta sua força de trabalho; demanda pertence à empresa, instituição ou outro contratante. O mural aplica essa distinção por perfil: contratantes nunca recebem as demandas de outras organizações. Pessoas podem compartilhar voluntariamente um perfil de talento para que organizações pesquisem ofertas de trabalho, inclusive CLT, estágio, serviços autônomos e voluntariado.
 
-O currículo é livre em PDF ou DOCX, até 5 MB, preservando o nome original e sem análise de conteúdo nesta demo. O legado `curriculumConfirmed` é apenas compatibilidade de leitura e não bloqueia o opt-in; não há limpeza das chaves antigas do `localStorage`. Produção deve validar tipo/tamanho no servidor e usar armazenamento de arquivos com consentimento e controles de acesso.
+O currículo é livre em PDF ou DOCX, até 5 MB, preservando o nome original e sem análise de conteúdo nesta demo. O modelo OFLIX está `DESCARTADO`; não existe download ou preenchimento de template obrigatório. O legado `curriculumConfirmed` é apenas compatibilidade de leitura e não bloqueia o opt-in; não há limpeza das chaves antigas do `localStorage`. Produção deve validar tipo/tamanho no servidor e usar armazenamento de arquivos com consentimento e controles de acesso.
+
+Na comparação de mercado, `category` representa a categoria OFLIX da vaga e filtra a média anunciada; `profession` fica reservado à futura consulta oficial por ocupação/CBO. O município sempre acompanha o recorte quando parte do detalhe da vaga. Links contextuais apontam voluntariado para a Lei nº 9.608/1998, estágio para a Lei nº 11.788/2008 e contratação pública para a Lei nº 14.133/2021.
 
 ## Mercado & Conhecimento
 

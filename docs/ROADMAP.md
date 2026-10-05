@@ -33,6 +33,8 @@
 - [x] Tipos de organização (`COMPANY`, `NONPROFIT`, `PUBLIC_INSTITUTION`) com políticas centrais e persona de instituição pública fictícia.
 - [x] Ações voluntárias para ONG/OSC e instituição pública, com requisitos, orientação, inscrições persistidas e ciclo `INTERESTED → CONFIRMED → PARTICIPATED` com ownership.
 - [x] Currículo livre em PDF/DOCX até 5 MB, preservando nome original e sem modelo obrigatório.
+- [x] Navegação organizacional contextual: empresa em Talentos, ONG/OSC em Pessoas com Voluntários + Talentos e instituição pública em Voluntários para gestão de participantes.
+- [x] Mercado & Conhecimento com comparação por município + categoria OFLIX, legislação contextual e busca livre de artigos por macrotema + `q`.
 
 ## MVP
 
