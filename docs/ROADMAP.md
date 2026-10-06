@@ -35,6 +35,7 @@
 - [x] Currículo livre em PDF/DOCX até 5 MB, preservando nome original e sem modelo obrigatório.
 - [x] Navegação organizacional contextual: empresa em Talentos, ONG/OSC em Pessoas com Voluntários + Talentos e instituição pública em Voluntários para gestão de participantes.
 - [x] Mercado & Conhecimento com comparação por município + categoria OFLIX, legislação contextual e busca livre de artigos por macrotema + `q`.
+- [x] Mercado & Conhecimento reposicionado cedo nas Homes, com copy por persona, três atalhos diretos e acesso persistente no menu sem sexto destino principal.
 
 ## MVP
 

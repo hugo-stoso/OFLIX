@@ -58,7 +58,7 @@ A complexidade crescente do hub não deve ser transferida para um formulário ú
 
 Dados que descrevem quem a pessoa é — formação, currículo, residência e publicação no banco de talentos — pertencem ao Perfil. Preferências guardam apenas aquilo que a pessoa deseja acompanhar ou receber na descoberta. A extração preserva as chaves locais existentes (`oflix-talent-bank-profiles`, `oflix-residence-*`, `oflix-talent-bank-visible-*`, preferências e currículo) e não limpa nem renomeia dados antigos.
 
-A Home de pessoa prioriza busca, território, atalhos e recomendações curtas. A Home de organização não copia a experiência de pessoa e mantém publicação, talentos e Serviço para hoje como ações próprias. Os números territoriais são derivados dos itens visíveis da demonstração e são acompanhados da indicação `Dados da demonstração`; não há KPI hardcoded.
+A Home de pessoa prioriza busca, Mercado & Conhecimento, território, atalhos e recomendações curtas. A Home de organização não copia a experiência de pessoa e mantém publicação, Mercado & Conhecimento, talentos e Serviço para hoje como ações próprias. Os números territoriais são derivados dos itens visíveis da demonstração e são acompanhados da indicação `Dados da demonstração`; não há KPI hardcoded.
 
 ## Descoberta da marca
 
@@ -101,6 +101,8 @@ Na comparação de mercado, `category` representa a categoria OFLIX da vaga e fi
 ## Mercado & Conhecimento
 
 `Buscar` continua reservado à descoberta de oportunidades. Salários, legislação e literatura científica pertencem a uma camada complementar denominada `Mercado & Conhecimento`, acessível por entradas contextuais sem transformar esses conteúdos em oportunidades.
+
+Mercado & Conhecimento é uma capacidade transversal importante da OFLIX e deve aparecer cedo na Home, sem ocupar um sexto destino na navegação principal. A Home apresenta primeiro a ação principal do perfil e, logo depois, Mercado & Conhecimento como camada de apoio à decisão; a área também possui acesso persistente pelo menu da persona. O componente mantém uma configuração semântica única para pessoa, empresa, ONG/OSC e instituição pública e oferece links diretos para suas três abas.
 
 Remuneração média anunciada e salário médio de admissão são indicadores diferentes. A primeira é derivada de publicações OFLIX com remuneração estruturada; a segunda é uma estatística oficial do mercado formal segundo fonte e competência informadas. Nunca são combinadas em uma única média.
 

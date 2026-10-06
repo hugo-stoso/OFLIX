@@ -29,6 +29,8 @@ As superfícies têm responsabilidades diferentes e complementares:
 
 Na navegação organizacional, empresas recebem `Talentos`, ONG/OSC recebe `Pessoas` com abas `Voluntários` e `Talentos`, e instituição pública recebe `Voluntários` para gestão de participantes. A Home da ONG/OSC prioriza mobilização e publicação de ações voluntárias, sem retirar CLT, estágio ou serviços profissionais do composer.
 
+`Mercado & Conhecimento` aparece cedo na Home: logo após a busca principal de pessoas e logo após as ações principais de organizações. A seção mantém três atalhos diretos para salários e mercado, legislação e artigos, além de uma entrada persistente no menu da persona, sem criar um sexto destino na navegação principal.
+
 `Remuneração média anunciada` é calculada somente sobre vagas OFLIX com valores estruturados; faixas usam o ponto médio e publicações sem valor ficam fora do denominador. `Salário médio de admissão` é uma métrica distinta do mercado formal MTE/PDET. Nesta execução a fonte oficial foi investigada, mas não há integração segura de dados salariais oficiais: a interface informa a indisponibilidade e não inventa números.
 
 A biblioteca editorial guarda apenas fichas curtas e links oficiais. A área acadêmica usa metadata real do OpenAlex, com consulta live, cache curto e snapshot local determinístico; não armazena PDFs nem resumos gerados.

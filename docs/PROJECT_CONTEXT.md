@@ -40,7 +40,7 @@ O ciclo demonstrado é: atividade na plataforma → conexão entre oferta e dema
 
 Landing, perfis fictícios persistidos durante a navegação, hub de descoberta unificado em `Buscar`, detalhe contextual, `Interaction` funcional, preferências ampliadas e Observatório Territorial municipal. A projeção de descoberta reúne os universos permitidos para cada perfil; as entidades e regras semânticas continuam separadas na origem. O hub público usa DEMO DATA por padrão e disponibiliza um adapter server-side contextual para consulta pública do PNCP. O mapa principal não mistura sinais externos, cursos, concursos ou vagas externas nas métricas operacionais.
 
-`/market` é uma camada complementar acessada por teasers contextuais na Home, link de comparação no detalhe de vaga, link de legislação no detalhe de voluntariado e atalho do Observatório. Não é um sexto destino da navegação principal e não adiciona salários, leis ou artigos ao `DiscoveryItem`.
+`/market` é uma camada complementar acessada cedo na Home: vem depois da busca principal de pessoas e depois das ações principais de organizações. Ela oferece três atalhos diretos para salários e mercado, legislação e artigos, além do link de comparação no detalhe de vaga, link de legislação no detalhe de voluntariado, atalho do Observatório e entrada persistente no menu da persona. Não é um sexto destino da navegação principal e não adiciona salários, leis ou artigos ao `DiscoveryItem`.
 
 ## Fontes e proveniência
 

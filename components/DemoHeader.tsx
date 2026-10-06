@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LogOut, MapPin, Settings, UserRound } from "lucide-react";
+import { BookOpen, ChevronDown, LogOut, MapPin, Settings, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Brand } from "@/components/Brand";
 
@@ -63,6 +63,7 @@ export function DemoHeader() {
                 <div className="border-b border-line px-3 pb-3 pt-2"><p className="text-xs font-bold uppercase tracking-[.1em] text-blue">Perfil de demonstração</p><p className="mt-1 truncate text-sm font-bold text-navy">{profile.name}</p><p className="mt-1 text-xs text-[#718291]">{profile.location.municipality} · {profile.location.district}</p></div>
                 <div className="pt-2">
                   <Link href="/profile" role="menuitem" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-navy hover:bg-[#f2f7fa]" onClick={() => setMenuOpen(false)}><UserRound size={16} className="text-blue" /> Meu perfil</Link>
+                  <Link href="/market" role="menuitem" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-navy hover:bg-[#f2f7fa]" onClick={() => setMenuOpen(false)}><BookOpen size={16} className="text-blue" /> Mercado &amp; Conhecimento</Link>
                   <Link href="/settings" role="menuitem" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-navy hover:bg-[#f2f7fa]" onClick={() => setMenuOpen(false)}><Settings size={16} className="text-blue" /> Configurações</Link>
                   <button type="button" role="menuitem" className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[#a34f35] hover:bg-[#fff5f1]" onClick={signOut}><LogOut size={16} /> Sair</button>
                 </div>

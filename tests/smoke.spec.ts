@@ -186,6 +186,12 @@ test("menu da conta abre perfil, configurações e saída", async ({ page }) => 
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Abrir menu de Hugo Silva" }).click();
   await expect(page.getByRole("menu", { name: "Menu da conta" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Mercado & Conhecimento" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "Mercado & Conhecimento" }).click();
+  await page.waitForURL("**/market");
+  await expect(page.getByRole("heading", { name: "Mercado & Conhecimento" })).toBeVisible();
+  await page.goto("/demo");
+  await page.getByRole("button", { name: "Abrir menu de Hugo Silva" }).click();
   await page.getByRole("menuitem", { name: "Meu perfil" }).click();
   await page.waitForURL("**/profile");
   await expect(page.getByRole("heading", { name: "Hugo Silva" })).toBeVisible();

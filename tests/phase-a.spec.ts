@@ -1,4 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, Page, test } from "@playwright/test";
+
+const openDemo = async (page: Page) => {
+  await page.goto("/demo", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  const picker = page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." });
+  const personHome = page.getByRole("heading", { name: "Entenda melhor suas oportunidades." });
+  await expect(picker.or(personHome)).toBeVisible({ timeout: 30_000 });
+  return { picker, personHome };
+};
 
 test("perfis de organização expõem tipos e capacidades coerentes", async ({ request }) => {
   const response = await request.get("/api/profiles");
@@ -72,6 +80,65 @@ test("ONG diferencia voluntários e talentos e prioriza a ação voluntária", a
   await expect(page.getByRole("heading", { name: "Gestão de voluntariado" })).toBeVisible();
   await page.getByRole("tab", { name: "Talentos" }).click();
   await expect(page.getByRole("heading", { name: "Base de talentos" })).toBeVisible();
+});
+
+test("Mercado & Conhecimento aparece cedo na Home de pessoa e oferece três atalhos diretos", async ({ page }) => {
+  const firstLoad = await openDemo(page);
+  if (await firstLoad.picker.isVisible()) await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await expect(page.getByRole("heading", { name: "Entenda melhor suas oportunidades." })).toBeVisible();
+
+  const order = await page.evaluate(() => {
+    const follows = (first: Element | null, second: Element | null) => Boolean(first && second && (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING));
+    const search = document.querySelector("form[aria-label='Buscar oportunidades']");
+    const market = document.querySelector("section[aria-labelledby='market-knowledge-title']");
+    const territory = document.querySelector("#territory-summary-title")?.closest("section") ?? null;
+    return { searchBeforeMarket: follows(search, market), marketBeforeTerritory: follows(market, territory) };
+  });
+  expect(order).toEqual({ searchBeforeMarket: true, marketBeforeTerritory: true });
+
+  const shortcuts = [
+    { label: "Ver Salários e mercado", url: "/market?tab=salary" },
+    { label: "Consultar Legislação para trabalho e negócios", url: "/market?tab=legislation" },
+    { label: "Explorar Artigos & evidências", url: "/market?tab=articles" },
+  ];
+  for (const shortcut of shortcuts) {
+    const link = page.getByRole("link", { name: shortcut.label });
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("href", shortcut.url);
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`${shortcut.url.replace("?", "\\?")}$`));
+    const nextLoad = await openDemo(page);
+    if (await nextLoad.picker.isVisible()) await page.getByRole("button", { name: /Hugo Silva/ }).click();
+    await expect(page.getByRole("heading", { name: "Entenda melhor suas oportunidades." })).toBeVisible();
+  }
+});
+
+test("Mercado & Conhecimento contextualiza empresa, ONG e instituição pública", async ({ page }) => {
+  const profiles = [
+    { name: /Coletivo Horizonte/, heading: "Decida com mais informação." },
+    { name: /Instituto Ponte Aberta/, heading: "Conhecimento para mobilizar e gerir." },
+    { name: /Secretaria Demo de Cidadania/, heading: "Referências para gestão e território." },
+  ];
+
+  for (const [index, profile] of profiles.entries()) {
+    await page.goto("/demo", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    if (index > 0) {
+      await expect(page.getByRole("button", { name: "Trocar perfil" }).first()).toBeVisible({ timeout: 30_000 });
+      await page.getByRole("button", { name: "Trocar perfil" }).first().click();
+    } else {
+      await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 30_000 });
+    }
+    await page.getByRole("button", { name: profile.name }).click();
+    await expect(page.getByRole("heading", { name: profile.heading })).toBeVisible();
+    const order = await page.evaluate(() => {
+      const follows = (first: Element | null, second: Element | null) => Boolean(first && second && (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING));
+      const actions = document.querySelector("section[aria-label='Ações da organização']");
+      const market = document.querySelector("section[aria-labelledby='market-knowledge-title']");
+      const publications = document.querySelector("#organization-activity-title")?.closest("section") ?? null;
+      return { actionsBeforeMarket: follows(actions, market), marketBeforePublications: follows(market, publications) };
+    });
+    expect(order).toEqual({ actionsBeforeMarket: true, marketBeforePublications: true });
+  }
 });
 
 test("currículo livre aceita PDF e preserva o nome sem modelo obrigatório", async ({ page }) => {

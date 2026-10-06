@@ -12,14 +12,14 @@
 10. No mapa coroplético municipal, alternar **Oportunidades**, **Empregos**, **Serviços**, **Voluntariado** e **Interações**. Selecionar **Lagarto** pelo mapa ou pelo seletor de território e mostrar que ranking, indicadores, frentes, campos de atuação, gráfico CLT/Estágio e detalhes territoriais mudam para o município.
 11. Selecionar **Nossa Senhora do Socorro** e depois um município neutro, como **Amparo do São Francisco**, para mostrar “Este município ainda não possui registros na base desta demonstração” e reforçar que isso não significa ausência de oportunidades reais. Voltar para **Sergipe** pelo botão ou seletor.
 12. Reforçar que o mapa não exibe nomes de pessoas, endereços ou coordenadas: são dados agregados e fictícios da demonstração. Cursos, concursos, vagas externas e contratações públicas não entram nas métricas operacionais do mapa.
-13. Abrir o menu com o nome da persona no canto superior direito e mostrar **Meu perfil**, **Configurações** e **Sair**; em Meu perfil, destacar resumo, competências e território demonstrativo.
+13. Abrir o menu com o nome da persona no canto superior direito e mostrar **Meu perfil**, **Mercado & Conhecimento**, **Configurações** e **Sair**; em Meu perfil, destacar resumo, competências e território demonstrativo.
 14. Na descoberta, entrar em **Empregos** ou **Serviços** e alternar entre **Ofertas** para ver pessoas e autônomos apresentando sua força de trabalho e **Demandas** para ver vagas e serviços dos contratantes; explicar que o seletor não aparece em **Todos**, **Concursos**, **Capacitação** ou **Voluntariado**. Com **Amanda Figueiredo**, publicar uma nova oferta e mostrar que ela permanece no primeiro caminho.
 15. Com **Hugo Silva**, em **Atividades que você quer acompanhar**, marcar **CLT** e **Voluntariado**, selecionar algumas atividades, informar escolaridade e curso, anexar um currículo livre em PDF ou DOCX de até 5 MB e ativar **Permitir que instituições encontrem meu perfil**. Trocar para **Coletivo Horizonte** e mostrar o perfil em **Talentos**; filtrar escolaridade/tipo de curso, baixar o arquivo original e iniciar uma conversa pelos atalhos de remuneração ou benefícios.
 16. Com **Coletivo Horizonte**, clicar em **Chamar autônomo agora**, selecionar uma atividade, informar a janela do dia e descrever o serviço. Trocar para **Amanda Figueiredo**, mostrar o chamado em **Chamados compatíveis hoje** e clicar em **Aceitar primeiro**; explicar que uma segunda aceitação recebe conflito e que o endereço exato é combinado depois.
 
 ## Roteiro atualizado de arquitetura de informação
 
-1. Com **Hugo Silva**, mostrar que a Home começa por “Descubra oportunidades para trabalhar, aprender e crescer em Aracaju”, pelo campo “O que você está procurando?” e pelo resumo “Na demonstração em Aracaju”.
+1. Com **Hugo Silva**, mostrar que a Home começa por “Descubra oportunidades para trabalhar, aprender e crescer em Aracaju”, pelo campo “O que você está procurando?” e, imediatamente depois, por **Mercado & Conhecimento**. Dizer: “A OFLIX não apenas mostra oportunidades; também ajuda a interpretar o mercado.” Em seguida, mostrar o resumo “Na demonstração em Aracaju”.
 2. Enviar “eletricista” na busca da Home e confirmar que o hub abre com `q=eletricista`. Voltar a Início e abrir **Concursos** ou **Capacitação** para demonstrar os atalhos que reutilizam a mesma busca.
 3. Abrir **Preferências** e mostrar a visão curta: Trabalho, Desenvolvimento profissional, Áreas e atividades, Voluntariado, território e avisos. Abrir somente um grupo por vez; confirmar que formação e currículo não aparecem na visão inicial.
 4. Abrir **Perfil** e demonstrar Formação, Currículo, Banco de talentos e Território como seções progressivas. Anexar um PDF ou DOCX de até 5 MB e confirmar que o nome original permanece visível, sem modelo obrigatório.
@@ -27,7 +27,7 @@
 
 ## Roteiro Mercado & Conhecimento
 
-1. Na Home de pessoa ou organização, abrir o teaser **Mercado & Conhecimento**. Confirmar que a camada é complementar e que `Buscar` continua reservado às oportunidades.
+1. Na Home de pessoa ou organização, apresentar **Mercado & Conhecimento** logo depois da busca ou das ações principais. Confirmar que a camada é complementar, que `Buscar` continua reservado às oportunidades e que os três atalhos levam diretamente às abas correspondentes. A entrada **Mercado & Conhecimento** do menu da persona permanece disponível para retorno.
 2. Em **Salários e mercado**, comparar `Remuneração média anunciada` de Aracaju com uma categoria OFLIX. Mostrar que valor exato entra pelo próprio valor, faixa usa ponto médio, publicação sem remuneração é excluída e o card informa o número de observações.
 3. Mostrar a caixa separada **Salário médio de admissão**. Nesta versão ela informa a indisponibilidade da integração MTE/PDET, exibe a fonte oficial investigada e não mostra número fictício nem infere CBO.
 4. Abrir uma vaga formal com remuneração e mostrar no detalhe **Remuneração anunciada**, a fonte OFLIX e o CTA **Comparar com o mercado**. Abrir uma vaga de estágio e confirmar o termo **Bolsa / remuneração de estágio**.
