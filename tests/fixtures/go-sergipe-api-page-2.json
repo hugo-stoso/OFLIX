@@ -1,0 +1,41 @@
+{
+  "count": 3,
+  "next": null,
+  "previous": "https://gosergipe.se.gov.br/api/oportunidades?code_uf=SE&page=1",
+  "results": [
+    {
+      "id": 4779,
+      "status": "aberta",
+      "limit_date": "20/11/2026",
+      "cbo": { "code": "5143-20", "name": "Agente de limpeza" },
+      "description": "Limpeza e conservação.",
+      "short_description": "Agente de limpeza",
+      "company_name": "Serviços Sergipe",
+      "pcd_impediments": false,
+      "pcd_exclusive": false,
+      "schooling": "Médio completo",
+      "opportunities_available": 2,
+      "contract_type": "Trabalho temporário",
+      "salary": "1.600,00",
+      "created_on": "06/10/2026",
+      "ibge_code": { "name": "Lagarto", "state": "SE" }
+    },
+    {
+      "id": 4777,
+      "status": "aberta",
+      "limit_date": "31/10/2026",
+      "cbo": { "code": "8623-05", "name": "Operador de estação de tratamento de água" },
+      "description": "Duplicata de teste.",
+      "short_description": "Operador de estação de tratamento de água",
+      "company_name": "FIBRA RH",
+      "pcd_impediments": true,
+      "pcd_exclusive": false,
+      "schooling": "Superior completo",
+      "opportunities_available": 4,
+      "contract_type": "Trabalho permanente",
+      "salary": "2.052,88",
+      "created_on": "08/10/2026",
+      "ibge_code": { "name": "São Cristóvão", "state": "SE" }
+    }
+  ]
+}

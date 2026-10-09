@@ -62,6 +62,8 @@
 - Adapter OpenAlex com normalização de ID, título, autores, ano, fonte, DOI, citações, acesso aberto, cache curto, ranking determinístico, busca livre por `q` e snapshot local de metadata real; nenhum artigo fictício ou PDF é armazenado.
 - Refinamento cirúrgico: instituição pública abre uma gestão própria de voluntários; ONG/OSC reúne Voluntários e Talentos em Pessoas, com Voluntários como aba inicial; empresa permanece focada em Talentos. A Home da ONG/OSC prioriza mobilização e ação voluntária.
 - Refinamento cirúrgico: comparação de mercado preserva município + categoria OFLIX; `profession` continua reservado à futura consulta oficial por ocupação/CBO; estágio e contratação pública têm links contextuais para legislação.
+- Domínio de descoberta ampliado com `GO_SERGIPE`, disponibilidade PcD explícita, ocupação somente quando fornecida pela fonte e campos de remuneração/vagas preservados sem inferência.
+- Parser server-side do endpoint público estruturado usado pela SPA do GO Sergipe, contrato `GET /api/external-jobs`, allowlist, cache/fallback/stale, filtros locais, proveniência `GO Sergipe`, CTA externo, fixtures JSON/HTML e testes de parser/paginação/deduplicação/erro implementados.
 
 ## VALIDAÇÃO NECESSÁRIA
 
@@ -71,9 +73,10 @@
 
 ## PARCIAL
 
-- Concursos, processos seletivos, cursos, vagas externas e contratações públicas estão implementados como DEMO DATA para provar a experiência; ainda não há fontes reais legítimas integradas para esses universos. A frente permanece PARCIAL/VALIDAÇÃO NECESSÁRIA.
+- Concursos, processos seletivos, cursos e contratações públicas continuam DEMO DATA. GO Sergipe está `PARCIAL — VALIDAÇÃO DE DEPLOY PENDENTE`: o endpoint estruturado público usado pela SPA passou a ser consumido server-side, com allowlist e feature flag ativa por padrão; ainda falta confirmar o endpoint OFLIX publicado e o QA visual no deploy novo.
 - O adapter PNCP está implementado e isolado, mas a disponibilidade e o comportamento da API em cada ambiente de deploy ainda precisam de validação operacional contínua; o fallback DEMO DATA é o estado determinístico padrão.
 - A deduplicação existe na normalização em memória por fonte/identificador e sinais conservadores; ainda não há agrupamento persistido nem histórico de decisões.
+- GO Sergipe: `VALIDAÇÃO NECESSÁRIA` somente para o deploy publicado e observabilidade contínua; o check live `npm run check:go-sergipe` validou 156 anúncios, 13 páginas e 156 IDs únicos em 09/10/2026. `GO_SERGIPE_ENABLED=false` continua disponível como desligamento explícito.
 
 - `Salário médio de admissão` MTE/PDET: PARCIAL. A fonte oficial foi investigada e a arquitetura/proveniência/estado indisponível estão implementados, mas nenhum valor oficial real foi integrado nesta execução por falta de canal público documentado confirmado.
 - Mapa salarial municipal do Observatório: PENDENTE. Não há dados oficiais municipais/ocupacionais integrados suficientes; o mapa operacional continua somente OFLIX.
@@ -97,7 +100,7 @@
 - Criação, edição, revisão e encerramento de oportunidades persistentes.
 - Notificações server-side e integração OAuth com Google Agenda.
 - Canal oficial/autorização para ComprasNet.SE; a ausência é intencional e não há scraping.
-- Primeira fonte autorizada de vagas externas, cursos ou concursos reais.
+- Validação do deploy público do `/api/external-jobs` e QA visual após o push; cursos e concursos reais ainda precisam de suas próprias fontes.
 - Oferta × demanda, lacunas territoriais e capacitação × demanda: o modelo atual não sustenta conclusões institucionais sem inventar método ou misturar dados locais; permanecem pendentes.
 
 ## FUTURO

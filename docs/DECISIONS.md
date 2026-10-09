@@ -14,6 +14,18 @@ Foi escolhida uma camada `DiscoveryItem` somente para indexação e apresentaç�
 
 O provider PNCP fica isolado em `lib/connectors/pncp.ts`, no servidor, com timeout, cache curto, normalização e fallback. A experiência usa DEMO DATA por padrão para ser determinística e não representar dados fictícios como oficiais; uma atualização explícita pode consultar a API pública oficial. ComprasNet.SE e outras fontes não foram integradas sem documentação ou autorização pública suficiente.
 
+### GO Sergipe como fonte pública externa
+
+Foi decidido tratar o GO Sergipe como fonte pública externa, não como parceiro autorizado: a origem é sempre exibida, o CTA leva à fonte original e os itens não entram nas tabelas operacionais OFLIX, no mapa territorial ou nas médias de remuneração. O conector usa somente a página pública de oportunidades, sem autenticação, API interna não documentada, candidatura, automação de detalhes, dados de candidatos ou geolocalização.
+
+O limite operacional adotado é conservador: GET sequencial, User-Agent identificável, timeout de 7 s, até 25 páginas, cache de 4 h, deduplicação por fonte/ID e fallback stale em memória. O parser mantém título, descrição pública, empresa/provedor, município/UF, data, salário como texto, quantidade de vagas, disponibilidade PcD e URL segura; não calcula média, não infere CBO, modalidade, escolaridade ou tipo de contrato. Sem ID público seguro, usa fingerprint determinístico e a URL da lista.
+
+Em 08/10/2026 o GET da lista retornou um shell de SPA sem cards no HTML inicial. A investigação da rede identificou o endpoint público estruturado usado pela própria aplicação: `GET /api/oportunidades`, sem autenticação, Cookie, Authorization ou CSRF, reproduzível server-side com headers mínimos. A resposta inclui campos administrativos extras; por isso a OFLIX aplica allowlist e não consome contatos, CNPJ, endereço, aplicações ou identificadores internos. O endpoint não é chamado de API oficial/documentada.
+
+A decisão explícita é: “A OFLIX não usa navegador headless para extrair a SPA. Quando disponível, utiliza a mesma representação pública estruturada que alimenta a página de oportunidades, desde que funcione sem autenticação, não exponha dados pessoais e não exija bypass.” O conector segue somente paginação no mesmo host/path, mantém cache de quatro horas, timeout por request de sete segundos, limite de 25 páginas e ID real para a URL de detalhe validada. `GO_SERGIPE_ENABLED` fica habilitado por padrão após o QA anônimo e pode ser desligado com `false`; o estado de produto permanece pendente apenas da validação de deploy.
+
+Na verificação de 09/10/2026, `/robots.txt`, `/termos-de-uso`, `/politica-de-privacidade` e `/privacidade` responderam HTML do shell ou não apresentaram um documento textual nos caminhos verificados; a documentação registra somente “não localizado nos caminhos verificados”, sem inventar regras.
+
 ## SEMÂNTICA SEPARADA + DESCOBERTA UNIFICADA
 
 Cursos, concursos públicos, processos seletivos, vagas externas e contratações públicas permanecem entidades/projeções semanticamente distintas, com badges, filtros e detalhes próprios. A decisão de produto é apresentar esses universos permitidos em um único hub `Buscar`, porque separação de significado não deve virar fragmentação da descoberta. A home fica curta e recomenda um recorte misto; o painel de poder público é um teaser para o filtro `Poder público`.

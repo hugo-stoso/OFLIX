@@ -44,7 +44,9 @@ Landing, perfis fictícios persistidos durante a navegação, hub de descoberta 
 
 ## Fontes e proveniência
 
-Itens originados na OFLIX continuam separados de sinais externos. Cada item externo expõe fonte, identificador quando disponível, URL canônica, datas e status. A demo não trata dados fictícios como publicação real: cursos, concursos, processos seletivos, vagas externas e contratações de exemplo são rotulados `DEMO DATA`. O PNCP é o único provider externo com adapter preparado nesta execução; ComprasNet.SE, vagas, cursos e concursos reais aguardam canal autorizado.
+Itens originados na OFLIX continuam separados de sinais externos. Cada item externo expõe fonte, identificador quando disponível, URL canônica, datas e status. Cursos, concursos, processos seletivos e contratações de exemplo continuam `DEMO DATA`. GO Sergipe é a primeira fonte pública externa real: a página é uma SPA, mas a listagem usa um endpoint JSON público estruturado que a OFLIX consome server-side com allowlist, cache e baixa frequência. PNCP permanece isolado; ComprasNet.SE, cursos e concursos reais aguardam seus próprios canais.
+
+O conector GO Sergipe só considera o endpoint de listagem pública filtrado por `code_uf=SE`, preserva remuneração como texto e usa CBO, escolaridade e tipo de contratação somente quando retornados explicitamente. Usa cache de quatro horas, timeout de sete segundos, até 25 páginas sequenciais, deduplicação conservadora, fallback stale e CTA para a fonte original. Não coleta os campos administrativos extras da resposta, dados pessoais, detalhes em massa, candidatura, coordenadas ou endpoints privados.
 
 A fonte oficial salarial investigada é o PDET/MTE, com consultas CAGED/Perfil do Município e microdados oficiais. Como não foi confirmada API pública documentada apropriada para consumo direto nesta execução, a aplicação mantém um estado indisponível com proveniência e sem valores MTE fictícios. OpenAlex possui adapter live e snapshot local de metadata real.
 

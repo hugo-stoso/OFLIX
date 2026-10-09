@@ -17,6 +17,12 @@
 15. Com **Hugo Silva**, em **Atividades que você quer acompanhar**, marcar **CLT** e **Voluntariado**, selecionar algumas atividades, informar escolaridade e curso, anexar um currículo livre em PDF ou DOCX de até 5 MB e ativar **Permitir que instituições encontrem meu perfil**. Trocar para **Coletivo Horizonte** e mostrar o perfil em **Talentos**; filtrar escolaridade/tipo de curso, baixar o arquivo original e iniciar uma conversa pelos atalhos de remuneração ou benefícios.
 16. Com **Coletivo Horizonte**, clicar em **Chamar autônomo agora**, selecionar uma atividade, informar a janela do dia e descrever o serviço. Trocar para **Amanda Figueiredo**, mostrar o chamado em **Chamados compatíveis hoje** e clicar em **Aceitar primeiro**; explicar que uma segunda aceitação recebe conflito e que o endereço exato é combinado depois.
 
+## Roteiro da fonte externa GO Sergipe
+
+Com `GO_SERGIPE_ENABLED` ativo, escolher **Hugo Silva**, abrir **Buscar**, selecionar **Empregos** e conferir uma vaga com a fonte `GO Sergipe`, município/UF, remuneração, quantidade de vagas, escolaridade/CBO quando informados e o CTA **Ver vaga no GO Sergipe**. O CTA abre a publicação original em nova aba; a OFLIX não candidata a pessoa, não coleta dados do candidato e não trata a vaga externa como publicação OFLIX.
+
+A página pública é uma SPA sem cards no HTML do GET inicial. A OFLIX usa server-side o endpoint JSON público estruturado utilizado pela própria SPA, sem navegador headless em produção, e mantém a fonte original como CTA.
+
 ## Roteiro atualizado de arquitetura de informação
 
 1. Com **Hugo Silva**, mostrar que a Home começa por “Descubra oportunidades para trabalhar, aprender e crescer em Aracaju”, pelo campo “O que você está procurando?” e, imediatamente depois, por **Mercado & Conhecimento**. Dizer: “A OFLIX não apenas mostra oportunidades; também ajuda a interpretar o mercado.” Em seguida, mostrar o resumo “Na demonstração em Aracaju”.

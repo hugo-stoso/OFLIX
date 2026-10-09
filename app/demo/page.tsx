@@ -82,6 +82,10 @@ export default function DemoPage() {
   const [publicError, setPublicError] = useState("");
   const [publicLoaded, setPublicLoaded] = useState(false);
   const [publicInterestEnabled, setPublicInterestEnabled] = useState(false);
+  const [externalJobs, setExternalJobs] = useState<DiscoveryItem[]>([]);
+  const [externalJobsLoading, setExternalJobsLoading] = useState(false);
+  const [externalJobsError, setExternalJobsError] = useState("");
+  const [externalJobsLoaded, setExternalJobsLoaded] = useState(false);
   const [savedActivities, setSavedActivities] = useState<string[]>([]);
   const [savedWorkPreferences, setSavedWorkPreferences] = useState<string[]>([]);
   const searchUrlHydrated = useRef(false);
@@ -120,6 +124,13 @@ export default function DemoPage() {
   }, [selectedProfile]);
 
   useEffect(() => {
+    setExternalJobs([]);
+    setExternalJobsLoading(false);
+    setExternalJobsError("");
+    setExternalJobsLoaded(false);
+  }, [selectedProfile]);
+
+  useEffect(() => {
     if (!selectedProfile) return;
     const readPreferences = () => {
       try {
@@ -154,6 +165,30 @@ export default function DemoPage() {
       .finally(() => { if (!cancelled) { setPublicLoaded(true); setPublicLoading(false); } });
     return () => { cancelled = true; };
   }, [activeFilter, publicInterestEnabled, publicLoaded, selectedProfile]);
+
+  useEffect(() => {
+    const shouldLoad = activeView === "discover" && selectedProfile?.type === "PERSON" && (activeFilter === "all" || activeFilter === "employment") && !externalJobsLoaded;
+    if (!shouldLoad) return;
+    let cancelled = false;
+    setExternalJobsLoading(true);
+    setExternalJobsError("");
+    fetch("/api/external-jobs?source=go-sergipe")
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? "Não foi possível atualizar as vagas do GO Sergipe agora.");
+        if (cancelled) return;
+        if (data.enabled === false) {
+          setExternalJobs([]);
+          setExternalJobsError("");
+        } else {
+          setExternalJobs(Array.isArray(data.items) ? data.items : []);
+          setExternalJobsError(data.error ? "Não foi possível atualizar as vagas do GO Sergipe agora." : "");
+        }
+      })
+      .catch(() => { if (!cancelled) setExternalJobsError("Não foi possível atualizar as vagas do GO Sergipe agora."); })
+      .finally(() => { if (!cancelled) { setExternalJobsLoaded(true); setExternalJobsLoading(false); } });
+    return () => { cancelled = true; };
+  }, [activeFilter, activeView, externalJobsLoaded, selectedProfile]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -217,9 +252,9 @@ export default function DemoPage() {
       if (selectedProfile.type === "ORGANIZATION") return opportunity.ownerType !== "PERSON" && opportunity.owner.id === selectedProfile.id;
       return opportunity.ownerType !== "PERSON";
     });
-    const personDemoItems = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement" && (!isMarketFilter(activeFilter) || (publicationMode === "demands" && item.kind === "external_job"))) : [];
-    return [...internal, ...personDemoItems, ...(publicAccess ? publicItems : [])];
-  }, [activeFilter, allInternalDiscovery, opportunities, publicationMode, publicAccess, publicItems, selectedProfile]);
+    const personDemoItems = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement" && item.kind !== "external_job" && (!isMarketFilter(activeFilter) || publicationMode === "demands")) : [];
+    return [...internal, ...personDemoItems, ...(selectedProfile?.type === "PERSON" ? externalJobs : []), ...(publicAccess ? publicItems : [])];
+  }, [activeFilter, allInternalDiscovery, externalJobs, opportunities, publicationMode, publicAccess, publicItems, selectedProfile]);
   const filterTabs = useMemo(() => {
     const base: DiscoveryFilterKind[] = selectedProfile?.organizationKind === "PUBLIC_INSTITUTION" ? ["all", "volunteer"] : ["all", "employment", "service", "volunteer"];
     if (selectedProfile?.type === "PERSON") base.push("public_exam", "course");
@@ -229,7 +264,7 @@ export default function DemoPage() {
   const filterDiscoveryItem = useCallback((item: DiscoveryItem) => {
     const normalized = (value: string) => value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const term = normalized(search.trim());
-    const haystack = normalized(`${item.title} ${item.description} ${item.category} ${item.tags.join(" ")}`);
+    const haystack = normalized(`${item.title} ${item.description} ${item.provider} ${item.location.municipality} ${item.category} ${item.tags.join(" ")}`);
     const matchesTerm = !term || haystack.includes(term);
     const matchesCategory = !category || [item.category, ...item.tags].includes(category);
     const matchesMunicipality = !municipality || item.location.municipality === municipality;
@@ -261,8 +296,8 @@ export default function DemoPage() {
     const timestamp = (id: string) => Number(id.match(/(?:local|opportunity)-(\d+)/)?.[1] ?? 0);
     return timestamp(right.id) - timestamp(left.id);
   }).slice(0, 3), [ownedOpportunities]);
-  const homeMatches = useMemo(() => rankDiscoveryItems(discoveryItems, { activities: savedActivities, workPreferences: savedWorkPreferences, municipality: selectedProfile?.location.municipality }).slice(0, 4), [discoveryItems, savedActivities, savedWorkPreferences, selectedProfile?.location.municipality]);
-  const territoryItems = useMemo(() => discoveryItems.filter((item) => item.location.municipality === selectedProfile?.location.municipality), [discoveryItems, selectedProfile?.location.municipality]);
+  const homeMatches = useMemo(() => rankDiscoveryItems(discoveryItems.filter((item) => item.kind !== "external_job"), { activities: savedActivities, workPreferences: savedWorkPreferences, municipality: selectedProfile?.location.municipality }).slice(0, 4), [discoveryItems, savedActivities, savedWorkPreferences, selectedProfile?.location.municipality]);
+  const territoryItems = useMemo(() => discoveryItems.filter((item) => item.kind !== "external_job" && item.location.municipality === selectedProfile?.location.municipality), [discoveryItems, selectedProfile?.location.municipality]);
   const homeCounts = useMemo(() => ({
     work: territoryItems.filter((item) => item.kind === "formal" || item.kind === "external_job").length,
     services: territoryItems.filter((item) => item.kind === "service").length,
@@ -280,6 +315,11 @@ export default function DemoPage() {
     } catch (refreshError) {
       setPublicError(refreshError instanceof Error ? refreshError.message : "Não foi possível atualizar as oportunidades agora.");
     } finally { setPublicLoaded(true); setPublicLoading(false); }
+  }
+
+  function refreshExternalJobs() {
+    setExternalJobsError("");
+    setExternalJobsLoaded(false);
   }
 
   function chooseProfile(id: string) {
@@ -403,7 +443,7 @@ export default function DemoPage() {
 
       {activeView === "talents" && canUseTalents && <section aria-labelledby="people-title"><div className="page-intro"><p className="eyebrow">{isNonprofit ? "Pessoas" : "Talentos"}</p><h1 id="people-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">{isNonprofit ? "Acompanhe voluntários e encontre talentos." : "Encontre pessoas para o próximo passo."}</h1><p className="body-copy mt-3 max-w-[650px]">{isNonprofit ? "Separe a gestão das ações voluntárias da busca por perfis profissionais." : "Busque perfis que autorizaram a divulgação de competências, formação e interesses."}</p></div>{isNonprofit && <div className="segmented-control mt-7 max-w-md" role="tablist" aria-label="Pessoas da organização"><button type="button" role="tab" aria-selected={peopleTab === "volunteers"} onClick={() => setPeopleTab("volunteers")} className={peopleTab === "volunteers" ? "is-active" : ""}>Voluntários</button><button type="button" role="tab" aria-selected={peopleTab === "talents"} onClick={() => setPeopleTab("talents")} className={peopleTab === "talents" ? "is-active" : ""}>Talentos</button></div>}{isNonprofit && peopleTab === "volunteers" ? <VolunteerManagementPanel organizerId={selectedProfile.id} /> : <div className="mt-7"><TalentBasePanel ownerId={selectedProfile.id} talents={talents} /></div>}</section>}
 
-      {activeView === "discover" && <section aria-labelledby="discover-title"><div className="page-intro"><p className="eyebrow">Buscar</p><h1 id="discover-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Descubra oportunidades</h1><p className="body-copy mt-3 max-w-[650px]">Trabalho, concursos, capacitação e outras oportunidades para você.</p></div>{showPublicationMode && <section className="mt-7" aria-label={`Separar ofertas e demandas de ${activeFilter === "service" ? "serviços" : "trabalho"}`}><div className="segmented-control" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); resetFilters(); }} className={publicationMode === "offers" ? "is-active" : ""}>Ofertas <span>{publicationLabels.offers}</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); resetFilters(); }} className={publicationMode === "demands" ? "is-active" : ""}>Demandas <span>{publicationLabels.demands}</span></button></div></section>}<nav className={`${showPublicationMode ? "mt-6" : "mt-7"} flex max-w-full gap-1 overflow-x-auto border-b border-line`} aria-label="Tipos de oportunidade">{filterTabs.map((filter) => <button key={filter} type="button" onClick={() => { setActiveFilter(filter); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); }} className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-bold transition first:pl-0 ${activeFilter === filter ? "border-blue text-blue" : "border-transparent text-[#718291] hover:text-navy"}`}>{DISCOVERY_FILTER_LABELS[filter]}<span className="ml-2 text-xs font-normal text-[#8a9aa7]">{discoveryItems.filter((item) => discoveryItemMatchesFilter(item, filter)).length}</span></button>)}</nav><div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><OpportunityFilters filterKind={activeFilter} search={search} category={category} municipality={municipality} modality={modality} education={education} status={status} officialType={officialType} favoritesOnly={favoritesOnly} categories={categories} municipalities={municipalities} modalities={modalities} educations={educations} statuses={statuses} officialTypes={officialTypes} onSearch={setSearch} onCategory={setCategory} onMunicipality={setMunicipality} onModality={setModality} onEducation={setEducation} onStatus={setStatus} onOfficialType={setOfficialType} onFavoritesOnly={setFavoritesOnly} onClear={resetFilters} />{publicError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as oportunidades agora.<button type="button" className="button-quiet" onClick={refreshPublicOpportunities} disabled={publicLoading}>{publicLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{publicLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando oportunidades públicas…</p>}<div className="panel px-5 sm:px-8">{visibleDiscovery.length ? visibleDiscovery.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} reason={discoveryReasons(item, { search, activities: savedActivities, workPreferences: savedWorkPreferences, municipality, publicEnabled: publicAccess })} returnTo={discoveryReturnTo} />) : <div className="py-14 text-center"><p className="font-bold text-navy">Nenhuma oportunidade encontrada.</p><p className="mt-2 text-sm text-[#607286]">Tente outra palavra ou limpe os filtros para ampliar a busca.</p><button type="button" className="subtle-link mt-4" onClick={resetFilters}>Limpar busca</button></div>}</div></div><aside className="hidden h-fit border-l-2 border-[#c9dce8] pl-5 lg:block"><p className="eyebrow">Neste recorte</p><p className="mt-3 text-sm leading-6 text-[#607286]">{showPublicationMode ? publicationMode === "offers" ? activeFilter === "service" ? "Profissionais oferecendo serviços e suas atividades." : "Pessoas apresentam sua força de trabalho." : isOrganization ? "Sua organização vê suas demandas e oportunidades públicas quando habilitada." : "Contratantes e fontes externas aparecem neste lado do mercado." : "Todos os universos permitidos para este perfil aparecem nesta busca."}</p><Link href="/profile" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline"><BarChart3 size={16} /> Ver meu perfil <ArrowRight size={15} /></Link></aside></div></section>}
+      {activeView === "discover" && <section aria-labelledby="discover-title"><div className="page-intro"><p className="eyebrow">Buscar</p><h1 id="discover-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Descubra oportunidades</h1><p className="body-copy mt-3 max-w-[650px]">Trabalho, concursos, capacitação e outras oportunidades para você.</p></div>{showPublicationMode && <section className="mt-7" aria-label={`Separar ofertas e demandas de ${activeFilter === "service" ? "serviços" : "trabalho"}`}><div className="segmented-control" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); resetFilters(); }} className={publicationMode === "offers" ? "is-active" : ""}>Ofertas <span>{publicationLabels.offers}</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); resetFilters(); }} className={publicationMode === "demands" ? "is-active" : ""}>Demandas <span>{publicationLabels.demands}</span></button></div></section>}<nav className={`${showPublicationMode ? "mt-6" : "mt-7"} flex max-w-full gap-1 overflow-x-auto border-b border-line`} aria-label="Tipos de oportunidade">{filterTabs.map((filter) => <button key={filter} type="button" onClick={() => { setActiveFilter(filter); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); }} className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-bold transition first:pl-0 ${activeFilter === filter ? "border-blue text-blue" : "border-transparent text-[#718291] hover:text-navy"}`}>{DISCOVERY_FILTER_LABELS[filter]}<span className="ml-2 text-xs font-normal text-[#8a9aa7]">{discoveryItems.filter((item) => discoveryItemMatchesFilter(item, filter)).length}</span></button>)}</nav><div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><OpportunityFilters filterKind={activeFilter} search={search} category={category} municipality={municipality} modality={modality} education={education} status={status} officialType={officialType} favoritesOnly={favoritesOnly} categories={categories} municipalities={municipalities} modalities={modalities} educations={educations} statuses={statuses} officialTypes={officialTypes} onSearch={setSearch} onCategory={setCategory} onMunicipality={setMunicipality} onModality={setModality} onEducation={setEducation} onStatus={setStatus} onOfficialType={setOfficialType} onFavoritesOnly={setFavoritesOnly} onClear={resetFilters} />{externalJobsError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as vagas do GO Sergipe agora.<button type="button" className="button-quiet" onClick={refreshExternalJobs} disabled={externalJobsLoading}>{externalJobsLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{externalJobsLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando vagas externas…</p>}{publicError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as oportunidades agora.<button type="button" className="button-quiet" onClick={refreshPublicOpportunities} disabled={publicLoading}>{publicLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{publicLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando oportunidades públicas…</p>}<div className="panel px-5 sm:px-8">{visibleDiscovery.length ? visibleDiscovery.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} reason={discoveryReasons(item, { search, activities: savedActivities, workPreferences: savedWorkPreferences, municipality, publicEnabled: publicAccess })} returnTo={discoveryReturnTo} />) : <div className="py-14 text-center"><p className="font-bold text-navy">Nenhuma oportunidade encontrada.</p><p className="mt-2 text-sm text-[#607286]">Tente outra palavra ou limpe os filtros para ampliar a busca.</p><button type="button" className="subtle-link mt-4" onClick={resetFilters}>Limpar busca</button></div>}</div>{externalJobs.length > 0 && (activeFilter === "all" || activeFilter === "employment") && <p className="mt-4 text-xs leading-5 text-[#718291]">Algumas vagas são exibidas a partir de fontes públicas externas. Consulte a fonte original para informações atualizadas e candidatura.</p>}</div><aside className="hidden h-fit border-l-2 border-[#c9dce8] pl-5 lg:block"><p className="eyebrow">Neste recorte</p><p className="mt-3 text-sm leading-6 text-[#607286]">{showPublicationMode ? publicationMode === "offers" ? activeFilter === "service" ? "Profissionais oferecendo serviços e suas atividades." : "Pessoas apresentam sua força de trabalho." : isOrganization ? "Sua organização vê suas demandas e oportunidades públicas quando habilitada." : "Contratantes e fontes externas aparecem neste lado do mercado." : "Todos os universos permitidos para este perfil aparecem nesta busca."}</p><Link href="/profile" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline"><BarChart3 size={16} /> Ver meu perfil <ArrowRight size={15} /></Link></aside></div></section>}
     </div>
     <div className="shell"><button type="button" className="button-quiet sm:hidden" onClick={() => { window.localStorage.removeItem("oflix-demo-profile"); setSelectedId(null); window.dispatchEvent(new Event("oflix-profile-changed")); }}>Trocar perfil</button></div>
   </main>;

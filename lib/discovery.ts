@@ -71,20 +71,6 @@ export const demoDiscoveryItems: DiscoveryItem[] = [
     demo: true,
   },
   {
-    id: "demo-external-job-operations",
-    kind: "external_job",
-    title: "Vaga externa DEMO · assistente de operações",
-    description: "Exemplo fictício de vaga agregada de fonte externa autorizada, mantido separado das vagas publicadas no OFLIX.",
-    category: "Operações",
-    provider: "Parceiro Demo de Vagas",
-    location: demoLocation("Aracaju"),
-    source: "DEMO_DATA",
-    sourceLabel: "DEMO DATA · parceiro fictício",
-    status: "Publicada",
-    tags: ["Operações", "Vaga externa"],
-    demo: true,
-  },
-  {
     id: "demo-public-procurement-electrical",
     kind: "public_procurement",
     title: "Contratação DEMO de manutenção elétrica",
@@ -218,6 +204,7 @@ export function isExternal(item: DiscoveryItem) {
 }
 
 export function sourceLabel(source: DiscoverySource) {
+  if (source === "GO_SERGIPE") return "GO Sergipe";
   return source === "PNCP" ? "PNCP" : source === "OFLIX" ? "OFLIX" : "DEMO DATA";
 }
 
@@ -241,7 +228,7 @@ export function rankDiscoveryItems(items: DiscoveryItem[], context: RankingConte
   const municipality = normalized(context.municipality ?? "");
   return items
     .map((item, index) => {
-      const haystack = normalized(`${item.title} ${item.description} ${item.category} ${item.tags.join(" ")}`);
+      const haystack = normalized(`${item.title} ${item.description} ${item.provider} ${item.location.municipality} ${item.category} ${item.tags.join(" ")}`);
       const title = normalized(item.title);
       const itemActivities = [item.category, ...item.tags].map(normalized);
       let score = 0;
@@ -267,7 +254,7 @@ export function discoveryReasons(item: DiscoveryItem, context: RankingContext & 
   const reasons: string[] = [];
   const term = context.search?.trim();
   const normalizedTerm = normalized(term ?? "");
-  const itemText = normalized(`${item.title} ${item.description} ${item.category} ${item.tags.join(" ")}`);
+  const itemText = normalized(`${item.title} ${item.description} ${item.provider} ${item.location.municipality} ${item.category} ${item.tags.join(" ")}`);
   if (normalizedTerm && itemText.includes(normalizedTerm)) reasons.push(`Relacionada à busca por “${term}”.`);
   const activity = (context.activities ?? []).find((candidate) => [item.category, ...item.tags].some((value) => normalized(value).includes(normalized(candidate)) || normalized(candidate).includes(normalized(value))));
   if (activity) reasons.push(`${activity} está entre suas atividades.`);

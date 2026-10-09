@@ -36,6 +36,7 @@
 - [x] Navegação organizacional contextual: empresa em Talentos, ONG/OSC em Pessoas com Voluntários + Talentos e instituição pública em Voluntários para gestão de participantes.
 - [x] Mercado & Conhecimento com comparação por município + categoria OFLIX, legislação contextual e busca livre de artigos por macrotema + `q`.
 - [x] Mercado & Conhecimento reposicionado cedo nas Homes, com copy por persona, três atalhos diretos e acesso persistente no menu sem sexto destino principal.
+- [x] Primeira integração real de fonte pública externa do GO Sergipe: endpoint estruturado usado pela SPA, parser server-side com allowlist, proveniência, CTA, cache/fallback, filtro municipal, deduplicação e testes.
 
 ## MVP
 
@@ -46,7 +47,8 @@
 - [ ] Governança de dados, consentimento e políticas de retenção.
 - [ ] Armazenamento seguro e compartilhado de currículos, com validação server-side de PDF/DOCX e download autorizado.
 - [ ] Validar operação do provider PNCP em produção, observar limites e persistir cache/última atualização conforme a infraestrutura existente permitir.
-- [ ] Integrar cursos, concursos e vagas externas somente após confirmar API, feed, licença ou autorização oficial.
+- [ ] Validar o deploy público do GO Sergipe: `/api/external-jobs` com vagas, CTA de detalhe correto e QA visual desktop/mobile após o push.
+- [ ] Integrar cursos e concursos somente após confirmar API, feed, licença ou autorização oficial.
 - [ ] Integrar dados oficiais MTE/PDET com canal público documentado, competência, CBO, município e metodologia; sem inventar dados enquanto a fonte não estiver disponível.
 
 ## Pós-MVP

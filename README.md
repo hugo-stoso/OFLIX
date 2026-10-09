@@ -14,6 +14,7 @@ OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em d
 - Hub de descoberta unificado em `Buscar`: relaciona trabalho, serviços, voluntariado, capacitação, concursos/processos seletivos, vagas externas e, quando permitido, oportunidades com o poder público, sem apagar a semântica de cada origem.
 - Proveniência visível em itens externos; `DEMO DATA` é identificado quando não há fonte legitimamente integrada.
 - Adapter server-side do PNCP com timeout, normalização, deduplicação conservadora, cache curto e fallback.
+- Primeira integração real de fonte pública externa: o endpoint estruturado usado pela SPA do GO Sergipe é consumido server-side com allowlist, proveniência visível, cache de quatro horas, deduplicação e CTA para a fonte original.
 - Superfície complementar `Mercado & Conhecimento` com remuneração anunciada estruturada, biblioteca de legislação oficial e artigos reais via OpenAlex.
 
 ## Arquitetura de informação
@@ -39,11 +40,11 @@ Formação, currículo, residência e publicação no banco de talentos permanec
 
 ## Evolução do hub nesta execução
 
-- `PERSON` descobre trabalho, serviços, voluntariado, cursos, concursos públicos, processos seletivos e vagas externas DEMO DATA.
+- `PERSON` descobre trabalho, serviços, voluntariado, cursos, concursos públicos, processos seletivos e vagas externas. As vagas do GO Sergipe são rotuladas `GO Sergipe` e entram a partir da fonte pública estruturada usada pela aplicação web.
 - Pessoa com atividade autônoma pode ativar, em Preferências, oportunidades com o poder público; a interface orienta a conferir o edital e não afirma habilitação jurídica.
 - Organizações só recebem o hub de fornecimento quando a capacidade `canSupplyPublic` está marcada; organizações sem essa capacidade continuam fora desse recorte.
 - Contratações públicas usam “Poder público” e “Forma de contratação”; concurso público e processo seletivo permanecem distintos dos demais itens por badges e detalhes próprios.
-- Nenhum scraping é feito. ComprasNet.SE e vagas/cursos/concursos reais permanecem pendentes de API, feed ou autorização documentada.
+- A primeira fonte pública externa real é o GO Sergipe. A página é uma SPA, mas sua listagem usa um endpoint JSON público estruturado em `GET /api/oportunidades`; a OFLIX reproduz essa chamada sem autenticação, sem Cookie/Authorization/CSRF, sem candidatura, sem navegador headless em produção e sem coletar os campos administrativos extras da resposta. Em 09/10/2026 o check obteve 156 anúncios em 13 páginas filtradas por Sergipe. `GO_SERGIPE_ENABLED` fica ligado por padrão e pode ser desligado explicitamente com `false`. ComprasNet.SE, cursos e concursos reais seguem pendentes de canal próprio.
 
 Os dados do seed são DEMO DATA, fictícios e substituíveis. Nenhum dado pessoal da proposta de inscrição deve ser incluído no repositório.
 
@@ -51,7 +52,7 @@ O mapa do Observatório usa a Malha Municipal Digital do IBGE, versão 2024, rec
 
 ## Stack
 
-Next.js, TypeScript, Tailwind CSS e SQLite nativo do Node (`node:sqlite`). Playwright cobre o smoke test do fluxo principal e uma verificação de overflow na landing mobile.
+Next.js, TypeScript, Tailwind CSS e SQLite nativo do Node (`node:sqlite`). Playwright cobre o smoke test do fluxo principal e uma verificação de overflow na landing mobile. `cheerio` é usado somente no parser server-side do GO Sergipe.
 
 ## Rodar localmente
 
@@ -81,6 +82,7 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run check:go-sergipe
 ```
 
 Consulte [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) para um roteiro curto da apresentação.

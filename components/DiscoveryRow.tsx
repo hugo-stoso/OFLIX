@@ -15,6 +15,7 @@ function withReturnTo(path: string, returnTo?: string) {
 }
 
 function externalLabel(item: DiscoveryItem) {
+  if (item.source === "GO_SERGIPE") return "Ver vaga no GO Sergipe";
   if (item.kind === "external_job") return "Ver vaga no site original";
   if (item.kind === "course") return "Ver curso na fonte oficial";
   if (item.kind === "public_exam" || item.kind === "public_selection") return "Ver edital oficial";
@@ -35,9 +36,15 @@ export function DiscoveryRow({ item, reason, returnTo }: { item: DiscoveryItem; 
     <h3 className="mt-2 text-lg font-bold tracking-[-.02em] text-navy">{item.title}</h3>
     <p className="mt-1 line-clamp-2 text-sm leading-6 text-[#607286]">{item.description}</p>
     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#6b7d8d]">
-      <span className="inline-flex items-center gap-1.5"><MapPin size={13} /> {item.location.municipality}{item.location.district ? ` · ${item.location.district}` : ""}</span>
+      <span className="inline-flex items-center gap-1.5"><MapPin size={13} /> {item.location.municipality}{item.kind === "external_job" ? ` · ${item.location.state}` : item.location.district ? ` · ${item.location.district}` : ""}</span>
       <span>{item.provider}</span>
+      {item.vacancies && <span>{item.vacancies}</span>}
+      {item.salary && <span className="font-bold text-navy">{item.salary}</span>}
+      {item.contractType && <span>{item.contractType}</span>}
+      {item.education && <span>{item.education}</span>}
       {item.compensation && <span className="font-bold text-navy">{formatCompensation(item.compensation)}</span>}
+      {item.pcd === "exclusive" && <span>Vaga exclusiva para PcD</span>}
+      {item.pcd === "also_available" && <span>Vaga também para PcD</span>}
       {item.deadline && <span>{item.deadline}</span>}
     </div>
     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#718291]">

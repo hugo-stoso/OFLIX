@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { expect, test } from "@playwright/test";
 import path from "node:path";
-import { demoDiscoveryItems } from "../lib/discovery";
 import { formatWorkOpportunityCount } from "../lib/ui-copy";
 
 test.beforeAll(() => {
@@ -411,9 +410,8 @@ test("Home da pessoa busca no hub, mostra território e abre atalhos", async ({ 
   const apiResponse = await request.get("/api/opportunities");
   const payload = await apiResponse.json();
   const internalFormalInAracaju = payload.formal.filter((item: { location: { municipality: string } }) => item.location.municipality === "Aracaju").length;
-  const externalJobsInAracaju = demoDiscoveryItems.filter((item) => item.kind === "external_job" && item.location.municipality === "Aracaju").length;
   const territory = page.getByRole("region", { name: "Na demonstração em Aracaju" });
-  await expect(territory.getByText(formatWorkOpportunityCount(internalFormalInAracaju + externalJobsInAracaju), { exact: true })).toBeVisible();
+  await expect(territory.getByText(formatWorkOpportunityCount(internalFormalInAracaju), { exact: true })).toBeVisible();
   await page.getByLabel("O que você está procurando?").fill("eletricista");
   await page.getByRole("form", { name: "Buscar oportunidades" }).getByRole("button", { name: "Buscar", exact: true }).click();
   await expect(page).toHaveURL(/\/demo\?view=discover&q=eletricista/);

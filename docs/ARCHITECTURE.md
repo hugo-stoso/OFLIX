@@ -26,6 +26,16 @@ O perfil demo carrega a capacidade `canSupplyPublic`. Organizações fornecedora
 
 Itens externos carregam `source`, `sourceLabel`, `sourceId`, `sourceUrl`, datas, prazo e status quando informados. A UI distingue `DEMO DATA`, `PNCP` e `OFLIX`; o CTA varia por universo (vaga original, curso ou edital/portal oficial), e nenhum item externo é contado como contratação ou emprego criado pelo OFLIX.
 
+## GO SERGIPE: PRIMEIRA FONTE PÚBLICA EXTERNA
+
+`GET /api/external-jobs?source=go-sergipe` expõe a fonte externa somente para o fluxo `PERSON` de descoberta. O endpoint chama `lib/connectors/go-sergipe.ts` no servidor, aplica `q` e município sobre o resultado em cache e devolve `source: "GO_SERGIPE"`, `sourceLabel: "GO Sergipe"`, `collectedAt`, `stale`, `partial` e `count`. Organizações, voluntariado, capacitação, concursos e contratação pública não disparam essa coleta.
+
+O HTML observado em 08/10/2026 é um shell de SPA (`#app` e bundle JavaScript), sem cards no GET inicial. A própria aplicação faz `GET https://gosergipe.se.gov.br/api/oportunidades` com os filtros públicos padrão e `code_uf=SE`; a resposta é JSON com `count`, `next`, `previous` e `results`, 12 resultados por página no snapshot validado. O conector usa essa representação estruturada, com User-Agent identificável, timeout de 7 segundos por request, no máximo 25 páginas sequenciais e cache em memória/Next de quatro horas. Só segue `next` quando permanece em HTTPS, no host `gosergipe.se.gov.br` e no path `/api/oportunidades`.
+
+O parser JSON usa allowlist de campos públicos de oportunidade: ID, título, descrição, empresa, município/UF, datas, vagas, salário textual, PcD, escolaridade, tipo de contratação e CBO quando retornados. Ignora `created_by`, contatos, CNPJ, endereço/CEP, aplicações, limites internos e demais campos administrativos. Não acessa detalhes em massa, não executa candidatura, não usa autenticação e não usa navegador headless em produção. `sourceId` vem do ID real; a URL é construída como `/detalheOportunidades/{id}` somente após validação browser da rota pública. O parser HTML anterior permanece como fixture/fallback futuro, mas não é o mecanismo live.
+
+O endpoint não é chamado de API oficial ou documentada: é o endpoint público estruturado utilizado pela aplicação web do GO Sergipe. A checagem de 09/10/2026 obteve 156 anúncios, 13 páginas, 156 IDs únicos e somente UF SE. `GO_SERGIPE_ENABLED` fica habilitado por padrão após a validação anônima e pode ser desligado explicitamente com `false`; o fallback mantém a aplicação operante e registra apenas início/fim da coleta, sem títulos ou dados pessoais nos logs.
+
 ## MERCADO & CONHECIMENTO
 
 `/market` é uma superfície complementar, fora dos cinco destinos principais. Ela possui três abas: `Salários e mercado`, `Legislação para trabalho e negócios` e `Artigos & evidências`. A Home de pessoa apresenta Mercado & Conhecimento logo após a busca; a Home de organização, logo após suas ações principais. O componente reutilizável oferece três links diretos e copy por persona. Entradas contextuais adicionais aparecem no Observatório, no detalhe de vaga, no detalhe de voluntariado e no menu persistente da persona.
@@ -61,6 +71,7 @@ O ciclo de voluntariado usa `volunteer_participants`, com uma inscrição por pe
 - `POST /api/opportunities`: publica formal, demanda de serviço ou ação voluntária apenas quando a política do perfil permite.
 - `GET/POST/PATCH /api/volunteer-participation`: registra interesse de pessoa, lista inscrições da pessoa ou da organização dona e confirma/fecha participação com ownership server-side.
 - `GET /api/territory?profileId=...`: entrega a visão geral somente quando o perfil demo é `profile-analista`; para outros perfis exige atividades e retorna apenas o recorte de vagas/serviços compatíveis com esses interesses. Sem perfil, responde `401`.
+- `GET /api/external-jobs?source=go-sergipe`: fonte pública externa opcional para pessoas; responde desativada por padrão até a validação do canal público sustentável.
 - `POST /api/opportunities` valida publicação e remuneração; `GET /api/market/announced` calcula a média anunciada por município/categoria; `GET /api/knowledge` consulta OpenAlex com fallback snapshot. Esses endpoints não alteram a descoberta unificada.
 
 ## Experiência de perfil

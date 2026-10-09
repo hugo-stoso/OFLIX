@@ -2,7 +2,7 @@ import type { Compensation } from "@/lib/compensation";
 
 export type OpportunityKind = "formal" | "service" | "volunteer";
 export type DiscoveryKind = OpportunityKind | "course" | "public_exam" | "public_selection" | "external_job" | "public_procurement";
-export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "AUTHORIZED_PARTNER";
+export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "AUTHORIZED_PARTNER" | "GO_SERGIPE";
 export type WorkPreference = "CLT" | "Estágio" | "Serviços autônomos" | "Voluntariado" | "Concursos públicos" | "Processos seletivos públicos" | "Cursos e capacitação";
 export type DiscoveryFilterKind = "all" | "employment" | "service" | "volunteer" | "public_exam" | "course" | "public_procurement";
 export const EDUCATION_LEVELS = ["Ensino fundamental", "Ensino médio", "Ensino técnico", "Graduação", "Especialização", "Pós-graduação"] as const;
@@ -60,6 +60,7 @@ export const PUBLIC_PROCUREMENT_CATEGORIES = [
 ] as const;
 
 export type DiscoveryLocation = { state: string; municipality: string; district?: string };
+export type PcdAvailability = "exclusive" | "also_available" | "not_specified";
 export type DiscoveryItem = {
   id: string;
   kind: DiscoveryKind;
@@ -83,12 +84,16 @@ export type DiscoveryItem = {
   salary?: string;
   compensation?: Compensation;
   modality?: string;
+  contractType?: string;
   education?: string;
   duration?: string;
   cost?: string;
   certificate?: string;
   positions?: string;
   vacancies?: string;
+  pcd?: PcdAvailability;
+  occupationCode?: string;
+  occupationLabel?: string;
   board?: string;
   value?: string;
 };
