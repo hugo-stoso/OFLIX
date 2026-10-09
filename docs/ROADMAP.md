@@ -47,7 +47,7 @@
 - [ ] Governança de dados, consentimento e políticas de retenção.
 - [ ] Armazenamento seguro e compartilhado de currículos, com validação server-side de PDF/DOCX e download autorizado.
 - [ ] Validar operação do provider PNCP em produção, observar limites e persistir cache/última atualização conforme a infraestrutura existente permitir.
-- [ ] Validar o deploy público do GO Sergipe: `/api/external-jobs` com vagas, CTA de detalhe correto e QA visual desktop/mobile após o push.
+- [x] Validar o deploy público do GO Sergipe: `/api/external-jobs` com vagas, CTA de detalhe correto e QA visual desktop/mobile após o push em 09/10/2026.
 - [ ] Integrar cursos e concursos somente após confirmar API, feed, licença ou autorização oficial.
 - [ ] Integrar dados oficiais MTE/PDET com canal público documentado, competência, CBO, município e metodologia; sem inventar dados enquanto a fonte não estiver disponível.
 
