@@ -26,6 +26,14 @@ A decisão explícita é: “A OFLIX não usa navegador headless para extrair a 
 
 Na verificação de 09/10/2026, `/robots.txt`, `/termos-de-uso`, `/politica-de-privacidade` e `/privacidade` responderam HTML do shell ou não apresentaram um documento textual nos caminhos verificados; a documentação registra somente “não localizado nos caminhos verificados”, sem inventar regras.
 
+### Multifontes EmpregAju e IEL Sergipe
+
+EmpregAju foi classificado `READY`: a integração usa somente HTML público server-rendered, paginação no mesmo caminho, ID público do botão de detalhe e URL pública de candidatura. O rodapé não faz parte do modelo. IEL Sergipe foi classificado `PARTIAL`: a listagem HTML e os links individuais são públicos, mas a paginação depende de `/api/`, explicitamente desautorizado no `robots.txt`; a OFLIX não chama esse caminho e aceita somente a página inicial.
+
+Os dois conectores implementam o mesmo ciclo request-time do GO Sergipe: timeout, uma repetição apenas para 5xx, cache de quatro horas, fallback stale e allowlist de HTTPS/host/path. `external-jobs.ts` executa fontes em paralelo e devolve falha por fonte para não derrubar o restante. As flags `EMPREGAJU_ENABLED` e `IEL_SERGIPE_ENABLED` são habilitadas por padrão para os canais públicos validados e podem ser desligadas com `false`; Vagas Sergipe, Oficial News, BNE e Gupy permanecem sem coletor ativo conforme a auditoria em `docs/integrations/job-sources.md`.
+
+O contrato normalizado preserva tanto a forma compatível de `DiscoveryItem` quanto aliases explícitos (`sourceJobId`, `applicationUrl`, `company`, `city`, `state`, `workMode`, `opportunityType`, `vacanciesCount`, `isPcdEligible`, remuneração e timestamps). A deduplicação automática só usa `source + sourceJobId`; não mescla títulos parecidos entre fontes diferentes sem identidade compartilhada, para não perder candidaturas ou dados relevantes.
+
 ## SEMÂNTICA SEPARADA + DESCOBERTA UNIFICADA
 
 Cursos, concursos públicos, processos seletivos, vagas externas e contratações públicas permanecem entidades/projeções semanticamente distintas, com badges, filtros e detalhes próprios. A decisão de produto é apresentar esses universos permitidos em um único hub `Buscar`, porque separação de significado não deve virar fragmentação da descoberta. A home fica curta e recomenda um recorte misto; o painel de poder público é um teaser para o filtro `Poder público`.

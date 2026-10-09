@@ -24,7 +24,7 @@ O perfil demo carrega a capacidade `canSupplyPublic`. Organizações fornecedora
 
 `/api/public-opportunities` entrega DEMO DATA por padrão. `lib/connectors/pncp.ts` é um provider server-side isolado para a API pública de consulta do PNCP, usando `contratacoes/proposta`, filtro inicial por UF, timeout de 3,5 s, cache em memória de cinco minutos, normalização flexível, deduplicação conservadora e resposta de erro sem derrubar a aplicação. A consulta só é acionada no contexto público e para organização fornecedora ou pessoa autônoma com opt-in explícito; se a fonte falhar, a busca preserva o fallback DEMO DATA e oferece nova tentativa. Não há adapter ComprasNet.SE, scraping ou endpoint privado.
 
-Itens externos carregam `source`, `sourceLabel`, `sourceId`, `sourceUrl`, datas, prazo e status quando informados. A UI distingue `DEMO DATA`, `PNCP` e `OFLIX`; o CTA varia por universo (vaga original, curso ou edital/portal oficial), e nenhum item externo é contado como contratação ou emprego criado pelo OFLIX.
+Itens externos carregam `source`, `sourceLabel`, `sourceId`/`sourceJobId`, `sourceUrl`, `applicationUrl`, datas de publicação/verificação, prazo e status quando informados. A UI distingue `DEMO DATA`, `PNCP`, `OFLIX`, `GO Sergipe`, `EmpregAju` e `IEL Sergipe`; o CTA varia por universo (vaga original, candidatura, curso ou edital/portal oficial), e nenhum item externo é contado como contratação ou emprego criado pelo OFLIX.
 
 ## GO SERGIPE: PRIMEIRA FONTE PÚBLICA EXTERNA
 
@@ -35,6 +35,14 @@ O HTML observado em 08/10/2026 é um shell de SPA (`#app` e bundle JavaScript), 
 O parser JSON usa allowlist de campos públicos de oportunidade: ID, título, descrição, empresa, município/UF, datas, vagas, salário textual, PcD, escolaridade, tipo de contratação e CBO quando retornados. Ignora `created_by`, contatos, CNPJ, endereço/CEP, aplicações, limites internos e demais campos administrativos. Não acessa detalhes em massa, não executa candidatura, não usa autenticação e não usa navegador headless em produção. `sourceId` vem do ID real; a URL é construída como `/detalheOportunidades/{id}` somente após validação browser da rota pública. O parser HTML anterior permanece como fixture/fallback futuro, mas não é o mecanismo live.
 
 O endpoint não é chamado de API oficial ou documentada: é o endpoint público estruturado utilizado pela aplicação web do GO Sergipe. A checagem de 09/10/2026 obteve 156 anúncios, 13 páginas, 156 IDs únicos e somente UF SE. `GO_SERGIPE_ENABLED` fica habilitado por padrão após a validação anônima e pode ser desligado explicitamente com `false`; o fallback mantém a aplicação operante e registra apenas início/fim da coleta, sem títulos ou dados pessoais nos logs.
+
+## EMPREGAJU E IEL SERGIPE: MULTIFONTES PÚBLICAS
+
+`lib/connectors/external-jobs.ts` orquestra, em paralelo e com falha isolada, o GO Sergipe, o EmpregAju e o IEL Sergipe. `GET /api/external-jobs` sem `source` retorna o agregado; `source=go-sergipe`, `source=empregaju` e `source=iel-sergipe` preservam a execução isolada. Pessoas carregam o agregado em Buscar; organizações não fazem essa requisição e não misturam vagas externas em `Minhas oportunidades`.
+
+O EmpregAju usa somente HTML público de `/cidadao/vagas`, percorre a paginação HTML allowlisted, extrai ID de `verDetalhes`, candidatura pública `/register`, município/UF, badges e data. O IEL usa somente o HTML público de `/SE` e os links individuais `/SE/vaga/...`; a paginação depende de `/api/`, que está desautorizada pelo `robots.txt`, e por isso não é chamada. Ambos têm timeout, tentativa única adicional para HTTP 5xx, cache de quatro horas, fallback stale e allowlist de host/caminho.
+
+O contrato comum acrescenta empresa, candidatura, campos de remuneração, localização, modalidade, contratação, vagas, PcD, ciclo de verificação e status sem inventar valores ausentes. A deduplicação de primeiro nível usa `source + sourceJobId`; entre fontes diferentes somente há deduplicação quando o mesmo identificador pertence à mesma fonte, preservando links e cartões de fontes distintas. `docs/integrations/job-sources.md` registra a auditoria de Vagas Sergipe, Oficial News, BNE e Gupy: nenhuma dessas fontes tem coleta automática ativa.
 
 ## MERCADO & CONHECIMENTO
 
@@ -71,7 +79,7 @@ O ciclo de voluntariado usa `volunteer_participants`, com uma inscrição por pe
 - `POST /api/opportunities`: publica formal, demanda de serviço ou ação voluntária apenas quando a política do perfil permite.
 - `GET/POST/PATCH /api/volunteer-participation`: registra interesse de pessoa, lista inscrições da pessoa ou da organização dona e confirma/fecha participação com ownership server-side.
 - `GET /api/territory?profileId=...`: entrega a visão geral somente quando o perfil demo é `profile-analista`; para outros perfis exige atividades e retorna apenas o recorte de vagas/serviços compatíveis com esses interesses. Sem perfil, responde `401`.
-- `GET /api/external-jobs?source=go-sergipe`: fonte pública externa opcional para pessoas; responde desativada por padrão até a validação do canal público sustentável.
+- `GET /api/external-jobs[?source=all|go-sergipe|empregaju|iel-sergipe]`: fontes públicas externas validadas, com `q` e `municipality`, cache/fallback e resumo de estado por fonte; a chamada só é feita no fluxo de descoberta de pessoas.
 - `POST /api/opportunities` valida publicação e remuneração; `GET /api/market/announced` calcula a média anunciada por município/categoria; `GET /api/knowledge` consulta OpenAlex com fallback snapshot. Esses endpoints não alteram a descoberta unificada.
 
 ## Experiência de perfil

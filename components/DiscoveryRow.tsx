@@ -16,6 +16,8 @@ function withReturnTo(path: string, returnTo?: string) {
 
 function externalLabel(item: DiscoveryItem) {
   if (item.source === "GO_SERGIPE") return "Ver vaga no GO Sergipe";
+  if (item.source === "EMPREGAJU") return "Ver vaga no EmpregAju";
+  if (item.source === "IEL_SERGIPE") return "Ver vaga no IEL Sergipe";
   if (item.kind === "external_job") return "Ver vaga no site original";
   if (item.kind === "course") return "Ver curso na fonte oficial";
   if (item.kind === "public_exam" || item.kind === "public_selection") return "Ver edital oficial";
@@ -50,13 +52,14 @@ export function DiscoveryRow({ item, reason, returnTo }: { item: DiscoveryItem; 
     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#718291]">
       <span>Fonte: <strong className="text-navy">{item.sourceLabel}</strong></span>
       {item.updatedAt && <span>Atualizada em {formatDate(item.updatedAt)}</span>}
+      {item.lastVerifiedAt && <span>Verificada em {formatDate(item.lastVerifiedAt)}</span>}
     </div>
     {reason?.length ? <details className="mt-3 text-xs text-[#607286]"><summary className="cursor-pointer font-bold text-blue">Por que apareceu para você?</summary><ul className="mt-2 list-disc space-y-1 pl-5">{reason.map((line) => <li key={line}>{line}</li>)}</ul></details> : null}
   </>;
   return <article className="group grid gap-4 border-b border-line py-6 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
     <div className="min-w-0">{content}</div>
     <div className="flex items-center gap-2 sm:justify-end">
-      {isInternal ? <Link href={withReturnTo(`/opportunity/${item.id}?kind=${item.kind}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link> : item.sourceUrl && item.source !== "DEMO_DATA" ? <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="button-secondary w-full whitespace-nowrap sm:w-auto">{externalLabel(item)} <ExternalLink size={16} /></a> : <Link href={withReturnTo(`/discovery/${item.id}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link>}
+      {isInternal ? <Link href={withReturnTo(`/opportunity/${item.id}?kind=${item.kind}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link> : item.sourceUrl && item.source !== "DEMO_DATA" ? <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end"><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="button-secondary w-full whitespace-nowrap sm:w-auto">{externalLabel(item)} <ExternalLink size={16} /></a>{item.applicationUrl && item.applicationUrl !== item.sourceUrl && <a href={item.applicationUrl} target="_blank" rel="noreferrer" className="button-quiet w-full whitespace-nowrap sm:w-auto">Candidatar-se na fonte <ExternalLink size={14} /></a>}</div> : <Link href={withReturnTo(`/discovery/${item.id}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link>}
     </div>
   </article>;
 }

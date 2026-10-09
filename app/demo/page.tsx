@@ -18,7 +18,7 @@ import { ServiceCallPanel } from "@/components/ServiceCallPanel";
 import { ServiceCallTeaser } from "@/components/ServiceCallTeaser";
 import { TalentBasePanel } from "@/components/TalentBasePanel";
 import { VolunteerManagementPanel } from "@/components/VolunteerManagementPanel";
-import { ANALYST_PROFILE_ID, canDiscoverPublicOpportunities, canManageVolunteers, canPublishFormal, canPublishServiceDemand, canPublishVolunteer, canUseServiceToday, canUseTalentDirectory, DISCOVERY_FILTER_LABELS, discoveryItemMatchesFilter, organizationKindLabel, type DiscoveryFilterKind, type DiscoveryItem, type OpportunityKind, type OrganizationKind } from "@/lib/domain";
+import { ANALYST_PROFILE_ID, canDiscoverPublicOpportunities, canManageVolunteers, canPublishFormal, canPublishServiceDemand, canPublishVolunteer, canUseServiceToday, canUseTalentDirectory, DISCOVERY_FILTER_LABELS, discoveryItemMatchesFilter, externalSourceLabel, organizationKindLabel, type DiscoveryFilterKind, type DiscoveryItem, type OpportunityKind, type OrganizationKind } from "@/lib/domain";
 import { demoDiscoveryItems, discoveryReasons, internalToDiscoveryItem, rankDiscoveryItems } from "@/lib/discovery";
 import { formatWorkOpportunityCount } from "@/lib/ui-copy";
 
@@ -73,6 +73,11 @@ export default function DemoPage() {
   const [education, setEducation] = useState("");
   const [status, setStatus] = useState("");
   const [officialType, setOfficialType] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("");
+  const [contractTypeFilter, setContractTypeFilter] = useState("");
+  const [salaryMinimum, setSalaryMinimum] = useState("");
+  const [publishedSince, setPublishedSince] = useState("");
+  const [pcdOnly, setPcdOnly] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [favoriteVersion, setFavoriteVersion] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -172,17 +177,17 @@ export default function DemoPage() {
     let cancelled = false;
     setExternalJobsLoading(true);
     setExternalJobsError("");
-    fetch("/api/external-jobs?source=go-sergipe")
+    fetch("/api/external-jobs?source=all")
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Não foi possível atualizar as vagas do GO Sergipe agora.");
         if (cancelled) return;
-        if (data.enabled === false) {
+        if (data.enabled === false && !Array.isArray(data.sources)) {
           setExternalJobs([]);
           setExternalJobsError("");
         } else {
           setExternalJobs(Array.isArray(data.items) ? data.items : []);
-          setExternalJobsError(data.error ? "Não foi possível atualizar as vagas do GO Sergipe agora." : "");
+          setExternalJobsError(data.error ? "Não foi possível atualizar as vagas do GO Sergipe agora; outras fontes externas também podem estar indisponíveis." : "");
         }
       })
       .catch(() => { if (!cancelled) setExternalJobsError("Não foi possível atualizar as vagas do GO Sergipe agora."); })
@@ -202,6 +207,11 @@ export default function DemoPage() {
     setEducation(params.get("education") ?? "");
     setStatus(params.get("status") ?? "");
     setOfficialType(params.get("officialType") ?? "");
+    setSourceFilter(params.get("source") ?? "");
+    setContractTypeFilter(params.get("contractType") ?? "");
+    setSalaryMinimum(params.get("salaryMin") ?? "");
+    setPublishedSince(params.get("publishedSince") ?? "");
+    setPcdOnly(params.get("pcd") === "1");
     setFavoritesOnly(params.get("favorites") === "1");
     searchUrlHydrated.current = true;
   }, []);
@@ -209,6 +219,16 @@ export default function DemoPage() {
   useEffect(() => {
     if (activeFilter === "public_procurement" && !publicAccess) setActiveFilter("all");
   }, [activeFilter, publicAccess]);
+
+  useEffect(() => {
+    if (activeFilter !== "employment") {
+      setSourceFilter("");
+      setContractTypeFilter("");
+      setSalaryMinimum("");
+      setPublishedSince("");
+      setPcdOnly(false);
+    }
+  }, [activeFilter]);
 
   useEffect(() => {
     if (!searchUrlHydrated.current || activeView !== "discover") return;
@@ -221,9 +241,14 @@ export default function DemoPage() {
     if (education) params.set("education", education);
     if (status) params.set("status", status);
     if (officialType) params.set("officialType", officialType);
+    if (sourceFilter) params.set("source", sourceFilter);
+    if (contractTypeFilter) params.set("contractType", contractTypeFilter);
+    if (salaryMinimum) params.set("salaryMin", salaryMinimum);
+    if (publishedSince) params.set("publishedSince", publishedSince);
+    if (pcdOnly) params.set("pcd", "1");
     if (favoritesOnly) params.set("favorites", "1");
     window.history.replaceState(null, "", `/demo?${params.toString()}`);
-  }, [activeFilter, activeView, category, education, favoritesOnly, modality, municipality, officialType, search, status]);
+  }, [activeFilter, activeView, category, contractTypeFilter, education, favoritesOnly, modality, municipality, officialType, pcdOnly, publishedSince, salaryMinimum, search, sourceFilter, status]);
 
   useEffect(() => {
     if (!selectedProfile || !canUseTalentDirectory(selectedProfile)) { setTalents([]); return; }
@@ -272,9 +297,14 @@ export default function DemoPage() {
     const matchesEducation = !education || item.education === education;
     const matchesStatus = !status || item.status === status;
     const matchesOfficialType = !officialType || item.officialType === officialType;
+    const matchesSource = !sourceFilter || (sourceFilter === "internal" && item.source === "OFLIX") || (sourceFilter === "external" && item.kind === "external_job") || item.source === sourceFilter;
+    const matchesContractType = !contractTypeFilter || item.contractType === contractTypeFilter;
+    const matchesSalary = !salaryMinimum || item.salaryMin !== undefined && item.salaryMin >= Number(salaryMinimum);
+    const matchesPublishedSince = !publishedSince || Boolean(item.publishedAt && item.publishedAt >= publishedSince);
+    const matchesPcd = !pcdOnly || item.isPcdEligible === true || Boolean(item.pcd);
     const matchesFavorite = !favoritesOnly || favoriteIds().includes(item.id);
-    return discoveryItemMatchesFilter(item, activeFilter) && matchesTerm && matchesCategory && matchesMunicipality && matchesModality && matchesEducation && matchesStatus && matchesOfficialType && matchesFavorite;
-  }, [activeFilter, category, education, favoritesOnly, modality, municipality, officialType, search, status]);
+    return discoveryItemMatchesFilter(item, activeFilter) && matchesTerm && matchesCategory && matchesMunicipality && matchesModality && matchesEducation && matchesStatus && matchesOfficialType && matchesSource && matchesContractType && matchesSalary && matchesPublishedSince && matchesPcd && matchesFavorite;
+  }, [activeFilter, category, contractTypeFilter, education, favoritesOnly, modality, municipality, officialType, pcdOnly, publishedSince, salaryMinimum, search, sourceFilter, status]);
   const scopedDiscovery = useMemo(() => {
     void favoriteVersion;
     return discoveryItems.filter(filterDiscoveryItem);
@@ -287,6 +317,16 @@ export default function DemoPage() {
   const educations = useMemo(() => Array.from(new Set(filterScopedItems.map((item) => item.education).filter(Boolean) as string[])).sort(), [filterScopedItems]);
   const statuses = useMemo(() => Array.from(new Set(filterScopedItems.map((item) => item.status).filter(Boolean) as string[])).sort(), [filterScopedItems]);
   const officialTypes = useMemo(() => Array.from(new Set(filterScopedItems.map((item) => item.officialType).filter(Boolean) as string[])).sort(), [filterScopedItems]);
+  const sources = useMemo(() => {
+    const options = new Map<string, string>();
+    for (const item of filterScopedItems) {
+      if (item.kind === "external_job") options.set(item.source, externalSourceLabel(item.source));
+      else if (item.source === "OFLIX") options.set("internal", "OFLIX · vagas internas");
+    }
+    if (filterScopedItems.some((item) => item.kind === "external_job")) options.set("external", "Fontes externas");
+    return Array.from(options, ([value, label]) => ({ value, label })).sort((left, right) => left.label.localeCompare(right.label));
+  }, [filterScopedItems]);
+  const contractTypes = useMemo(() => Array.from(new Set(filterScopedItems.map((item) => item.contractType).filter(Boolean) as string[])).sort(), [filterScopedItems]);
   const allOpportunities = useMemo(() => Object.values(opportunities).flat(), [opportunities]);
   const ownedOpportunities = useMemo(() => selectedProfile ? allOpportunities.filter((opportunity) => opportunity.owner.id === selectedProfile.id) : [], [allOpportunities, selectedProfile]);
   const ownedOpportunityPreview = useMemo(() => [...ownedOpportunities].sort((left, right) => {
@@ -338,7 +378,7 @@ export default function DemoPage() {
   }
 
   function resetFilters() {
-    setSearch(""); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); setFavoritesOnly(false);
+    setSearch(""); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); setSourceFilter(""); setContractTypeFilter(""); setSalaryMinimum(""); setPublishedSince(""); setPcdOnly(false); setFavoritesOnly(false);
   }
 
   function goToDiscovery(filter: DiscoveryFilterKind = "all", nextSearch?: string) {
@@ -402,6 +442,11 @@ export default function DemoPage() {
     if (education) params.set("education", education);
     if (status) params.set("status", status);
     if (officialType) params.set("officialType", officialType);
+    if (sourceFilter) params.set("source", sourceFilter);
+    if (contractTypeFilter) params.set("contractType", contractTypeFilter);
+    if (salaryMinimum) params.set("salaryMin", salaryMinimum);
+    if (publishedSince) params.set("publishedSince", publishedSince);
+    if (pcdOnly) params.set("pcd", "1");
     if (favoritesOnly) params.set("favorites", "1");
     return `/demo?${params.toString()}`;
   })();
@@ -443,7 +488,7 @@ export default function DemoPage() {
 
       {activeView === "talents" && canUseTalents && <section aria-labelledby="people-title"><div className="page-intro"><p className="eyebrow">{isNonprofit ? "Pessoas" : "Talentos"}</p><h1 id="people-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">{isNonprofit ? "Acompanhe voluntários e encontre talentos." : "Encontre pessoas para o próximo passo."}</h1><p className="body-copy mt-3 max-w-[650px]">{isNonprofit ? "Separe a gestão das ações voluntárias da busca por perfis profissionais." : "Busque perfis que autorizaram a divulgação de competências, formação e interesses."}</p></div>{isNonprofit && <div className="segmented-control mt-7 max-w-md" role="tablist" aria-label="Pessoas da organização"><button type="button" role="tab" aria-selected={peopleTab === "volunteers"} onClick={() => setPeopleTab("volunteers")} className={peopleTab === "volunteers" ? "is-active" : ""}>Voluntários</button><button type="button" role="tab" aria-selected={peopleTab === "talents"} onClick={() => setPeopleTab("talents")} className={peopleTab === "talents" ? "is-active" : ""}>Talentos</button></div>}{isNonprofit && peopleTab === "volunteers" ? <VolunteerManagementPanel organizerId={selectedProfile.id} /> : <div className="mt-7"><TalentBasePanel ownerId={selectedProfile.id} talents={talents} /></div>}</section>}
 
-      {activeView === "discover" && <section aria-labelledby="discover-title"><div className="page-intro"><p className="eyebrow">Buscar</p><h1 id="discover-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Descubra oportunidades</h1><p className="body-copy mt-3 max-w-[650px]">Trabalho, concursos, capacitação e outras oportunidades para você.</p></div>{showPublicationMode && <section className="mt-7" aria-label={`Separar ofertas e demandas de ${activeFilter === "service" ? "serviços" : "trabalho"}`}><div className="segmented-control" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); resetFilters(); }} className={publicationMode === "offers" ? "is-active" : ""}>Ofertas <span>{publicationLabels.offers}</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); resetFilters(); }} className={publicationMode === "demands" ? "is-active" : ""}>Demandas <span>{publicationLabels.demands}</span></button></div></section>}<nav className={`${showPublicationMode ? "mt-6" : "mt-7"} flex max-w-full gap-1 overflow-x-auto border-b border-line`} aria-label="Tipos de oportunidade">{filterTabs.map((filter) => <button key={filter} type="button" onClick={() => { setActiveFilter(filter); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); }} className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-bold transition first:pl-0 ${activeFilter === filter ? "border-blue text-blue" : "border-transparent text-[#718291] hover:text-navy"}`}>{DISCOVERY_FILTER_LABELS[filter]}<span className="ml-2 text-xs font-normal text-[#8a9aa7]">{discoveryItems.filter((item) => discoveryItemMatchesFilter(item, filter)).length}</span></button>)}</nav><div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><OpportunityFilters filterKind={activeFilter} search={search} category={category} municipality={municipality} modality={modality} education={education} status={status} officialType={officialType} favoritesOnly={favoritesOnly} categories={categories} municipalities={municipalities} modalities={modalities} educations={educations} statuses={statuses} officialTypes={officialTypes} onSearch={setSearch} onCategory={setCategory} onMunicipality={setMunicipality} onModality={setModality} onEducation={setEducation} onStatus={setStatus} onOfficialType={setOfficialType} onFavoritesOnly={setFavoritesOnly} onClear={resetFilters} />{externalJobsError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as vagas do GO Sergipe agora.<button type="button" className="button-quiet" onClick={refreshExternalJobs} disabled={externalJobsLoading}>{externalJobsLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{externalJobsLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando vagas externas…</p>}{publicError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as oportunidades agora.<button type="button" className="button-quiet" onClick={refreshPublicOpportunities} disabled={publicLoading}>{publicLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{publicLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando oportunidades públicas…</p>}<div className="panel px-5 sm:px-8">{visibleDiscovery.length ? visibleDiscovery.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} reason={discoveryReasons(item, { search, activities: savedActivities, workPreferences: savedWorkPreferences, municipality, publicEnabled: publicAccess })} returnTo={discoveryReturnTo} />) : <div className="py-14 text-center"><p className="font-bold text-navy">Nenhuma oportunidade encontrada.</p><p className="mt-2 text-sm text-[#607286]">Tente outra palavra ou limpe os filtros para ampliar a busca.</p><button type="button" className="subtle-link mt-4" onClick={resetFilters}>Limpar busca</button></div>}</div>{externalJobs.length > 0 && (activeFilter === "all" || activeFilter === "employment") && <p className="mt-4 text-xs leading-5 text-[#718291]">Algumas vagas são exibidas a partir de fontes públicas externas. Consulte a fonte original para informações atualizadas e candidatura.</p>}</div><aside className="hidden h-fit border-l-2 border-[#c9dce8] pl-5 lg:block"><p className="eyebrow">Neste recorte</p><p className="mt-3 text-sm leading-6 text-[#607286]">{showPublicationMode ? publicationMode === "offers" ? activeFilter === "service" ? "Profissionais oferecendo serviços e suas atividades." : "Pessoas apresentam sua força de trabalho." : isOrganization ? "Sua organização vê suas demandas e oportunidades públicas quando habilitada." : "Contratantes e fontes externas aparecem neste lado do mercado." : "Todos os universos permitidos para este perfil aparecem nesta busca."}</p><Link href="/profile" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline"><BarChart3 size={16} /> Ver meu perfil <ArrowRight size={15} /></Link></aside></div></section>}
+      {activeView === "discover" && <section aria-labelledby="discover-title"><div className="page-intro"><p className="eyebrow">Buscar</p><h1 id="discover-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Descubra oportunidades</h1><p className="body-copy mt-3 max-w-[650px]">Trabalho, concursos, capacitação e outras oportunidades para você.</p></div>{showPublicationMode && <section className="mt-7" aria-label={`Separar ofertas e demandas de ${activeFilter === "service" ? "serviços" : "trabalho"}`}><div className="segmented-control" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); resetFilters(); }} className={publicationMode === "offers" ? "is-active" : ""}>Ofertas <span>{publicationLabels.offers}</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); resetFilters(); }} className={publicationMode === "demands" ? "is-active" : ""}>Demandas <span>{publicationLabels.demands}</span></button></div></section>}<nav className={`${showPublicationMode ? "mt-6" : "mt-7"} flex max-w-full gap-1 overflow-x-auto border-b border-line`} aria-label="Tipos de oportunidade">{filterTabs.map((filter) => <button key={filter} type="button" onClick={() => { setActiveFilter(filter); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); }} className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-bold transition first:pl-0 ${activeFilter === filter ? "border-blue text-blue" : "border-transparent text-[#718291] hover:text-navy"}`}>{DISCOVERY_FILTER_LABELS[filter]}<span className="ml-2 text-xs font-normal text-[#8a9aa7]">{discoveryItems.filter((item) => discoveryItemMatchesFilter(item, filter)).length}</span></button>)}</nav><div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><OpportunityFilters filterKind={activeFilter} search={search} category={category} municipality={municipality} modality={modality} education={education} status={status} officialType={officialType} source={sourceFilter} contractType={contractTypeFilter} salaryMinimum={salaryMinimum} publishedSince={publishedSince} pcdOnly={pcdOnly} favoritesOnly={favoritesOnly} categories={categories} municipalities={municipalities} modalities={modalities} educations={educations} statuses={statuses} officialTypes={officialTypes} sources={sources} contractTypes={contractTypes} onSearch={setSearch} onCategory={setCategory} onMunicipality={setMunicipality} onModality={setModality} onEducation={setEducation} onStatus={setStatus} onOfficialType={setOfficialType} onSource={setSourceFilter} onContractType={setContractTypeFilter} onSalaryMinimum={setSalaryMinimum} onPublishedSince={setPublishedSince} onPcdOnly={setPcdOnly} onFavoritesOnly={setFavoritesOnly} onClear={resetFilters} />{externalJobsError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as vagas do GO Sergipe agora; outras fontes externas também podem estar indisponíveis.<button type="button" className="button-quiet" onClick={refreshExternalJobs} disabled={externalJobsLoading}>{externalJobsLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{externalJobsLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando vagas externas…</p>}{publicError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as oportunidades agora.<button type="button" className="button-quiet" onClick={refreshPublicOpportunities} disabled={publicLoading}>{publicLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{publicLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando oportunidades públicas…</p>}<div className="panel px-5 sm:px-8">{visibleDiscovery.length ? visibleDiscovery.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} reason={discoveryReasons(item, { search, activities: savedActivities, workPreferences: savedWorkPreferences, municipality, publicEnabled: publicAccess })} returnTo={discoveryReturnTo} />) : <div className="py-14 text-center"><p className="font-bold text-navy">Nenhuma oportunidade encontrada.</p><p className="mt-2 text-sm text-[#607286]">Tente outra palavra ou limpe os filtros para ampliar a busca.</p><button type="button" className="subtle-link mt-4" onClick={resetFilters}>Limpar busca</button></div>}</div>{externalJobs.length > 0 && (activeFilter === "all" || activeFilter === "employment") && <p className="mt-4 text-xs leading-5 text-[#718291]">Algumas vagas são exibidas a partir de fontes públicas externas. Consulte a fonte original para informações atualizadas e candidatura.</p>}</div><aside className="hidden h-fit border-l-2 border-[#c9dce8] pl-5 lg:block"><p className="eyebrow">Neste recorte</p><p className="mt-3 text-sm leading-6 text-[#607286]">{showPublicationMode ? publicationMode === "offers" ? activeFilter === "service" ? "Profissionais oferecendo serviços e suas atividades." : "Pessoas apresentam sua força de trabalho." : isOrganization ? "Sua organização vê suas demandas e oportunidades públicas quando habilitada." : "Contratantes e fontes externas aparecem neste lado do mercado." : "Todos os universos permitidos para este perfil aparecem nesta busca."}</p><Link href="/profile" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline"><BarChart3 size={16} /> Ver meu perfil <ArrowRight size={15} /></Link></aside></div></section>}
     </div>
     <div className="shell"><button type="button" className="button-quiet sm:hidden" onClick={() => { window.localStorage.removeItem("oflix-demo-profile"); setSelectedId(null); window.dispatchEvent(new Event("oflix-profile-changed")); }}>Trocar perfil</button></div>
   </main>;

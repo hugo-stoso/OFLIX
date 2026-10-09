@@ -37,6 +37,7 @@
 - [x] Mercado & Conhecimento com comparação por município + categoria OFLIX, legislação contextual e busca livre de artigos por macrotema + `q`.
 - [x] Mercado & Conhecimento reposicionado cedo nas Homes, com copy por persona, três atalhos diretos e acesso persistente no menu sem sexto destino principal.
 - [x] Primeira integração real de fonte pública externa do GO Sergipe: endpoint estruturado usado pela SPA, parser server-side com allowlist, proveniência, CTA, cache/fallback, filtro municipal, deduplicação e testes.
+- [x] Integração multifontes pública de empregos: EmpregAju por HTML paginado e IEL Sergipe pela listagem HTML pública, contrato normalizado, flags independentes, cache/fallback, deduplicação, filtros de fonte/contratação/salário/data/PcD e isolamento de organizações.
 
 ## MVP
 
@@ -49,6 +50,8 @@
 - [ ] Validar operação do provider PNCP em produção, observar limites e persistir cache/última atualização conforme a infraestrutura existente permitir.
 - [x] Validar o deploy público do GO Sergipe: `/api/external-jobs` com vagas, CTA de detalhe correto e QA visual desktop/mobile após o push em 09/10/2026.
 - [ ] Integrar cursos e concursos somente após confirmar API, feed, licença ou autorização oficial.
+- [ ] Revalidar periodicamente o HTML do EmpregAju e do IEL; ampliar a paginação do IEL somente quando existir canal público permitido.
+- [ ] Integrar Vagas Sergipe, Oficial News, BNE ou Gupy apenas após confirmar canal público estruturado, escopo Sergipe e permissão compatível.
 - [ ] Integrar dados oficiais MTE/PDET com canal público documentado, competência, CBO, município e metodologia; sem inventar dados enquanto a fonte não estiver disponível.
 
 ## Pós-MVP

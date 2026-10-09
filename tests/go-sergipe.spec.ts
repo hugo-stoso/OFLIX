@@ -181,7 +181,7 @@ test.describe("GO Sergipe na busca", () => {
     await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: /Hugo Silva/ }).click();
     await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-    await expect(page.getByRole("status").filter({ hasText: "Não foi possível atualizar as vagas do GO Sergipe agora." })).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Não foi possível atualizar as vagas do GO Sergipe agora" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Instalações elétricas residenciais", exact: true })).toBeVisible();
   });
 });
