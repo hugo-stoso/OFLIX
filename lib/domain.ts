@@ -3,6 +3,9 @@ import type { Compensation } from "@/lib/compensation";
 export type OpportunityKind = "formal" | "service" | "volunteer";
 export type DiscoveryKind = OpportunityKind | "course" | "public_exam" | "public_selection" | "external_job" | "public_procurement";
 export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "AUTHORIZED_PARTNER" | "GO_SERGIPE" | "EMPREGAJU" | "IEL_SERGIPE";
+export type OpportunityOrigin = "all" | "oflix" | "external";
+export const EXTERNAL_DISCOVERY_SOURCES = ["GO_SERGIPE", "EMPREGAJU", "IEL_SERGIPE"] as const;
+export type ExternalDiscoverySource = (typeof EXTERNAL_DISCOVERY_SOURCES)[number];
 export type WorkPreference = "CLT" | "Estágio" | "Serviços autônomos" | "Voluntariado" | "Concursos públicos" | "Processos seletivos públicos" | "Cursos e capacitação";
 export type DiscoveryFilterKind = "all" | "employment" | "service" | "volunteer" | "public_exam" | "course" | "public_procurement";
 export const EDUCATION_LEVELS = ["Ensino fundamental", "Ensino médio", "Ensino técnico", "Graduação", "Especialização", "Pós-graduação"] as const;
@@ -66,6 +69,10 @@ export function externalSourceLabel(source: DiscoverySource | "ALL") {
   if (source === "EMPREGAJU") return "EmpregAju";
   if (source === "IEL_SERGIPE") return "IEL Sergipe";
   return source === "ALL" ? "Fontes externas" : source;
+}
+
+export function isExternalDiscoverySource(source: string): source is ExternalDiscoverySource {
+  return EXTERNAL_DISCOVERY_SOURCES.includes(source as ExternalDiscoverySource);
 }
 
 export type DiscoveryItem = {

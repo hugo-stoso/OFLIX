@@ -37,7 +37,7 @@
 - [x] Mercado & Conhecimento com comparação por município + categoria OFLIX, legislação contextual e busca livre de artigos por macrotema + `q`.
 - [x] Mercado & Conhecimento reposicionado cedo nas Homes, com copy por persona, três atalhos diretos e acesso persistente no menu sem sexto destino principal.
 - [x] Primeira integração real de fonte pública externa do GO Sergipe: endpoint estruturado usado pela SPA, parser server-side com allowlist, proveniência, CTA, cache/fallback, filtro municipal, deduplicação e testes.
-- [x] Integração multifontes pública de empregos: EmpregAju por HTML paginado e IEL Sergipe pela listagem HTML pública, contrato normalizado, flags independentes, cache/fallback, deduplicação, filtros de fonte/contratação/salário/data/PcD e isolamento de organizações.
+- [x] Integração multifontes pública de empregos: EmpregAju por HTML paginado e IEL Sergipe pela listagem HTML pública, contrato normalizado, flags independentes, cache/fallback, deduplicação, filtros independentes de origem/fonte com contagens e URL compartilhável, filtros combináveis de contratação/salário/data/PcD e isolamento de organizações.
 
 ## MVP
 

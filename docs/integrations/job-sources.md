@@ -57,7 +57,23 @@ O valor ausente equivale a habilitado somente para essas três fontes validadas.
 
 ## Busca e isolamento por perfil
 
-Pessoas carregam fontes externas apenas em `Buscar`, nos filtros `Todos` e `Empregos`. A busca preserva as vagas internas e acrescenta filtros de fonte, município, cargo, contratação, modalidade, salário mínimo, publicação desde e PcD informada. Cada item mostra fonte e última verificação quando disponíveis; o CTA aponta para a página pública original e, quando separado, para a URL pública de candidatura.
+Pessoas carregam fontes externas apenas em `Buscar`, nos filtros `Todos` e `Empregos`. No recorte `Empregos`, a origem e a fonte são filtros independentes:
+
+- `Todas as vagas`: itens formais com `kind === "formal"` e `source === "OFLIX"` mais todos os `external_job`;
+- `Publicadas na OFLIX`: somente `kind === "formal" && source === "OFLIX"`;
+- `Vagas externas`: somente `kind === "external_job"`;
+- `Todas as fontes`, `GO Sergipe`, `EmpregAju` e `IEL`: refinam somente o recorte externo, usando `GO_SERGIPE`, `EMPREGAJU` e `IEL_SERGIPE`.
+
+As contagens de origem e fonte usam o mesmo recorte ativo de busca, município e demais filtros. A URL compartilhável preserva os parâmetros, por exemplo:
+
+```text
+?type=employment&origin=all
+?type=employment&origin=oflix
+?type=employment&origin=external
+?type=employment&origin=external&source=GO_SERGIPE
+```
+
+Ao trocar para `origin=oflix`, uma fonte externa incompatível é limpa. Busca, município, contratação, modalidade, salário mínimo, publicação desde e PcD informada continuam combináveis. Cada item mostra fonte e última verificação quando disponíveis; o CTA aponta para a página pública original e, quando separado, para a URL pública de candidatura.
 
 Organizações não executam a chamada externa na Home nem em `Minhas oportunidades`; vagas externas não têm proprietário OFLIX e nunca entram no bloco de publicações da organização. O GO Sergipe continua compatível com `source=go-sergipe`.
 

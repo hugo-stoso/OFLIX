@@ -77,6 +77,7 @@ const externalPayload = {
   items: [
     { id: "empregaju-872", kind: "external_job", title: "Assistente administrativo", description: "Rotinas administrativas.", category: "Emprego", provider: "Empresa Parceira", location: { state: "SE", municipality: "Aracaju" }, source: "EMPREGAJU", sourceLabel: "EmpregAju", sourceId: "872", sourceUrl: "https://empregaju.aracaju.se.gov.br/cidadao/vagas", applicationUrl: "https://empregaju.aracaju.se.gov.br/register", tags: ["EmpregAju", "Vaga externa"], contractType: "CLT", modality: "Presencial", lastVerifiedAt: "2026-10-09T12:00:00.000Z" },
     { id: "iel-sergipe-32115", kind: "external_job", title: "Estágio em administração", description: "Consulte a fonte.", category: "Emprego", provider: "Empresa IEL", location: { state: "SE", municipality: "Aracaju" }, source: "IEL_SERGIPE", sourceLabel: "IEL Sergipe", sourceId: "32115", sourceUrl: "https://carreiras.iel.org.br/SE/vaga/estagio-nao-obrigatorio/32115/estagio-em-administracao", tags: ["IEL Sergipe", "Vaga externa"], contractType: "Estágio", modality: "Presencial", lastVerifiedAt: "2026-10-09T12:00:00.000Z" },
+    { id: "go-sergipe-4782", kind: "external_job", title: "Técnico administrativo", description: "Atendimento e rotinas administrativas.", category: "Emprego", provider: "Empresa GO Sergipe", location: { state: "SE", municipality: "Aracaju" }, source: "GO_SERGIPE", sourceLabel: "GO Sergipe", sourceId: "4782", sourceUrl: "https://gosergipe.se.gov.br/detalheOportunidades/4782", tags: ["GO Sergipe", "Vaga externa"], contractType: "CLT", modality: "Presencial", lastVerifiedAt: "2026-10-09T12:00:00.000Z" },
   ],
 };
 
@@ -97,10 +98,10 @@ test.describe("filtros multifonte na busca", () => {
     await expect(page.getByRole("heading", { name: "Estágio em administração", exact: true })).toBeVisible();
     const filtersToggle = page.getByRole("button", { name: "Filtros", exact: true });
     if (await filtersToggle.isVisible()) await filtersToggle.click();
-    await page.getByLabel("Filtrar por fonte").selectOption({ label: "IEL Sergipe" });
+    await page.getByLabel("Filtrar por fonte").selectOption("IEL_SERGIPE");
     await expect(page.getByRole("heading", { name: "Estágio em administração", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toHaveCount(0);
-    await page.getByLabel("Filtrar por fonte").selectOption({ label: "Fontes externas" });
+    await page.getByLabel("Filtrar por fonte").selectOption("");
     await page.getByLabel("Filtrar por município").selectOption({ label: "Aracaju" });
     await expect(page.getByText("Fonte: EmpregAju", { exact: true })).toBeVisible();
     await expect(page.getByText("Fonte: IEL Sergipe", { exact: true })).toBeVisible();
@@ -108,5 +109,59 @@ test.describe("filtros multifonte na busca", () => {
     await page.getByRole("button", { name: /Coletivo Horizonte/ }).click();
     await expect(page.getByRole("heading", { name: "Minhas oportunidades" })).toBeVisible();
     expect(await page.locator("text=Assistente administrativo").count()).toBe(0);
+  });
+
+  test("separa origem e fonte, preserva a URL e combina busca com município", async ({ page }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await mockExternalJobs(page);
+    await page.goto("/demo");
+    await page.getByRole("button", { name: /Hugo Silva/ }).click();
+    await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
+    await page.getByRole("button", { name: /Empregos/ }).click();
+    const filtersToggle = page.getByRole("button", { name: "Filtros", exact: true });
+    if (await filtersToggle.isVisible()) await filtersToggle.click();
+
+    const origin = page.getByLabel("Filtrar por origem");
+    const source = page.getByLabel("Filtrar por fonte");
+    const optionTexts = await origin.locator("option").allTextContents();
+    expect(optionTexts).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^Todas as vagas \(\d+\)$/),
+      expect.stringMatching(/^Publicadas na OFLIX \(\d+\)$/),
+      expect.stringMatching(/^Vagas externas \(\d+\)$/),
+    ]));
+    const optionCount = (label: string) => Number(optionTexts.find((text) => text.startsWith(label))?.match(/\((\d+)\)$/)?.[1] ?? -1);
+    expect(optionCount("Todas as vagas")).toBeGreaterThan(optionCount("Publicadas na OFLIX"));
+    expect(optionCount("Vagas externas")).toBe(3);
+    await expect(page.locator("h3")).toHaveCount(optionCount("Todas as vagas"));
+    expect(new URL(page.url()).searchParams.get("origin")).toBe("all");
+
+    await expect(source.locator("option")).toContainText(["Todas as fontes", "GO Sergipe", "EmpregAju", "IEL"]);
+    await origin.selectOption("oflix");
+    await expect(source).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Assistente de operações locais", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toHaveCount(0);
+    expect(new URL(page.url()).searchParams.get("origin")).toBe("oflix");
+    expect(new URL(page.url()).searchParams.has("source")).toBe(false);
+
+    await origin.selectOption("external");
+    await expect(page.getByRole("heading", { name: "Assistente de operações locais", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Técnico administrativo", exact: true })).toBeVisible();
+    expect(new URL(page.url()).searchParams.get("origin")).toBe("external");
+    await source.selectOption("GO_SERGIPE");
+    await expect(page.getByRole("heading", { name: "Técnico administrativo", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toHaveCount(0);
+    expect(new URL(page.url()).searchParams.get("source")).toBe("GO_SERGIPE");
+    expect(new URL(page.url()).searchParams.get("origin")).toBe("external");
+
+    await source.selectOption("");
+    await page.getByLabel("Filtrar por município").selectOption({ label: "Aracaju" });
+    await page.getByLabel("Pesquisar oportunidade").fill("Assistente administrativo");
+    await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Técnico administrativo", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Estágio em administração", exact: true })).toHaveCount(0);
+    const filteredUrl = new URL(page.url());
+    expect(filteredUrl.searchParams.get("origin")).toBe("external");
+    expect(filteredUrl.searchParams.get("municipality")).toBe("Aracaju");
+    expect(filteredUrl.searchParams.get("q")).toBe("Assistente administrativo");
   });
 });

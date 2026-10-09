@@ -67,7 +67,7 @@
 - GO Sergipe: `IMPLEMENTADO` no deploy público `https://oflix-six.vercel.app`, com `GO_SERGIPE_ENABLED=true` em Production, HTTP 200 em `/api/external-jobs?source=go-sergipe`, 156 itens, 13 páginas, 156 URLs de detalhe válidas e QA publicado desktop/mobile; organizações não requisitam nem exibem essa fonte em “Minhas oportunidades”.
 - EmpregAju: `IMPLEMENTADO` como fonte pública HTML validada, com paginação allowlisted, IDs públicos, candidatura original, cache/fallback e filtros compartilhados; sem coleta de rodapé ou dados de candidatos.
 - IEL Sergipe: `IMPLEMENTADO` com escopo `PARTIAL` da fonte: listagem HTML pública e links individuais, sem chamar `/api/` desautorizado pelo `robots.txt`; paginação posterior permanece limitada ao HTML inicial.
-- Multifontes de empregos: `IMPLEMENTADO` em `GET /api/external-jobs` com `source=all` ou fonte individual, deduplicação por fonte/ID, timestamps de verificação, flags independentes, filtros de fonte/município/contratação/modalidade/salário/data/PcD e isolamento de organizações.
+- Multifontes de empregos: `IMPLEMENTADO` em `GET /api/external-jobs` com `source=all` ou fonte individual, deduplicação por fonte/ID, timestamps de verificação, flags independentes, filtros independentes de origem (`all`/`oflix`/`external`) e fonte (`GO_SERGIPE`/`EMPREGAJU`/`IEL_SERGIPE`), contagens, URL compartilhável, filtros combináveis de município/contratação/modalidade/salário/data/PcD e isolamento de organizações.
 
 ## VALIDAÇÃO NECESSÁRIA
 

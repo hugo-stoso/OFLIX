@@ -2,7 +2,7 @@
 
 import { Filter, Search, X } from "lucide-react";
 import { useState } from "react";
-import type { DiscoveryFilterKind } from "@/lib/domain";
+import type { DiscoveryFilterKind, OpportunityOrigin } from "@/lib/domain";
 
 type Props = {
   filterKind: DiscoveryFilterKind;
@@ -13,6 +13,7 @@ type Props = {
   education: string;
   status: string;
   officialType: string;
+  origin: OpportunityOrigin;
   source: string;
   contractType: string;
   salaryMinimum: string;
@@ -25,7 +26,8 @@ type Props = {
   educations: string[];
   statuses: string[];
   officialTypes: string[];
-  sources: Array<{ value: string; label: string }>;
+  origins: Array<{ value: OpportunityOrigin; label: string; count: number }>;
+  sources: Array<{ value: string; label: string; count: number }>;
   contractTypes: string[];
   onSearch: (value: string) => void;
   onCategory: (value: string) => void;
@@ -34,6 +36,7 @@ type Props = {
   onEducation: (value: string) => void;
   onStatus: (value: string) => void;
   onOfficialType: (value: string) => void;
+  onOrigin: (value: OpportunityOrigin) => void;
   onSource: (value: string) => void;
   onContractType: (value: string) => void;
   onSalaryMinimum: (value: string) => void;
@@ -43,9 +46,9 @@ type Props = {
   onClear: () => void;
 };
 
-export function OpportunityFilters({ filterKind, search, category, municipality, modality, education, status, officialType, source, contractType, salaryMinimum, publishedSince, pcdOnly, favoritesOnly, categories, municipalities, modalities, educations, statuses, officialTypes, sources, contractTypes, onSearch, onCategory, onMunicipality, onModality, onEducation, onStatus, onOfficialType, onSource, onContractType, onSalaryMinimum, onPublishedSince, onPcdOnly, onFavoritesOnly, onClear }: Props) {
+export function OpportunityFilters({ filterKind, search, category, municipality, modality, education, status, officialType, origin, source, contractType, salaryMinimum, publishedSince, pcdOnly, favoritesOnly, categories, municipalities, modalities, educations, statuses, officialTypes, origins, sources, contractTypes, onSearch, onCategory, onMunicipality, onModality, onEducation, onStatus, onOfficialType, onOrigin, onSource, onContractType, onSalaryMinimum, onPublishedSince, onPcdOnly, onFavoritesOnly, onClear }: Props) {
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const hasFilters = Boolean(search || category || municipality || modality || education || status || officialType || source || contractType || salaryMinimum || publishedSince || pcdOnly || favoritesOnly);
+  const hasFilters = Boolean(search || category || municipality || modality || education || status || officialType || origin !== "all" || source || contractType || salaryMinimum || publishedSince || pcdOnly || favoritesOnly);
   const showModality = filterKind === "employment" || filterKind === "course";
   const showEducation = filterKind === "employment" || filterKind === "public_exam" || filterKind === "course";
   const showPublicFilters = filterKind === "public_exam" || filterKind === "public_procurement";
@@ -60,7 +63,8 @@ export function OpportunityFilters({ filterKind, search, category, municipality,
       <label><span className="sr-only">Filtrar por município</span><select aria-label="Filtrar por município" value={municipality} onChange={(event) => onMunicipality(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy"><option value="">Todos os municípios</option>{municipalities.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
       {showModality && <label><span className="sr-only">Filtrar por modalidade</span><select aria-label="Filtrar por modalidade" value={modality} onChange={(event) => onModality(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy"><option value="">Todas as modalidades</option>{modalities.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>}
       {showEducation && <label><span className="sr-only">Filtrar por escolaridade</span><select aria-label="Filtrar por escolaridade" value={education} onChange={(event) => onEducation(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy"><option value="">Todas as escolaridades</option>{educations.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>}
-      {filterKind === "employment" && <label><span className="sr-only">Filtrar por fonte</span><select aria-label="Filtrar por fonte" value={source} onChange={(event) => onSource(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy"><option value="">Todas as fontes</option>{sources.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}
+      {filterKind === "employment" && <label><span className="sr-only">Filtrar por origem</span><select aria-label="Filtrar por origem" value={origin} onChange={(event) => onOrigin(event.target.value as OpportunityOrigin)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy">{origins.map((item) => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}</select></label>}
+      {filterKind === "employment" && origin !== "oflix" && <label><span className="sr-only">Filtrar por fonte</span><select aria-label="Filtrar por fonte" value={source} onChange={(event) => onSource(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy"><option value="">Todas as fontes ({sources.reduce((total, item) => total + item.count, 0)})</option>{sources.map((item) => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}</select></label>}
       {filterKind === "employment" && <label><span className="sr-only">Filtrar por contratação</span><select aria-label="Filtrar por contratação" value={contractType} onChange={(event) => onContractType(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy"><option value="">Todos os tipos de contratação</option>{contractTypes.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>}
       {filterKind === "employment" && <label><span className="sr-only">Salário mínimo</span><input aria-label="Salário mínimo" type="number" min="0" step="0.01" inputMode="decimal" placeholder="Salário mínimo" value={salaryMinimum} onChange={(event) => onSalaryMinimum(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy" /></label>}
       {filterKind === "employment" && <label><span className="sr-only">Publicada desde</span><input aria-label="Publicada desde" type="date" value={publishedSince} onChange={(event) => onPublishedSince(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy" /></label>}
@@ -69,6 +73,6 @@ export function OpportunityFilters({ filterKind, search, category, municipality,
       {filterKind === "employment" && <label className="inline-flex min-h-10 items-center gap-2 font-semibold text-[#637688]"><input type="checkbox" checked={pcdOnly} onChange={(event) => onPcdOnly(event.target.checked)} className="h-4 w-4 accent-[#1d5b8f]" /> Somente PcD informada</label>}
       <label className="inline-flex min-h-10 items-center gap-2 font-semibold text-[#637688] lg:col-span-4"><input type="checkbox" checked={favoritesOnly} onChange={(event) => onFavoritesOnly(event.target.checked)} className="h-4 w-4 accent-[#1d5b8f]" /> Somente favoritos</label>
     </div>
-    {hasFilters && <div className="mt-3 flex flex-wrap gap-2" aria-label="Filtros ativos">{search && <span className="filter-chip">Busca: {search}</span>}{category && <span className="filter-chip">{category}</span>}{municipality && <span className="filter-chip">{municipality}</span>}{modality && <span className="filter-chip">{modality}</span>}{education && <span className="filter-chip">{education}</span>}{source && <span className="filter-chip">{sources.find((item) => item.value === source)?.label ?? source}</span>}{contractType && <span className="filter-chip">{contractType}</span>}{salaryMinimum && <span className="filter-chip">Salário ≥ R$ {salaryMinimum}</span>}{publishedSince && <span className="filter-chip">Desde {publishedSince}</span>}{pcdOnly && <span className="filter-chip">PcD informada</span>}{status && <span className="filter-chip">{status}</span>}{officialType && <span className="filter-chip">{officialType}</span>}{favoritesOnly && <span className="filter-chip">Favoritos</span>}</div>}
+    {hasFilters && <div className="mt-3 flex flex-wrap gap-2" aria-label="Filtros ativos">{search && <span className="filter-chip">Busca: {search}</span>}{category && <span className="filter-chip">{category}</span>}{municipality && <span className="filter-chip">{municipality}</span>}{modality && <span className="filter-chip">{modality}</span>}{education && <span className="filter-chip">{education}</span>}{origin !== "all" && <span className="filter-chip">{origins.find((item) => item.value === origin)?.label ?? origin}</span>}{source && <span className="filter-chip">{sources.find((item) => item.value === source)?.label ?? source}</span>}{contractType && <span className="filter-chip">{contractType}</span>}{salaryMinimum && <span className="filter-chip">Salário ≥ R$ {salaryMinimum}</span>}{publishedSince && <span className="filter-chip">Desde {publishedSince}</span>}{pcdOnly && <span className="filter-chip">PcD informada</span>}{status && <span className="filter-chip">{status}</span>}{officialType && <span className="filter-chip">{officialType}</span>}{favoritesOnly && <span className="filter-chip">Favoritos</span>}</div>}
   </section>;
 }
