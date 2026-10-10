@@ -10,7 +10,7 @@ export function MunicipalitySummary({ municipality, values, category, onClear }:
   const cards = [
     ["Oportunidades", values.opportunities],
     ["Empregos", values.formal],
-    ["Serviços", values.services],
+    ["Prestação de serviços", values.services],
     ["Voluntariado", values.volunteer],
     ["Interações", values.interactions],
   ] as const;

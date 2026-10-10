@@ -1,5 +1,5 @@
 import type { Compensation } from "@/lib/compensation";
-import type { DiscoveryItem, DiscoveryKind, DiscoveryLocation, DiscoverySource } from "@/lib/domain";
+import { workPreferenceLabel, type DiscoveryItem, type DiscoveryKind, type DiscoveryLocation, type DiscoverySource } from "@/lib/domain";
 
 const demoLocation = (municipality: string): DiscoveryLocation => ({ state: "SE", municipality });
 
@@ -263,7 +263,7 @@ export function discoveryReasons(item: DiscoveryItem, context: RankingContext & 
   if (item.kind === "course" && context.workPreferences?.includes("Cursos e capacitação")) reasons.push("Você selecionou cursos e capacitação.");
   if (item.modality === "CLT" && context.workPreferences?.includes("CLT")) reasons.push("Você acompanha oportunidades CLT.");
   if (item.modality === "Estágio" && context.workPreferences?.includes("Estágio")) reasons.push("Você acompanha oportunidades de estágio.");
-  if (item.kind === "service" && context.workPreferences?.includes("Serviços autônomos")) reasons.push("Você acompanha serviços autônomos.");
+  if (item.kind === "service" && context.workPreferences?.includes("Serviços autônomos")) reasons.push(`${workPreferenceLabel("Serviços autônomos")} está entre suas preferências.`);
   if (item.kind === "volunteer" && context.workPreferences?.includes("Voluntariado")) reasons.push("Você acompanha voluntariado.");
   if (item.kind === "public_procurement" && context.publicEnabled) reasons.push("Você ativou oportunidades com o poder público.");
   return reasons.slice(0, 2);

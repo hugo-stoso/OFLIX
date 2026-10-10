@@ -37,7 +37,7 @@ function aggregateForView(municipalities: MunicipalityAggregate[], category?: st
 }
 
 function FrontDistribution({ values }: { values: ReturnType<typeof aggregateForView> }) {
-  const items = [["formal", "Trabalho formal", values.formal], ["service", "Serviços autônomos", values.services], ["volunteer", "Voluntariado", values.volunteer]] as const;
+  const items = [["formal", "Trabalho formal", values.formal], ["service", "Prestação de serviços", values.services], ["volunteer", "Voluntariado", values.volunteer]] as const;
   return <section className="panel p-6 sm:p-8" aria-labelledby="front-distribution-title"><div className="flex items-start justify-between gap-5"><div><p className="eyebrow">Distribuição por frente</p><h2 id="front-distribution-title" className="mt-2 text-xl font-bold text-navy">Como a atividade se divide</h2></div><BarChart3 size={20} className="text-blue" /></div><div className="mt-8 grid gap-6">{items.map(([key, label, total]) => { const width = values.opportunities ? `${Math.round((total / values.opportunities) * 100)}%` : "0%"; return <div key={key}><div className="flex justify-between gap-4 text-sm"><span className="font-bold text-navy">{label}</span><span className="font-bold text-blue">{total}</span></div><div className="mt-2 h-2 rounded-full bg-[#e5edf2]"><div className="h-2 rounded-full bg-blue" style={{ width }} /></div></div>; })}</div></section>;
 }
 

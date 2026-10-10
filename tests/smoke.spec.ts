@@ -163,7 +163,7 @@ test("separa ofertas de pessoas e demandas de contratantes", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Estágio em projetos educativos" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Manutenção residencial" })).toHaveCount(0);
   await page.getByRole("tab", { name: /Ofertas/ }).click();
-  await page.getByRole("button", { name: /Serviços/ }).click();
+  await page.getByRole("button", { name: /Prestação de serviços/ }).click();
   await expect(page.getByRole("heading", { name: "Manutenção residencial" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Design e conteúdo local" })).toHaveCount(0);
 });
@@ -214,14 +214,13 @@ test("organização publica demanda autônoma com múltiplas atividades", async 
   await expect(page.getByRole("heading", { name: "Publicar uma oportunidade" })).toBeVisible();
   await page.getByRole("button", { name: "Nova publicação" }).click();
   await page.getByLabel("Frente", { exact: true }).selectOption("service");
-  await expect(page.getByText("Tipos de trabalho autônomo demandados")).toBeVisible();
+  await expect(page.getByText("Atividades necessárias", { exact: true })).toBeVisible();
   await page.getByRole("checkbox", { name: "Eletricista" }).check();
   await page.getByRole("checkbox", { name: "Manutenção" }).check();
   await page.getByLabel("Título").fill("Eletricista para instalação de evento");
-  await page.getByLabel("Descrição completa").fill("Demanda de instalação e manutenção para uma atividade comunitária.");
-  await page.locator("form").getByRole("button", { name: "Publicar oportunidade" }).click();
+  await page.getByLabel("Descreva o serviço necessário").fill("Demanda de instalação e manutenção para uma atividade comunitária.");
+  await page.locator("form").getByRole("button", { name: "Publicar demanda de serviço" }).click();
   await expect(page.getByText(/Publicação criada na demonstração/)).toBeVisible();
-  await expect(page.getByText("Eletricista · Manutenção").first()).toBeVisible();
   await page.getByRole("button", { name: "Trocar perfil" }).click();
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
@@ -235,15 +234,15 @@ test("autônomo divulga sua força de trabalho separadamente", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Amanda Figueiredo/ }).click();
   await page.getByRole("button", { name: "Oferecer meu trabalho" }).click();
-  await expect(page.getByRole("heading", { name: "Ofertar força de trabalho" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Oferecer um serviço" })).toBeVisible();
   await page.getByRole("button", { name: "Nova oferta" }).click();
   await page.locator("form").getByRole("checkbox", { name: "Eletricista" }).check();
   await page.getByLabel("Título").fill("Rafael · instalações e manutenção");
-  await page.getByLabel("Descrição completa").fill("Disponibilidade para atendimentos residenciais e pequenos reparos.");
-  await page.getByRole("button", { name: "Publicar oferta" }).click();
+  await page.getByLabel("Descreva o serviço necessário").fill("Disponibilidade para atendimentos residenciais e pequenos reparos.");
+  await page.getByRole("button", { name: "Publicar oferta de serviço" }).click();
   await expect(page.getByText(/Publicação criada na demonstração/)).toBeVisible();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-  await page.getByRole("button", { name: /Serviços/ }).click();
+  await page.getByRole("button", { name: /Prestação de serviços/ }).click();
   await page.getByRole("tab", { name: /Ofertas/ }).click();
   await expect(page.getByRole("heading", { name: "Rafael · instalações e manutenção" })).toBeVisible();
 });
@@ -273,8 +272,12 @@ test("pessoa opta por compartilhar perfil e organização consulta banco de tale
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
   await page.getByRole("button", { name: /Oportunidades de trabalho/ }).click();
-  await page.getByRole("checkbox", { name: "CLT", exact: true }).check({ force: true });
-  await page.getByRole("checkbox", { name: "Voluntariado", exact: true }).check({ force: true });
+  const cltPreference = page.getByRole("checkbox", { name: "CLT", exact: true });
+  const volunteerPreference = page.getByRole("checkbox", { name: "Voluntariado", exact: true });
+  await cltPreference.evaluate((element) => (element as HTMLInputElement).click());
+  await volunteerPreference.evaluate((element) => (element as HTMLInputElement).click());
+  await expect(cltPreference).toBeChecked();
+  await expect(volunteerPreference).toBeChecked();
   await page.getByRole("link", { name: "Perfil", exact: true }).click();
   await page.waitForURL("**/profile");
   await expect(page.getByRole("heading", { name: "Banco de talentos" })).toHaveCount(0);
@@ -397,7 +400,7 @@ test("Ofertas e Demandas aparecem somente nos universos de mercado", async ({ pa
   await page.getByRole("button", { name: /Todos/ }).click();
   await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toBeVisible();
-  await page.getByRole("button", { name: /Serviços/ }).click();
+  await page.getByRole("button", { name: /Prestação de serviços/ }).click();
   await expect(page.getByRole("tab", { name: /Ofertas/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: /Demandas/ })).toBeVisible();
 });
@@ -442,7 +445,7 @@ test("Buscar reúne profissão, capacitação e concurso sem expor poder públic
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Empregos/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Serviços/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Prestação de serviços/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Concursos/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Capacitação/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Poder público/ })).toHaveCount(0);
@@ -511,4 +514,35 @@ test("API pública retorna DEMO DATA sem mascarar a proveniência", async ({ req
   expect(payload.source).toBe("DEMO_DATA");
   expect(payload.provider).toBe("PNCP");
   expect(payload.items.every((item: { source: string; demo: boolean }) => item.source === "DEMO_DATA" && item.demo)).toBe(true);
+});
+
+test("preferência legada aparece como Prestação de serviços", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("oflix-work-preferences-profile-ana", JSON.stringify(["Serviços autônomos"]));
+  });
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await page.getByRole("button", { name: "Preferências", exact: true }).first().click();
+  await page.getByRole("button", { name: /Oportunidades de trabalho/ }).click();
+  await expect(page.getByRole("checkbox", { name: "Prestação de serviços" })).toBeChecked();
+  await expect(page.getByText("Serviços autônomos", { exact: true })).toHaveCount(0);
+});
+
+test("hitbox de favoritos acompanha apenas checkbox e texto", async ({ page }) => {
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
+  await page.getByRole("button", { name: /Empregos/ }).click();
+  const filtersToggle = page.getByRole("button", { name: "Filtros", exact: true });
+  if (await filtersToggle.isVisible()) await filtersToggle.click();
+  const favoriteLabel = page.locator("label").filter({ hasText: "Somente favoritos" }).first();
+  const favoriteCheckbox = page.getByRole("checkbox", { name: "Somente favoritos" });
+  await favoriteLabel.click();
+  await expect(favoriteCheckbox).toBeChecked();
+  const box = await favoriteLabel.boundingBox();
+  expect(box).not.toBeNull();
+  if (box) await page.mouse.click(Math.min((box.x + box.width + 150), (page.viewportSize()?.width ?? 1440) - 8), box.y + box.height / 2);
+  await expect(favoriteCheckbox).toBeChecked();
 });

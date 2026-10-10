@@ -29,10 +29,24 @@ export const WORK_ACTIVITIES = ["Eletricista", "Manutenção", "Construção", "
 export const WORK_PREFERENCES: WorkPreference[] = ["CLT", "Estágio", "Serviços autônomos", "Voluntariado"];
 export const DEVELOPMENT_PREFERENCES: WorkPreference[] = ["Concursos públicos", "Processos seletivos públicos", "Cursos e capacitação"];
 
+export const WORK_PREFERENCE_LABELS: Record<WorkPreference, string> = {
+  CLT: "CLT",
+  Estágio: "Estágio",
+  "Serviços autônomos": "Prestação de serviços",
+  Voluntariado: "Voluntariado",
+  "Concursos públicos": "Concursos públicos",
+  "Processos seletivos públicos": "Processos seletivos públicos",
+  "Cursos e capacitação": "Cursos e capacitação",
+};
+
+export function workPreferenceLabel(preference: WorkPreference | string) {
+  return WORK_PREFERENCE_LABELS[preference as WorkPreference] ?? preference;
+}
+
 export const DISCOVERY_FILTER_LABELS: Record<DiscoveryFilterKind, string> = {
   all: "Todos",
   employment: "Empregos",
-  service: "Serviços",
+  service: "Prestação de serviços",
   volunteer: "Voluntariado",
   public_exam: "Concursos",
   course: "Capacitação",
@@ -197,7 +211,7 @@ export function canDiscoverPublicProcurement(profile: PolicyProfile) {
 
 export const opportunityMeta: Record<OpportunityKind, { label: string; action: string; verb: string }> = {
   formal: { label: "Trabalho formal", action: "Candidatar-se", verb: "candidatura" },
-  service: { label: "Serviço autônomo", action: "Solicitar contato", verb: "solicitação de contato" },
+  service: { label: "Prestação de serviços", action: "Solicitar contato", verb: "solicitação de contato" },
   volunteer: { label: "Voluntariado", action: "Quero participar", verb: "interesse em participar" },
 };
 

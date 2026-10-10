@@ -59,7 +59,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .quick-action-primary .quick-action-kicker { @apply text-[#b9d8eb]; }
 .quick-action strong { @apply block text-sm; }
 .hub-shortcut { @apply flex min-h-[84px] items-center justify-between gap-3 rounded-2xl border border-line bg-white px-4 py-4 text-left text-navy transition hover:-translate-y-0.5 hover:border-blue hover:shadow-soft; }
-.hub-shortcut strong { @apply block text-sm; }
+.hub-shortcut strong { @apply block text-sm; overflow-wrap: anywhere; }
 .hub-shortcut-copy { @apply mt-1 block text-sm font-normal text-[#637688]; }
 .segmented-control { @apply grid gap-2 sm:grid-cols-2; }
 .segmented-control button { @apply min-h-[58px] rounded-xl border border-line bg-white px-4 py-3 text-left text-sm font-bold text-[#637688] transition hover:border-blue; }

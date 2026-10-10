@@ -346,7 +346,7 @@ export function territoryData() {
   }
   const municipalities = Array.from(municipalityMap.values()).sort((a, b) => b.opportunities - a.opportunities || a.municipality.localeCompare(b.municipality));
   const activeMunicipalities = municipalities.filter((municipality) => municipality.opportunities > 0 || municipality.interactions > 0).length;
-  return { fronts: [{ key: "formal", label: "Trabalho formal", total: formal }, { key: "service", label: "Serviços autônomos", total: service }, { key: "volunteer", label: "Voluntariado", total: volunteer }], totalOpportunities: formal + service + volunteer, interactions, activeMunicipalities, territorial, categories, employmentByRegion, municipalities };
+  return { fronts: [{ key: "formal", label: "Trabalho formal", total: formal }, { key: "service", label: "Prestação de serviços", total: service }, { key: "volunteer", label: "Voluntariado", total: volunteer }], totalOpportunities: formal + service + volunteer, interactions, activeMunicipalities, territorial, categories, employmentByRegion, municipalities };
 }
 
 function emptyInterestTerritoryData(activities: string[]) {
@@ -354,7 +354,7 @@ function emptyInterestTerritoryData(activities: string[]) {
     scope: "interests" as const,
     activities,
     matchedOpportunityCount: 0,
-    fronts: [{ key: "formal", label: "Trabalho formal", total: 0 }, { key: "service", label: "Serviços autônomos", total: 0 }, { key: "volunteer", label: "Voluntariado", total: 0 }],
+    fronts: [{ key: "formal", label: "Trabalho formal", total: 0 }, { key: "service", label: "Prestação de serviços", total: 0 }, { key: "volunteer", label: "Voluntariado", total: 0 }],
     totalOpportunities: 0,
     interactions: 0,
     territorial: [] as { municipality: string; district: string; total: number }[],
@@ -406,7 +406,7 @@ export function interestTerritoryData(activities: string[]) {
   if (formalIds.length) { interactionConditions.push(`(target_type = 'FORMAL' AND target_id IN (${formalIds.map(() => "?").join(", ")}))`); interactionParams.push(...formalIds); }
   if (serviceIds.length) { interactionConditions.push(`(target_type = 'SERVICE' AND target_id IN (${serviceIds.map(() => "?").join(", ")}))`); interactionParams.push(...serviceIds); }
   const interactions = interactionConditions.length ? Number(db.prepare(`SELECT COUNT(*) total FROM interactions WHERE ${interactionConditions.join(" OR ")}`).get(...interactionParams)?.total ?? 0) : 0;
-  const fronts = [{ key: "formal", label: "Trabalho formal", total: formal.length }, { key: "service", label: "Serviços autônomos", total: service.length }, { key: "volunteer", label: "Voluntariado", total: 0 }];
+  const fronts = [{ key: "formal", label: "Trabalho formal", total: formal.length }, { key: "service", label: "Prestação de serviços", total: service.length }, { key: "volunteer", label: "Voluntariado", total: 0 }];
   return { scope: "interests" as const, activities: normalized, matchedOpportunityCount: matches.length, fronts, totalOpportunities: matches.length, interactions, territorial: Array.from(territorialMap.values()).sort((a, b) => b.total - a.total || a.municipality.localeCompare(b.municipality)), categories: Array.from(categoryMap.values()).sort((a, b) => a.front.localeCompare(b.front) || a.category.localeCompare(b.category)), employmentByRegion: Array.from(employmentMap.values()).sort((a, b) => a.municipality.localeCompare(b.municipality) || a.district.localeCompare(b.district) || a.employmentType.localeCompare(b.employmentType)) };
 }
 

@@ -14,7 +14,7 @@ const pillars = [
     title: "Trabalho e oportunidades",
     text: "Caminhos para começar, continuar ou apresentar seu trabalho.",
     icon: BriefcaseBusiness,
-    items: ["Empregos", "Estágio", "Serviços autônomos", "Voluntariado", "Oportunidades externas autorizadas"],
+    items: ["Empregos", "Estágio", "Prestação de serviços", "Voluntariado", "Oportunidades externas autorizadas"],
   },
   {
     title: "Desenvolvimento profissional",
@@ -31,7 +31,7 @@ const pillars = [
 ];
 
 const audiences = [
-  { title: "Pessoas", text: "Encontre trabalho, serviços, concursos, cursos e oportunidades para desenvolver sua trajetória." },
+  { title: "Pessoas", text: "Encontre empregos, prestação de serviços, concursos, cursos e oportunidades para desenvolver sua trajetória." },
   { title: "Profissionais autônomos e empresas", text: "Encontre pessoas, clientes e oportunidades de negócio, inclusive com o poder público quando aplicável." },
   { title: "Gestão pública e instituições", text: "Compreenda sinais agregados de oferta, demanda, conexões e oportunidades no território." },
 ];

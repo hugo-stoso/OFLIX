@@ -47,7 +47,7 @@ export type TerritoryGeometry = {
 export const TERRITORY_METRICS: Array<{ value: TerritoryMetric; label: string; shortLabel: string }> = [
   { value: "opportunities", label: "Todas as oportunidades", shortLabel: "Oportunidades" },
   { value: "employment", label: "Empregos", shortLabel: "Empregos" },
-  { value: "services", label: "Serviços", shortLabel: "Serviços" },
+  { value: "services", label: "Prestação de serviços", shortLabel: "Prestação de serviços" },
   { value: "volunteer", label: "Voluntariado", shortLabel: "Voluntariado" },
   { value: "interactions", label: "Interações", shortLabel: "Interações" },
 ];

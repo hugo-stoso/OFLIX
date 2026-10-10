@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Bell, ChevronDown, Search, Tag } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { DEVELOPMENT_PREFERENCES, VOLUNTEER_INTERESTS, WORK_ACTIVITIES, WORK_PREFERENCES, type VolunteerInterest, type WorkPreference } from "@/lib/domain";
+import { DEVELOPMENT_PREFERENCES, VOLUNTEER_INTERESTS, WORK_ACTIVITIES, WORK_PREFERENCES, workPreferenceLabel, type VolunteerInterest, type WorkPreference } from "@/lib/domain";
 import { readProfileArray, readResidence, readTalentRecord, saveTalentRecord, SERVICE_ALERT_KEY, type ResidenceData, type TalentDirectoryRecord } from "@/lib/profile-storage";
 
 type Match = { title: string; category: string; requiredActivities?: string[] };
@@ -136,16 +136,16 @@ export function InterestSelector({ profile, matches }: { profile: PersonProfile;
     window.dispatchEvent(new Event("oflix-public-opportunities-changed"));
   }
 
-  const workSummary = workPreferences.filter((preference) => WORK_PREFERENCES.includes(preference)).length ? workPreferences.filter((preference) => WORK_PREFERENCES.includes(preference)).join(" + ") : "Nenhuma frente selecionada";
-  const developmentSummary = selectedDevelopment.length ? selectedDevelopment.map((item) => item.replace(" públicos", "").replace("Cursos e capacitação", "Cursos")).join(" + ") : "Nenhum caminho selecionado";
+  const workSummary = workPreferences.filter((preference) => WORK_PREFERENCES.includes(preference)).length ? workPreferences.filter((preference) => WORK_PREFERENCES.includes(preference)).map(workPreferenceLabel).join(" + ") : "Nenhuma frente selecionada";
+  const developmentSummary = selectedDevelopment.length ? selectedDevelopment.map((item) => workPreferenceLabel(item).replace(" públicos", "").replace("Cursos e capacitação", "Cursos")).join(" + ") : "Nenhum caminho selecionado";
   const activitySummary = selected.length ? `${selected.slice(0, 3).join(", ")}${selected.length > 3 ? "…" : ""} · ${selected.length} área(s)` : "Nenhuma área selecionada";
   const volunteerSummary = volunteerInterests.length ? `${volunteerInterests.slice(0, 2).join(" + ")}${volunteerInterests.length > 2 ? "…" : ""}` : "Nenhum interesse selecionado";
 
   return <section className="mt-7" aria-label="Preferências de descoberta">
     <div className="mb-4 flex items-start gap-3"><div className="rounded-lg bg-[#e8f1f6] p-2 text-blue"><Tag size={18} /></div><div><p className="eyebrow">O que acompanhar</p><h2 className="mt-2 text-xl font-bold text-navy">Preferências de descoberta</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#637688]">A visão inicial é curta. Abra um grupo para ajustar apenas o que importa agora.</p></div></div>
     <div className="space-y-3">
-      <PreferenceGroup id="work-preferences" title="Oportunidades de trabalho" description="CLT, estágio, serviços e voluntariado" summary={workSummary} open={openSection === "work"} onToggle={() => setOpenSection(openSection === "work" ? null : "work")}>
-        <p className="text-sm leading-6 text-[#637688]">Escolha as frentes de trabalho que você quer acompanhar.</p><div className="mt-3 flex flex-wrap gap-2">{WORK_PREFERENCES.map((preference) => <label key={preference} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${workPreferences.includes(preference) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={preference} checked={workPreferences.includes(preference)} onChange={() => toggleWorkPreference(preference)} className="sr-only" />{preference}</label>)}</div>
+      <PreferenceGroup id="work-preferences" title="Oportunidades de trabalho" description="Empregos, prestação de serviços e voluntariado" summary={workSummary} open={openSection === "work"} onToggle={() => setOpenSection(openSection === "work" ? null : "work")}>
+        <p className="text-sm leading-6 text-[#637688]">Escolha as frentes de trabalho que você quer acompanhar.</p><div className="mt-3 flex flex-wrap gap-2">{WORK_PREFERENCES.map((preference) => <label key={preference} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${workPreferences.includes(preference) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={workPreferenceLabel(preference)} checked={workPreferences.includes(preference)} onChange={() => toggleWorkPreference(preference)} className="sr-only" />{workPreferenceLabel(preference)}</label>)}</div>
       </PreferenceGroup>
       <PreferenceGroup id="development-preferences" title="Desenvolvimento profissional" description="Concursos, processos seletivos e capacitação" summary={developmentSummary} open={openSection === "development"} onToggle={() => setOpenSection(openSection === "development" ? null : "development")}>
         <p className="text-sm leading-6 text-[#637688]">Acompanhe caminhos de desenvolvimento que devem influenciar suas recomendações.</p><div className="mt-3 flex flex-wrap gap-2">{DEVELOPMENT_PREFERENCES.map((preference) => <label key={preference} className={`cursor-pointer rounded-full border px-3 py-2 text-sm font-bold transition ${workPreferences.includes(preference) ? "border-blue bg-[#edf6fb] text-blue" : "border-line bg-white text-[#637688] hover:border-blue"}`}><input type="checkbox" aria-label={preference} checked={workPreferences.includes(preference)} onChange={() => toggleWorkPreference(preference)} className="sr-only" />{preference}</label>)}</div>
