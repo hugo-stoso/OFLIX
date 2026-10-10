@@ -32,6 +32,8 @@ EmpregAju foi classificado `READY`: a integração usa somente HTML público ser
 
 Os dois conectores implementam o mesmo ciclo request-time do GO Sergipe: timeout, uma repetição apenas para 5xx, cache de quatro horas, fallback stale e allowlist de HTTPS/host/path. `external-jobs.ts` executa fontes em paralelo e devolve falha por fonte para não derrubar o restante. As flags `EMPREGAJU_ENABLED` e `IEL_SERGIPE_ENABLED` são habilitadas por padrão para os canais públicos validados e podem ser desligadas com `false`; Vagas Sergipe, Oficial News, BNE e Gupy permanecem sem coletor ativo conforme a auditoria em `docs/integrations/job-sources.md`.
 
+Como o EmpregAju não tem permalink nem endpoint público de detalhe — `verDetalhes(id)` somente abre modal de cadastro — a OFLIX não fabrica uma URL por ID. A decisão é manter `sourceUrl` na listagem, abrir uma página OFLIX com os campos públicos já coletados e separar as ações `Abrir EmpregAju` e `Candidatar-se no EmpregAju`.
+
 ### Origem e fonte na descoberta de empregos
 
 A interface separa deliberadamente o universo da oportunidade da sua proveniência. `origin=all` combina vagas formais OFLIX e `external_job`, `origin=oflix` aceita somente formal OFLIX e `origin=external` aceita somente vagas externas. O parâmetro `source` é um refinamento subordinado às externas e não pode reintroduzir vagas internas; ao escolher OFLIX, o estado incompatível é removido. Essa forma mantém contagens, combinações com busca/município e links compartilháveis semanticamente previsíveis.

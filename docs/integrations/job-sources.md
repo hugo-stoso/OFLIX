@@ -41,7 +41,7 @@ Datas de publicação são datas da fonte (`DD/MM/YYYY`). `collectedAt`, `firstS
 
 O parser usa allowlist de seletores e textos, remove tags executáveis via Cheerio e nunca retorna o rodapé, e-mail, telefone, endereço, token ou dados de candidato. Cada URL de origem/candidatura é validada em HTTPS contra host e caminho permitidos. Links são renderizados com `target="_blank"` e `rel="noreferrer"`.
 
-EmpregAju não expõe uma URL de detalhe no card: o ID público é preservado como `sourceJobId`, a origem é a lista oficial e `applicationUrl` mantém o `/register` público. IEL fornece o link individual público; a OFLIX não automatiza candidatura.
+EmpregAju não expõe uma URL de detalhe no card: o ID público é preservado como `sourceJobId`, `verDetalhes(id)` apenas abre um modal local com a mensagem de cadastro e não executa endpoint/XHR de detalhe. Por isso `sourceUrl` permanece honestamente na lista oficial, enquanto a OFLIX oferece `Ver detalhes` em `/external-jobs/empregaju/{sourceId}`, renderizado server-side com os campos públicos normalizados. A página também separa `Abrir EmpregAju` (listagem oficial) de `Candidatar-se no EmpregAju` (`/register`). IEL fornece o link individual público; a OFLIX não automatiza candidatura.
 
 ## Flags, atualização e expiração
 

@@ -17,6 +17,15 @@ test.describe("fontes externas de empregos em Sergipe", () => {
     expect(clt.tags).not.toContain("empregaju@aracaju.se.gov.br");
     expect(internship).toMatchObject({ sourceJobId: "873", contractType: "Estágio", workMode: "Remoto", location: { municipality: "São Cristóvão" } });
     expect(internship.salary).toBeUndefined();
+    expect(clt.sourceUrl).toBe(internship.sourceUrl);
+    expect(clt.sourceUrl).toBe("https://empregaju.aracaju.se.gov.br/cidadao/vagas");
+  });
+
+  test("mantém a listagem como fonte quando não há permalink e rejeita candidatura fora da allowlist", () => {
+    const hostileHtml = fixture("empregaju-page-1.html").replace("https://empregaju.aracaju.se.gov.br/register", "https://evil.example/register");
+    const parsed = parseEmpregAjuPage(hostileHtml);
+    expect(parsed.items[0].sourceUrl).toBe("https://empregaju.aracaju.se.gov.br/cidadao/vagas");
+    expect(parsed.items[0].applicationUrl).toBe("https://empregaju.aracaju.se.gov.br/register");
   });
 
   test("normaliza IEL Sergipe somente a listagem HTML pública e mantém o link individual", () => {
@@ -96,6 +105,9 @@ test.describe("filtros multifonte na busca", () => {
     await page.getByRole("button", { name: /Empregos/ }).click();
     await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Estágio em administração", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ver detalhes" }).first()).toHaveAttribute("href", /\/external-jobs\/empregaju\/872/);
+    await expect(page.getByRole("link", { name: "Abrir EmpregAju" }).first()).toHaveAttribute("href", "https://empregaju.aracaju.se.gov.br/cidadao/vagas");
+    await expect(page.getByRole("link", { name: "Candidatar-se no EmpregAju" }).first()).toHaveAttribute("href", "https://empregaju.aracaju.se.gov.br/register");
     const filtersToggle = page.getByRole("button", { name: "Filtros", exact: true });
     if (await filtersToggle.isVisible()) await filtersToggle.click();
     await page.getByLabel("Filtrar por fonte").selectOption("IEL_SERGIPE");
