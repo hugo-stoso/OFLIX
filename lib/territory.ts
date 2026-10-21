@@ -1,3 +1,5 @@
+import type { TerritoryEmploymentMarket } from "@/lib/territory-market";
+
 export type TerritoryMetric = "opportunities" | "employment" | "services" | "volunteer" | "interactions";
 
 export type MunicipalityCategory = {
@@ -32,6 +34,7 @@ export type TerritoryData = {
   categories: { front: string; category: string; total: number }[];
   employmentByRegion: { municipality: string; district: string; employmentType: "CLT" | "INTERNSHIP"; total: number }[];
   municipalities: MunicipalityAggregate[];
+  employmentMarket?: TerritoryEmploymentMarket;
 };
 
 export type TerritoryGeometry = {

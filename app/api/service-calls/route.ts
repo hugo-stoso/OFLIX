@@ -18,7 +18,7 @@ function today() {
 export async function GET(request: NextRequest) {
   const profileId = request.nextUrl.searchParams.get("profileId");
   if (!profileId) return NextResponse.json({ error: "profile_required" }, { status: 401 });
-  const activities = (request.nextUrl.searchParams.get("activities") ?? "").split(",").map((activity) => activity.trim()).filter(Boolean);
+  const activities = (request.nextUrl.searchParams.get("activities") ?? "").split(",").map((activity: string) => activity.trim()).filter(Boolean);
   return NextResponse.json(listServiceCalls(profileId, activities, today()));
 }
 

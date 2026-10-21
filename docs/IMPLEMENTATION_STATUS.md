@@ -68,6 +68,7 @@
 - EmpregAju: `IMPLEMENTADO` como fonte pública HTML validada, com paginação allowlisted, IDs públicos, `verDetalhes(id)` confirmado como modal local sem endpoint de detalhe, página OFLIX server-side de detalhes públicos, candidatura original, cache/fallback e filtros compartilhados; sem coleta de rodapé ou dados de candidatos.
 - IEL Sergipe: `IMPLEMENTADO` com escopo `PARTIAL` da fonte: listagem HTML pública e links individuais, sem chamar `/api/` desautorizado pelo `robots.txt`; paginação posterior permanece limitada ao HTML inicial.
 - Multifontes de empregos: `IMPLEMENTADO` em `GET /api/external-jobs` com `source=all` ou fonte individual, deduplicação por fonte/ID, timestamps de verificação, flags independentes, filtros independentes de origem (`all`/`oflix`/`external`) e fonte (`GO_SERGIPE`/`EMPREGAJU`/`IEL_SERGIPE`), contagens, URL compartilhável, filtros combináveis de município/contratação/modalidade/salário/data/PcD e isolamento de organizações.
+- Observatório Territorial integrado ao mercado externo: `IMPLEMENTADO` em `/api/territory` para o escopo geral, com agregação pura em `lib/territory-market.ts`, contagem de anúncios por município/UF SE, normalização municipal sem acentos, preservação de status por fonte, recortes `Todas as vagas`/`Publicadas na OFLIX`/`Vagas externas` e refinamento por GO Sergipe/EmpregAju/IEL. Mapa, ranking e resumo resolvem o mesmo recorte; serviços, voluntariado, interações e “Minhas oportunidades” permanecem isolados.
 
 ## VALIDAÇÃO NECESSÁRIA
 

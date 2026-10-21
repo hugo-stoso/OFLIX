@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import type { MunicipalityAggregate, TerritoryGeometry, TerritoryMetric } from "@/lib/territory";
 import { territoryMetricLabel } from "@/lib/territory";
+import type { TerritoryEmploymentMarket, TerritoryEmploymentOrigin } from "@/lib/territory-market";
+import { territoryEmploymentValue } from "@/lib/territory-market";
 
 type Position = [number, number];
 
@@ -20,7 +22,8 @@ function ringsForFeature(feature: TerritoryGeometry["features"][number]) {
   return (feature.geometry.coordinates as Position[][][]).flat();
 }
 
-function valueForMunicipality(municipality: MunicipalityAggregate | undefined, metric: TerritoryMetric, category?: string) {
+function valueForMunicipality(municipality: MunicipalityAggregate | undefined, metric: TerritoryMetric, category?: string, employmentMarket?: TerritoryEmploymentMarket, employmentOrigin?: TerritoryEmploymentOrigin, employmentSource?: string, municipalityName?: string) {
+  if (metric === "employment" && employmentMarket && employmentOrigin) return territoryEmploymentValue(employmentMarket, municipalityName ?? municipality?.municipality ?? "", employmentOrigin, employmentSource);
   if (!municipality) return 0;
   if (!category) {
     if (metric === "employment") return municipality.formal;
@@ -38,7 +41,7 @@ function formatPath(rings: Position[][], project: (position: Position) => Positi
   return rings.map((ring) => ring.map((position, index) => `${index === 0 ? "M" : "L"} ${project(position)[0].toFixed(2)} ${project(position)[1].toFixed(2)}`).join(" ") + " Z").join(" ");
 }
 
-export function TerritoryMap({ geometry, municipalities, metric, category, selectedMunicipality, onSelect }: TerritoryMapProps) {
+export function TerritoryMap({ geometry, municipalities, metric, category, selectedMunicipality, onSelect, employmentMarket, employmentOrigin, employmentSource }: TerritoryMapProps & { employmentMarket?: TerritoryEmploymentMarket; employmentOrigin?: TerritoryEmploymentOrigin; employmentSource?: string }) {
   const [hoveredMunicipality, setHoveredMunicipality] = useState<string | null>(null);
   const byCode = useMemo(() => new Map(municipalities.filter((item) => item.ibgeCode).map((item) => [item.ibgeCode, item])), [municipalities]);
   const byName = useMemo(() => new Map(municipalities.map((item) => [item.municipality, item])), [municipalities]);
@@ -61,7 +64,7 @@ export function TerritoryMap({ geometry, municipalities, metric, category, selec
   }, [geometry]);
   const values = geometry.features.map((feature) => {
     const municipality = byCode.get(feature.properties.ibgeCode) ?? byName.get(feature.properties.municipality);
-    return { feature, municipality, value: valueForMunicipality(municipality, metric, category) };
+    return { feature, municipality, value: valueForMunicipality(municipality, metric, category, employmentMarket, employmentOrigin, employmentSource, feature.properties.municipality) };
   });
   const maxValue = Math.max(1, ...values.map((item) => item.value));
   const hovered = values.find((item) => item.feature.properties.municipality === hoveredMunicipality);

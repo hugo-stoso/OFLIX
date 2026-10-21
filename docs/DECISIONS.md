@@ -136,6 +136,14 @@ Remuneração média anunciada e salário médio de admissão são indicadores d
 
 A remuneração de vaga usa valores numéricos em BRL mensal, com mínimo, máximo opcional e tipo de remuneração. Faixas usam o ponto médio; ausentes são excluídas, nunca convertidas em zero. CLT é exibida como salário e estágio como bolsa/remuneração de estágio. O composer permite não informar remuneração sem bloquear a publicação.
 
+## Empregos externos no Observatório Territorial
+
+O Observatório mantém as métricas-base OFLIX intactas e acrescenta um `employmentMarket` calculado em memória por `lib/territory-market.ts`. A rota geral `/api/territory` faz uma única coleta server-side de `fetchExternalJobs({ source: "all" })`; perfis sem escopo geral continuam no recorte por interesses e não recebem vagas externas. Não há nova persistência SQLite nem chamada a IA/LLM.
+
+O mercado observado conta anúncios/listagens (`DiscoveryItem`) e não soma o campo textual de quantidade de vagas. Só entram itens `kind === "external_job"` com UF `SE`, usando chave municipal trimada, minúscula, sem acentos e com espaços normalizados; a chave canônica do GeoJSON permanece o nome exibido pela base/primeira fonte. A proveniência e o estado por fonte (`enabled`, `stale`, `partial`, `error`, `count`) acompanham a resposta, inclusive em falha parcial.
+
+Em Empregos, `origin=all` combina publicações formais OFLIX e anúncios externos; `origin=oflix` seleciona somente formais OFLIX; `origin=external` seleciona somente `external_job`. `source` é subordinada à origem externa: GO Sergipe, EmpregAju e IEL Sergipe nunca reintroduzem vagas internas e são limpas ao trocar para OFLIX. Mapa, ranking e resumo usam o mesmo resolver puro, enquanto serviços continuam `kind === "service"`, voluntariado e interações continuam métricas OFLIX, e organizações não recebem o feed externo em “Minhas oportunidades”.
+
 O MTE/PDET foi investigado como fonte oficial prioritária. A aplicação não presume endpoint privado nem faz scraping; como não foi confirmada uma API pública documentada segura nesta execução, a integração oficial permanece indisponível e a UI informa a limitação. Não há números fictícios com rótulo MTE, mapeamento CBO arbitrário ou mapa salarial sem dado municipal sustentado.
 
 ## Legislação e artigos
