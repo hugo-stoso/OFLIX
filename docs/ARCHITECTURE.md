@@ -115,3 +115,11 @@ Landing = comunicação pública do hub. Início = resumo contextual. Buscar = d
 ## Limites reais
 
 Não há autenticação de produção, autorização de papéis real, moderação, persistência compartilhada para publicações e alertas demo, push agendado, OAuth do Google, coordenadas ou geocodificação nesta execução. A restrição territorial desta demo usa o perfil selecionado no navegador: o agregado geral é exclusivo da persona Observatório Território Aberto; pessoas recebem somente o recorte das atividades salvas localmente.
+
+## IA territorial assistida
+
+O Observatório mantém uma separação explícita entre cálculo e interpretação. `lib/territory-server.ts` reconstrói o mesmo agregado territorial usado por `/api/territory`; `lib/ai/territory.ts` transforma esse dado em um contexto enxuto com filtros, totais, municípios agregados, saúde das fontes, `collectedAt`, `stale`, `partial`, cobertura limitada e caveats. Nenhuma vaga individual, GeoJSON, dado pessoal, cookie, token ou chave é enviado ao provider.
+
+`POST /api/territory/ai/analyze` recebe somente `profileId` e filtros, reconstrói os dados no servidor e retorna análise JSON validada. `POST /api/territory/ai/ask` interpreta a pergunta em uma `TerritoryQueryPlan` restrita, valida enums e municípios com Zod, executa a consulta sem LLM e só então solicita uma explicação curta. O cliente renderiza texto em componentes próprios; não há HTML gerado pelo modelo. `TERRITORY_AI_ENABLED` é server-side, false por padrão, e o status é consultado antes de exibir o enhancement.
+
+O provider usa interface própria e endpoint JSON compatível configurado por `AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY`/`AI_GATEWAY_API_KEY` e `AI_BASE_URL`, com timeout de 12 segundos. Há rate limit em memória por janela e tipo de endpoint, cache de dez minutos apenas para análises e fallback 503 amigável. Essas proteções são por instância serverless e não substituem autenticação real; o Observatório geral continua restrito à persona institucional de analista.

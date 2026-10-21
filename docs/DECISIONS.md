@@ -144,6 +144,14 @@ O mercado observado conta anúncios/listagens (`DiscoveryItem`) e não soma o ca
 
 Em Empregos, `origin=all` combina publicações formais OFLIX e anúncios externos; `origin=oflix` seleciona somente formais OFLIX; `origin=external` seleciona somente `external_job`. `source` é subordinada à origem externa: GO Sergipe, EmpregAju e IEL Sergipe nunca reintroduzem vagas internas e são limpas ao trocar para OFLIX. Mapa, ranking e resumo usam o mesmo resolver puro, enquanto serviços continuam `kind === "service"`, voluntariado e interações continuam métricas OFLIX, e organizações não recebem o feed externo em “Minhas oportunidades”.
 
+## IA territorial assistida
+
+A primeira camada de IA do Observatório é um enhancement opcional, controlado por `TERRITORY_AI_ENABLED` e desligado por padrão. O backend reconstrói o mesmo `TerritoryData` usado pela UI, cria um contexto agregado em `lib/ai/territory.ts` e nunca envia vagas individuais, GeoJSON, dados pessoais, cookies, tokens ou prompt interno ao modelo. O modelo interpreta e redige; o backend continua responsável por contagens, fatos, filtros, validação da DSL e execução da consulta.
+
+`POST /api/territory/ai/analyze` gera uma saída JSON curta (`summary`, `highlights`, `caveats`) e injeta fatos determinísticos. `POST /api/territory/ai/ask` usa duas etapas: interpretação em `TerritoryQueryPlan` validado com Zod, execução determinística e explicação breve do resultado. O executor só aceita métricas, agregações, fontes e municípios válidos; não aceita SQL, JavaScript, URLs ou `fetch`. Perguntas sobre crescimento, desemprego, crise, escassez ou classificação profissional não harmonizada recebem resposta segura.
+
+A camada usa um provider HTTP compatível com JSON estruturado (`AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY` e `AI_BASE_URL`), timeout de 12 segundos, rate limit em memória de 10 análises/minuto e 20 perguntas/minuto por chave de sessão/IP e cache em memória de 10 minutos apenas para análises. Em ambiente serverless, esses limites são por instância e são deliberadamente simples para a demonstração. Falhas retornam 503 controlado e não interrompem mapa, ranking, resumo ou filtros.
+
 O MTE/PDET foi investigado como fonte oficial prioritária. A aplicação não presume endpoint privado nem faz scraping; como não foi confirmada uma API pública documentada segura nesta execução, a integração oficial permanece indisponível e a UI informa a limitação. Não há números fictícios com rótulo MTE, mapeamento CBO arbitrário ou mapa salarial sem dado municipal sustentado.
 
 ## Legislação e artigos

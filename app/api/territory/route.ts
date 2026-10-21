@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchExternalJobs } from "@/lib/connectors/external-jobs";
-import { territoryDataForProfile } from "@/lib/db";
-import { buildTerritoryEmploymentMarket } from "@/lib/territory-market";
+import { loadTerritoryDataForProfile } from "@/lib/territory-server";
 
 export const runtime = "nodejs";
 
@@ -10,10 +8,7 @@ export async function GET(request: Request) {
   const profileId = url.searchParams.get("profileId");
   if (!profileId) return NextResponse.json({ error: "profile_required" }, { status: 401 });
   const activities = url.searchParams.getAll("activity").flatMap((value) => value.split(",")).concat(url.searchParams.get("activities")?.split(",") ?? []);
-  const data = territoryDataForProfile(profileId, activities);
+  const data = await loadTerritoryDataForProfile(profileId, activities);
   if (!data) return NextResponse.json({ error: "profile_not_found" }, { status: 404 });
-  if (data.scope !== "general") return NextResponse.json(data);
-
-  const external = await fetchExternalJobs({ source: "all" });
-  return NextResponse.json({ ...data, employmentMarket: buildTerritoryEmploymentMarket(data.municipalities, external) });
+  return NextResponse.json(data);
 }
