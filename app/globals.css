@@ -82,6 +82,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .municipality-ranking-item { @apply flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-white px-3 py-3 text-sm transition hover:-translate-y-px hover:border-blue hover:shadow-soft; }
 .municipality-ranking-item.is-selected { @apply border-navy bg-[#f5fafc] ring-2 ring-[#c9dce8]; }
 .territory-map { display: block; min-height: 360px; }
+.panel:has(> .territory-map-wrap), .panel:has(> section[aria-labelledby="municipality-ranking-title"]) { min-width: 0; }
 .territory-map-path { cursor: pointer; transition: fill .15s ease, stroke .15s ease, opacity .15s ease; }
 .territory-map-path:hover { stroke: #10243e; stroke-width: 2.5; }
 .territory-map-path:focus-visible { outline: none; stroke: #10243e; stroke-width: 3.5; }
