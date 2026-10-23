@@ -25,5 +25,15 @@ test.describe("UI da inteligência territorial", () => {
     await expect(page.getByRole("heading", { name: "Comece pelo território" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Leitura assistida por IA" })).toHaveCount(0);
   });
+
+  test("filtro ocupacional atualiza mapa, ranking e resumo no recorte de empregos", async ({ page }) => {
+    await page.route("**/api/territory/ai/status**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ enabled: false }) }));
+    await page.goto("/demo/analyst");
+    await page.getByRole("button", { name: "Empregos", exact: true }).click();
+    await page.getByLabel("Área ocupacional").selectOption("LOGISTICS_TRANSPORT");
+    await expect(page.getByText("Área ocupacional: Logística e transporte").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /Lagarto.*1.*Empregos/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Municípios com maior atividade observada" })).toBeVisible();
+  });
 });
 

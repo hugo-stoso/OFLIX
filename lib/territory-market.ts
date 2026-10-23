@@ -1,5 +1,6 @@
 import type { ExternalJobSource, ExternalJobsResult, ExternalJobsSourceSummary } from "@/lib/connectors/external-jobs";
 import type { DiscoveryItem, ExternalDiscoverySource } from "@/lib/domain";
+import { buildOccupationAggregates, occupationFamilyValue, selectOccupationAggregates, type OccupationAggregates, type OccupationFamily, type OccupationSelection } from "@/lib/occupations";
 import type { MunicipalityAggregate } from "@/lib/territory";
 
 export type TerritoryEmploymentOrigin = "all" | "oflix" | "external";
@@ -26,6 +27,7 @@ export type TerritoryEmploymentMarket = {
   collectedAt: string;
   stale: boolean;
   partial: boolean;
+  occupations: OccupationAggregates;
   error?: string;
 };
 
@@ -57,7 +59,7 @@ function createMunicipality(municipality: string, ibgeCode?: string): TerritoryE
   return { municipality, normalizedMunicipality: normalizeMunicipalityKey(municipality), ...(ibgeCode ? { ibgeCode } : {}), oflix: 0, external: 0, total: 0, bySource: emptySourceCounts() };
 }
 
-export function buildTerritoryEmploymentMarket(baseMunicipalities: MunicipalityAggregate[], external: ExternalJobsResult): TerritoryEmploymentMarket {
+export function buildTerritoryEmploymentMarket(baseMunicipalities: MunicipalityAggregate[], external: ExternalJobsResult, oflixItems: DiscoveryItem[] = []): TerritoryEmploymentMarket {
   const municipalityMap = new Map<string, TerritoryEmploymentMunicipality>();
   const oflix = baseMunicipalities.reduce((total, municipality) => total + municipality.formal, 0);
 
@@ -96,6 +98,7 @@ export function buildTerritoryEmploymentMarket(baseMunicipalities: MunicipalityA
     collectedAt: external.collectedAt,
     stale: external.stale,
     partial: external.partial,
+    occupations: buildOccupationAggregates([...oflixItems, ...external.items]),
     ...(external.error ? { error: external.error } : {}),
   };
 }
@@ -105,7 +108,7 @@ function sourceCountForMunicipality(municipality: TerritoryEmploymentMunicipalit
   return municipality.external;
 }
 
-export function resolveTerritoryEmploymentSelection(market: TerritoryEmploymentMarket, origin: TerritoryEmploymentOrigin, source?: string | null): TerritoryEmploymentSelection {
+export function resolveTerritoryEmploymentSelection(market: TerritoryEmploymentMarket, origin: TerritoryEmploymentOrigin, source?: string | null, occupationFamily?: OccupationFamily): TerritoryEmploymentSelection {
   const resolvedOrigin: TerritoryEmploymentOrigin = origin === "oflix" || origin === "external" ? origin : "all";
   const resolvedSource = resolvedOrigin === "oflix" || !source || !TERRITORY_EMPLOYMENT_SOURCES.includes(source as TerritoryEmploymentSource) ? undefined : source as TerritoryEmploymentSource;
   const includeAll = resolvedOrigin === "all" && !resolvedSource;
@@ -124,18 +127,36 @@ export function resolveTerritoryEmploymentSelection(market: TerritoryEmploymentM
     }
   }
 
+  if (occupationFamily) {
+    const occupationSelection: OccupationSelection = { origin: resolvedOrigin, ...(resolvedSource ? { source: resolvedSource } : {}), ...(market.municipalities.length === 1 ? { municipality: market.municipalities[0].municipality } : {}) };
+    const selected = selectOccupationAggregates(market.occupations, occupationSelection);
+    const family = selected.families.find((item) => item.family === occupationFamily);
+    const familyBySource = family?.bySource ?? { OFLIX: 0, GO_SERGIPE: 0, EMPREGAJU: 0, IEL_SERGIPE: 0 };
+    const selectedOflix = familyBySource.OFLIX;
+    const selectedExternal = familyBySource.GO_SERGIPE + familyBySource.EMPREGAJU + familyBySource.IEL_SERGIPE;
+    return {
+      origin: resolvedOrigin,
+      ...(resolvedSource ? { source: resolvedSource } : {}),
+      oflix: selectedOflix,
+      external: selectedExternal,
+      total: selectedOflix + selectedExternal,
+      sourceCounts: { GO_SERGIPE: familyBySource.GO_SERGIPE, EMPREGAJU: familyBySource.EMPREGAJU, IEL_SERGIPE: familyBySource.IEL_SERGIPE },
+    };
+  }
+
   return { origin: resolvedOrigin, ...(resolvedSource ? { source: resolvedSource } : {}), oflix, external, total: oflix + external, sourceCounts };
 }
 
-export function territoryEmploymentValue(market: TerritoryEmploymentMarket, municipality: string, origin: TerritoryEmploymentOrigin, source?: string | null) {
+export function territoryEmploymentValue(market: TerritoryEmploymentMarket, municipality: string, origin: TerritoryEmploymentOrigin, source?: string | null, occupationFamily?: OccupationFamily) {
   const item = market.municipalities.find((candidate) => candidate.normalizedMunicipality === normalizeMunicipalityKey(municipality));
   if (!item) return 0;
+  if (occupationFamily) return occupationFamilyValue(market.occupations, item.municipality, occupationFamily, { origin, ...(source ? { source: source as Exclude<TerritoryEmploymentSource, "OFLIX"> } : {}) });
   const selection = resolveTerritoryEmploymentSelection({ ...market, municipalities: [item] }, origin, source);
   return selection.total;
 }
 
-export function territoryEmploymentBreakdown(market: TerritoryEmploymentMarket, municipality: string | null, origin: TerritoryEmploymentOrigin, source?: string | null) {
-  if (!municipality) return resolveTerritoryEmploymentSelection(market, origin, source);
-  return resolveTerritoryEmploymentSelection({ ...market, municipalities: market.municipalities.filter((item) => item.normalizedMunicipality === normalizeMunicipalityKey(municipality)) }, origin, source);
+export function territoryEmploymentBreakdown(market: TerritoryEmploymentMarket, municipality: string | null, origin: TerritoryEmploymentOrigin, source?: string | null, occupationFamily?: OccupationFamily) {
+  if (!municipality) return resolveTerritoryEmploymentSelection(market, origin, source, occupationFamily);
+  return resolveTerritoryEmploymentSelection({ ...market, municipalities: market.municipalities.filter((item) => item.normalizedMunicipality === normalizeMunicipalityKey(municipality)) }, origin, source, occupationFamily);
 }
 

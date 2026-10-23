@@ -4,8 +4,9 @@ import type { MunicipalityAggregate, TerritoryMetric } from "@/lib/territory";
 import { territoryMetricLabel } from "@/lib/territory";
 import type { TerritoryEmploymentMarket, TerritoryEmploymentOrigin } from "@/lib/territory-market";
 import { territoryEmploymentValue } from "@/lib/territory-market";
+import type { OccupationFamily } from "@/lib/occupations";
 
-export function MunicipalityRanking({ municipalities, metric, category, selectedMunicipality, onSelect, employmentMarket, employmentOrigin, employmentSource }: { municipalities: MunicipalityAggregate[]; metric: TerritoryMetric; category?: string; selectedMunicipality: string | null; onSelect: (municipality: string) => void; employmentMarket?: TerritoryEmploymentMarket; employmentOrigin?: TerritoryEmploymentOrigin; employmentSource?: string }) {
+export function MunicipalityRanking({ municipalities, metric, category, selectedMunicipality, onSelect, employmentMarket, employmentOrigin, employmentSource, occupationFamily }: { municipalities: MunicipalityAggregate[]; metric: TerritoryMetric; category?: string; selectedMunicipality: string | null; onSelect: (municipality: string) => void; employmentMarket?: TerritoryEmploymentMarket; employmentOrigin?: TerritoryEmploymentOrigin; employmentSource?: string; occupationFamily?: OccupationFamily }) {
   const valueFor = (municipality: MunicipalityAggregate) => {
     const categories = category ? municipality.categories.filter((item) => item.category === category) : municipality.categories;
     if (metric === "employment") return categories.filter((item) => item.front === "formal").reduce((total, item) => total + item.total, 0);
@@ -15,7 +16,7 @@ export function MunicipalityRanking({ municipalities, metric, category, selected
     return categories.reduce((total, item) => total + item.total, 0);
   };
   const ranking = employmentMarket && employmentOrigin
-    ? employmentMarket.municipalities.map((municipality) => ({ municipality: { municipality: municipality.municipality } as MunicipalityAggregate, value: territoryEmploymentValue(employmentMarket, municipality.municipality, employmentOrigin, employmentSource) }))
+    ? employmentMarket.municipalities.map((municipality) => ({ municipality: { municipality: municipality.municipality } as MunicipalityAggregate, value: territoryEmploymentValue(employmentMarket, municipality.municipality, employmentOrigin, employmentSource, occupationFamily) }))
     : municipalities.map((municipality) => ({ municipality, value: valueFor(municipality) }));
   const sortedRanking = ranking.sort((a, b) => b.value - a.value || a.municipality.municipality.localeCompare(b.municipality.municipality, "pt-BR")).slice(0, 6);
   return <section aria-labelledby="municipality-ranking-title">
