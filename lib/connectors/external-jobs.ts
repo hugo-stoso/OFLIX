@@ -3,6 +3,7 @@ import { fetchEmpregAjuOpportunities, isEmpregAjuEnabled, type EmpregAjuResult }
 import { fetchGoSergipeOpportunities, isGoSergipeEnabled, type GoSergipeResult } from "@/lib/connectors/go-sergipe";
 import { fetchIelSergipeOpportunities, isIelSergipeEnabled, type IelSergipeResult } from "@/lib/connectors/iel-sergipe";
 import { deduplicateExternalItems, filterExternalItems, markExternalLifecycle } from "@/lib/connectors/external-utils";
+import { recordSourceCollection } from "@/lib/job-observability";
 
 export type ExternalJobSource = "GO_SERGIPE" | "EMPREGAJU" | "IEL_SERGIPE";
 export type ExternalJobSourceParam = "go-sergipe" | "empregaju" | "iel-sergipe";
@@ -55,7 +56,7 @@ export function externalSourceFromParam(value: string | null | undefined): Exter
 }
 
 function disabledResult(config: SourceConfig, collectedAt: string): ExternalJobConnectorResult {
-  return { items: [], source: config.source, provider: config.provider, collectedAt, stale: true, partial: false, pages: 0 } as ExternalJobConnectorResult;
+  return { items: [], source: config.source, provider: config.provider, collectedAt, stale: true, partial: false, pages: 0, collection: { startedAt: collectedAt, finishedAt: collectedAt, durationMs: 0, sourceFetched: false, servedFromCache: false, servedFromStale: false, success: false } } as ExternalJobConnectorResult;
 }
 
 export async function fetchExternalJobs(options: { source?: ExternalJobSourceParam | "all"; q?: string; municipality?: string; env?: NodeJS.ProcessEnv } = {}): Promise<ExternalJobsResult> {
@@ -68,10 +69,11 @@ export async function fetchExternalJobs(options: { source?: ExternalJobSourcePar
     try {
       return await config.fetch();
     } catch (error) {
-      return { items: [], source: config.source, provider: config.provider, collectedAt, stale: true, partial: true, pages: 0, error: error instanceof Error ? error.message : "Falha desconhecida na coleta" } as ExternalJobConnectorResult;
+      return { items: [], source: config.source, provider: config.provider, collectedAt, stale: true, partial: true, pages: 0, collection: { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: 0, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: false }, error: error instanceof Error ? error.message : "Falha desconhecida na coleta" } as ExternalJobConnectorResult;
     }
   }));
   const enabledBySource = new Map(allConfigs.map((config) => [config.source, config.isEnabled()]));
+  results.forEach((result) => recordSourceCollection({ source: result.source, provider: result.provider, enabled: enabledBySource.get(result.source) ?? false, items: result.items, collectedAt: result.collectedAt, error: result.error, stale: result.stale, partial: result.partial, collection: result.collection }));
   const summaries = results.map((result) => ({ source: result.source, provider: result.provider, enabled: enabledBySource.get(result.source) ?? false, count: result.items.length, stale: result.stale, partial: result.partial, pages: result.pages, ...(result.error ? { error: result.error } : {}) }));
   const items = deduplicateExternalItems(results.flatMap((result) => result.items.map((item) => markExternalLifecycle(item, result.collectedAt))));
   const filteredItems = filterExternalItems(items, { q: options.q, municipality: options.municipality });

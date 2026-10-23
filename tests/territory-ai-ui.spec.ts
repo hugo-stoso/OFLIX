@@ -35,5 +35,14 @@ test.describe("UI da inteligência territorial", () => {
     await expect(page.getByRole("button", { name: /Lagarto.*1.*Empregos/ })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Municípios com maior atividade observada" })).toBeVisible();
   });
+
+  test("exibe saúde agregada das fontes sem depender do painel de IA", async ({ page }) => {
+    await page.route("**/api/territory/ai/status**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ enabled: false }) }));
+    await page.route("**/api/observability/jobs**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ historyAvailable: false, historyReason: "Histórico de teste indisponível.", overview: { currentCount: 3, activeCount: 3, sourceCount: 3, freshSourceCount: 2, staleSourceCount: 0, partialSourceCount: 1, newCount: 3 }, sources: [{ source: "GO_SERGIPE", provider: "GO Sergipe", enabled: true, currentCount: 2, activeCount: 2, coverageMode: "FULL", sourceAvailableCount: 2, coverageRate: 1, freshness: "FRESH", stale: false, partial: false, latestRun: { newCount: 2, updatedCount: 0, unchangedCount: 0, disappearedCount: 0, pages: 1, durationMs: 20, servedFromStale: false }, discoveryLatency: { available: false, sampleSize: 0 } }, { source: "EMPREGAJU", provider: "EmpregAju", enabled: true, currentCount: 1, activeCount: 1, coverageMode: "FULL", freshness: "FRESH", stale: false, partial: false, latestRun: { newCount: 1, updatedCount: 0, unchangedCount: 0, disappearedCount: 0, pages: 1, durationMs: 20, servedFromStale: false }, discoveryLatency: { available: false, sampleSize: 0 } }, { source: "IEL_SERGIPE", provider: "IEL Sergipe", enabled: true, currentCount: 0, activeCount: 0, coverageMode: "PARTIAL", freshness: "FRESH", stale: false, partial: true, latestRun: { newCount: 0, updatedCount: 0, unchangedCount: 0, disappearedCount: 0, pages: 1, durationMs: 20, servedFromStale: false }, discoveryLatency: { available: false, sampleSize: 0 } }], methodology: { identity: "identity", disappearance: "absence", latency: "latency", cache: "cache" } }) }));
+    await page.goto("/demo/analyst");
+    await expect(page.getByRole("heading", { name: "Cobertura e atualização" })).toBeVisible();
+    await expect(page.getByText("Histórico ainda não disponível para calcular latência de descoberta.")).toBeVisible();
+    await expect(page.getByRole("article", { name: "Saúde da fonte GO Sergipe" })).toBeVisible();
+  });
 });
 

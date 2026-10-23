@@ -167,3 +167,15 @@ O MTE/PDET foi investigado como fonte oficial prioritária. A aplicação não p
 A legislação é editorial e curta: guarda referência, resumo, temas, públicos, data de verificação e link para Planalto. A OFLIX não copia leis integrais nem oferece parecer jurídico. A Reforma Tributária do Consumo é um tópico composto por EC 132/2023, LC 214/2025 e LC 227/2026.
 
 Artigos acadêmicos usam metadata de fonte legítima, inicialmente OpenAlex. A OFLIX recomenda por critérios determinísticos e transparentes — relevância temática, atualidade, citações e acesso aberto — sem inventar trabalhos, sem copiar conteúdo integral e sem usar número de citações como sinônimo de qualidade. A consulta live tem cache curto e fallback para snapshot real com IDs OpenAlex/DOI.
+
+## Observabilidade de cobertura, frescor e latência
+
+As coletas externas agora produzem metadados agregados em `lib/job-observability.ts`, sem persistir HTML/JSON bruto, descrições, cookies, tokens, headers, candidatos ou stack traces. A identidade do anúncio é `source + sourceJobId`, com fallback para `sourceId`/`id`; a mudança é detectada por fingerprint de campos públicos estáveis. Cada fonte pode registrar páginas, duração, sucesso, itens coletados/únicos, novos, atualizados, inalterados, ausentes, stale, partial e erro categorizado.
+
+`FULL` só é atribuído quando a coleta foi bem-sucedida e a paginação pública terminou de forma observável. GO Sergipe e EmpregAju podem atingir esse estado quando seus conectores completam a paginação; IEL Sergipe permanece `PARTIAL` porque a coleta deliberadamente usa apenas a listagem HTML inicial e não chama a API desautorizada. A contagem de disponibilidade só é exposta quando o recorte completo é mensurável; não é uma estimativa de postos de trabalho.
+
+Ausência não é interpretada como encerramento. Um anúncio só fica inativo após duas coletas consecutivas `FULL`, bem-sucedidas e com paginação completa; coletas parciais, falhas, cache hit e fallback stale não produzem desaparecimento. Cache hit não cria uma nova coleta. Fallback stale registra a tentativa falha e preserva o lifecycle anterior.
+
+Discovery latency só é calculada quando a fonte fornece data/hora confiável (`DATETIME`) e a primeira observação não é anterior à publicação; datas sem horário são preservadas com precisão `DATE`, sem falsa precisão em milissegundos. Datas futuras e relações de datas inconsistentes são ignoradas para a métrica.
+
+O endpoint `GET /api/observability/jobs?profileId=profile-analista` expõe apenas agregados para a visão institucional e alimenta o painel “Cobertura e atualização”. A implementação usa uma abstração de store com memória para request/runtime e testes. Como o SQLite atual do Vercel fica em `/tmp` por deployment/instância, `historyAvailable=false` em Production: a UI explica que ainda não há histórico durável para calcular latência entre deployments. TTL de quatro horas, timeouts, retries, paralelismo e ausência de cron permanecem inalterados.

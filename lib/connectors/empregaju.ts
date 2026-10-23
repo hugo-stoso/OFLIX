@@ -1,5 +1,6 @@
 import { load } from "cheerio";
 import type { DiscoveryItem, PcdAvailability } from "@/lib/domain";
+import type { SourceCollectionMetadata } from "@/lib/connectors/collection";
 import { deduplicateExternalItems, EXTERNAL_JOB_USER_AGENT, markExternalLifecycle, normalizeExternalFields, parseBrazilianDate, parseLocation, parseSalary, parseVacancies, stableExternalFingerprint, textFromHtml } from "@/lib/connectors/external-utils";
 
 export const EMPREGAJU_HOST = "empregaju.aracaju.se.gov.br";
@@ -21,6 +22,7 @@ export type EmpregAjuResult = {
   stale: boolean;
   partial: boolean;
   pages: number;
+  collection?: SourceCollectionMetadata;
   error?: string;
 };
 
@@ -156,8 +158,8 @@ export function clearEmpregAjuCache() {
   lastSuccessfulResult = undefined;
 }
 
-function resultFrom(items: DiscoveryItem[], collectedAt: string, stale: boolean, partial: boolean, pages: number, error?: string): EmpregAjuResult {
-  return { items, source: "EMPREGAJU", provider: "EmpregAju", collectedAt, stale, partial, pages, ...(error ? { error } : {}) };
+function resultFrom(items: DiscoveryItem[], collectedAt: string, stale: boolean, partial: boolean, pages: number, collection: SourceCollectionMetadata, error?: string): EmpregAjuResult {
+  return { items, source: "EMPREGAJU", provider: "EmpregAju", collectedAt, stale, partial, pages, collection, ...(error ? { error } : {}) };
 }
 
 export function isEmpregAjuEnabled(env: NodeJS.ProcessEnv = process.env) {
@@ -167,7 +169,10 @@ export function isEmpregAjuEnabled(env: NodeJS.ProcessEnv = process.env) {
 export async function fetchEmpregAjuOpportunities(options: FetchEmpregAjuOptions = {}): Promise<EmpregAjuResult> {
   const now = options.now ?? (() => new Date());
   const nowMs = now().getTime();
-  if (cacheEntry && cacheEntry.expiresAt > nowMs) return cacheEntry.result;
+  if (cacheEntry && cacheEntry.expiresAt > nowMs) return {
+    ...cacheEntry.result,
+    collection: { ...cacheEntry.result.collection, servedFromCache: true, sourceFetched: false, durationMs: 0 },
+  };
   const fetcher = options.fetcher ?? fetch;
   const timeoutMs = options.timeoutMs ?? EMPREGAJU_TIMEOUT_MS;
   const maxPages = options.maxPages ?? EMPREGAJU_MAX_PAGES;
@@ -178,6 +183,9 @@ export async function fetchEmpregAjuOpportunities(options: FetchEmpregAjuOptions
   let error: string | undefined;
   let items: DiscoveryItem[] = [];
   let receivedValidResponse = false;
+  let paginationComplete = false;
+  let pagesSucceeded = 0;
+  let requestCount = 0;
   const visited = new Set<string>();
 
   while (pages < maxPages && !visited.has(pageUrl)) {
@@ -186,14 +194,22 @@ export async function fetchEmpregAjuOpportunities(options: FetchEmpregAjuOptions
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
+      requestCount += 1;
       let response = await fetcher(pageUrl, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, next: { revalidate: EMPREGAJU_CACHE_TTL_SECONDS } });
-      if (response.status >= 500 && response.status < 600) response = await fetcher(pageUrl, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, next: { revalidate: EMPREGAJU_CACHE_TTL_SECONDS } });
+      if (response.status >= 500 && response.status < 600) {
+        requestCount += 1;
+        response = await fetcher(pageUrl, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, next: { revalidate: EMPREGAJU_CACHE_TTL_SECONDS } });
+      }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const page = parseEmpregAjuPage(await response.text(), { pageUrl, collectedAt });
       if (!page.sawOpportunityMarkup) throw new Error("HTML público sem cards estruturados do EmpregAju");
       receivedValidResponse = true;
+      pagesSucceeded += 1;
       items = deduplicateExternalItems([...items, ...page.items.map((item) => markExternalLifecycle(item, collectedAt))]);
-      if (!page.nextUrl || page.nextUrl === pageUrl || page.items.length === 0) break;
+      if (!page.nextUrl || page.nextUrl === pageUrl || page.items.length === 0) {
+        paginationComplete = true;
+        break;
+      }
       pageUrl = page.nextUrl;
     } catch (collectionError) {
       partial = true;
@@ -205,12 +221,13 @@ export async function fetchEmpregAjuOpportunities(options: FetchEmpregAjuOptions
   }
 
   if (receivedValidResponse) {
-    const result = resultFrom(items, collectedAt, false, partial, pages, error);
+    const collection: SourceCollectionMetadata = { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(collectedAt), requestCount, pagesRequested: pages, pagesSucceeded, paginationComplete, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: true };
+    const result = resultFrom(items, collectedAt, false, partial, pages, collection, error);
     lastSuccessfulResult = result;
     cacheEntry = { expiresAt: nowMs + EMPREGAJU_CACHE_TTL_MS, result };
     return result;
   }
   const fallbackError = "As vagas do EmpregAju não puderam ser atualizadas agora.";
-  if (lastSuccessfulResult) return { ...lastSuccessfulResult, stale: true, partial: true, error: fallbackError, pages };
-  return resultFrom([], collectedAt, true, true, pages, error ?? fallbackError);
+  if (lastSuccessfulResult) return { ...lastSuccessfulResult, stale: true, partial: true, error: fallbackError, pages, collection: { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(collectedAt), requestCount, pagesRequested: pages, pagesSucceeded, paginationComplete: false, sourceFetched: true, servedFromCache: false, servedFromStale: true, success: false } };
+  return resultFrom([], collectedAt, true, true, pages, { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(collectedAt), requestCount, pagesRequested: pages, pagesSucceeded, paginationComplete: false, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: false }, error ?? fallbackError);
 }

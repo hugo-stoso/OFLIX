@@ -1,5 +1,6 @@
 import { load } from "cheerio";
 import type { DiscoveryItem } from "@/lib/domain";
+import type { SourceCollectionMetadata } from "@/lib/connectors/collection";
 import { deduplicateExternalItems, EXTERNAL_JOB_USER_AGENT, markExternalLifecycle, normalizeExternalFields, parseBrazilianDate, parseLocation, parseSalary, stableExternalFingerprint, textFromHtml } from "@/lib/connectors/external-utils";
 
 export const IEL_SERGIPE_HOST = "carreiras.iel.org.br";
@@ -19,6 +20,7 @@ export type IelSergipeResult = {
   stale: boolean;
   partial: boolean;
   pages: number;
+  collection?: SourceCollectionMetadata;
   error?: string;
 };
 
@@ -121,8 +123,8 @@ export function clearIelSergipeCache() {
   lastSuccessfulResult = undefined;
 }
 
-function resultFrom(items: DiscoveryItem[], collectedAt: string, stale: boolean, partial: boolean, pages: number, error?: string): IelSergipeResult {
-  return { items, source: "IEL_SERGIPE", provider: "IEL Sergipe", collectedAt, stale, partial, pages, ...(error ? { error } : {}) };
+function resultFrom(items: DiscoveryItem[], collectedAt: string, stale: boolean, partial: boolean, pages: number, collection: SourceCollectionMetadata, error?: string): IelSergipeResult {
+  return { items, source: "IEL_SERGIPE", provider: "IEL Sergipe", collectedAt, stale, partial, pages, collection, ...(error ? { error } : {}) };
 }
 
 export function isIelSergipeEnabled(env: NodeJS.ProcessEnv = process.env) {
@@ -132,26 +134,35 @@ export function isIelSergipeEnabled(env: NodeJS.ProcessEnv = process.env) {
 export async function fetchIelSergipeOpportunities(options: FetchIelOptions = {}): Promise<IelSergipeResult> {
   const now = options.now ?? (() => new Date());
   const nowMs = now().getTime();
-  if (cacheEntry && cacheEntry.expiresAt > nowMs) return cacheEntry.result;
+  if (cacheEntry && cacheEntry.expiresAt > nowMs) return {
+    ...cacheEntry.result,
+    collection: { ...cacheEntry.result.collection, servedFromCache: true, sourceFetched: false, durationMs: 0 },
+  };
   const fetcher = options.fetcher ?? fetch;
   const timeoutMs = options.timeoutMs ?? IEL_SERGIPE_TIMEOUT_MS;
   const collectedAt = now().toISOString();
+  const startedAtMs = Date.now();
+  let requestCount = 0;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
+    requestCount += 1;
     let response = await fetcher(IEL_SERGIPE_LIST_URL, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, next: { revalidate: IEL_SERGIPE_CACHE_TTL_SECONDS } });
-    if (response.status >= 500 && response.status < 600) response = await fetcher(IEL_SERGIPE_LIST_URL, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, next: { revalidate: IEL_SERGIPE_CACHE_TTL_SECONDS } });
+    if (response.status >= 500 && response.status < 600) {
+      requestCount += 1;
+      response = await fetcher(IEL_SERGIPE_LIST_URL, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, next: { revalidate: IEL_SERGIPE_CACHE_TTL_SECONDS } });
+    }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const page = parseIelSergipePage(await response.text(), { collectedAt });
     if (!page.sawOpportunityMarkup) throw new Error("HTML público sem cards estruturados do IEL Sergipe");
-    const result = resultFrom(page.items.map((item) => markExternalLifecycle(item, collectedAt)), collectedAt, false, false, 1);
+    const result = resultFrom(page.items.map((item) => markExternalLifecycle(item, collectedAt)), collectedAt, false, true, 1, { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - startedAtMs, requestCount, pagesRequested: 1, pagesSucceeded: 1, paginationComplete: false, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: true });
     lastSuccessfulResult = result;
     cacheEntry = { expiresAt: nowMs + IEL_SERGIPE_CACHE_TTL_MS, result };
     return result;
   } catch (collectionError) {
     const error = collectionError instanceof Error ? collectionError.message : "Falha desconhecida na coleta";
-    if (lastSuccessfulResult) return { ...lastSuccessfulResult, stale: true, partial: true, error: "As vagas do IEL Sergipe não puderam ser atualizadas agora." };
-    return resultFrom([], collectedAt, true, true, 1, error);
+    if (lastSuccessfulResult) return { ...lastSuccessfulResult, stale: true, partial: true, error: "As vagas do IEL Sergipe não puderam ser atualizadas agora.", collection: { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - startedAtMs, requestCount, pagesRequested: 1, pagesSucceeded: 0, paginationComplete: false, sourceFetched: true, servedFromCache: false, servedFromStale: true, success: false } };
+    return resultFrom([], collectedAt, true, true, 1, { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - startedAtMs, requestCount, pagesRequested: 1, pagesSucceeded: 0, paginationComplete: false, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: false }, error);
   } finally {
     clearTimeout(timeout);
   }

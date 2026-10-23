@@ -71,6 +71,7 @@
 - Observatório Territorial integrado ao mercado externo: `IMPLEMENTADO` em `/api/territory` para o escopo geral, com agregação pura em `lib/territory-market.ts`, contagem de anúncios por município/UF SE, normalização municipal sem acentos, preservação de status por fonte, recortes `Todas as vagas`/`Publicadas na OFLIX`/`Vagas externas` e refinamento por GO Sergipe/EmpregAju/IEL. Mapa, ranking e resumo resolvem o mesmo recorte; serviços, voluntariado, interações e “Minhas oportunidades” permanecem isolados.
 - IA territorial assistida: `IMPLEMENTADO` como enhancement opcional em `/api/territory/ai/analyze` e `/api/territory/ai/ask`. `lib/ai/territory.ts` constrói contexto agregado com os mesmos filtros do Observatório, valida análise estruturada, interpreta uma DSL restrita, executa perguntas deterministicamente e aplica caveats para partial/stale. `TERRITORY_AI_ENABLED=false` é o padrão; o checkpoint de provider real ficou `PENDENTE` porque o Preview não tem `AI_MODEL`, `AI_API_KEY` ou `AI_GATEWAY_API_KEY`; Production não foi ativado.
 - Harmonização ocupacional territorial: `IMPLEMENTADO` como projeção derivada em `lib/occupations.ts`, sem sobrescrever `occupationCode`, `occupationLabel`, `title` ou `category` da fonte. CBO explícito, label explícito, regra textual conservadora e `UNCLASSIFIED` seguem prioridade determinística; famílias, municípios, fontes e cobertura são agregados em memória no mesmo `employmentMarket`. As regras foram ampliadas somente para títulos observados no diagnóstico público — construção, logística, administração, alimentação, saúde, segurança, finanças e comunicação — e continuam deixando rótulos ambíguos sem classificação. `npm run audit:occupations` consulta apenas os agregados públicos do Observatório e não persiste respostas brutas, URLs individuais, cookies, tokens ou dumps.
+- Observabilidade de empregos externos: `IMPLEMENTADO` em `lib/job-observability.ts` com identidade por fonte/ID, fingerprint, lifecycle `firstSeenAt`/`lastSeenAt`, contagens de novos/atualizados/inalterados/ausentes, grace de duas coletas, estados FRESH/STALE/ERROR/DISABLED, cobertura FULL/PARTIAL/UNKNOWN, diferenciação entre cache hit e coleta real, fallback stale e latência somente para timestamps DATETIME confiáveis. O endpoint protegido por perfil analista é `GET /api/observability/jobs?profileId=profile-analista`; o painel agregado aparece apenas no Observatório. `npm run audit:job-freshness` imprime somente o resumo.
 
 ## VALIDAÇÃO NECESSÁRIA
 
@@ -108,7 +109,7 @@
 
 ## PENDENTE
 
-- Observabilidade contínua e persistência compartilhada de produção.
+- Histórico durável de observabilidade em Production: a coleta request-time e o store de memória estão implementados, mas o runtime Vercel atual usa SQLite efêmero em `/tmp`; `historyAvailable=false` até existir armazenamento compartilhado autorizado. Sem essa camada não há série histórica confiável de discovery latency entre deployments.
 - Fluxos de cadastro, autenticação real, autorização persistente e recuperação de acesso.
 - Criação, edição, revisão e encerramento de oportunidades persistentes.
 - Notificações server-side e integração OAuth com Google Agenda.

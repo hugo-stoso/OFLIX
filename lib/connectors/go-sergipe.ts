@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { load } from "cheerio";
 import type { DiscoveryItem, PcdAvailability } from "@/lib/domain";
+import type { SourceCollectionMetadata } from "@/lib/connectors/collection";
 
 export const GO_SERGIPE_HOST = "gosergipe.se.gov.br";
 export const GO_SERGIPE_PATH = "/oportunidades";
@@ -30,6 +31,7 @@ export type GoSergipeResult = {
   stale: boolean;
   partial: boolean;
   pages: number;
+  collection?: SourceCollectionMetadata;
   error?: string;
 };
 
@@ -326,8 +328,8 @@ export function isGoSergipeEnabled(env: NodeJS.ProcessEnv = process.env) {
   return env.GO_SERGIPE_ENABLED !== "false";
 }
 
-function resultFrom(items: DiscoveryItem[], collectedAt: string, stale: boolean, partial: boolean, pages: number, error?: string): GoSergipeResult {
-  return { items, source: "GO_SERGIPE", provider: "GO Sergipe", collectedAt, stale, partial, pages, ...(error ? { error } : {}) };
+function resultFrom(items: DiscoveryItem[], collectedAt: string, stale: boolean, partial: boolean, pages: number, collection: SourceCollectionMetadata, error?: string): GoSergipeResult {
+  return { items, source: "GO_SERGIPE", provider: "GO Sergipe", collectedAt, stale, partial, pages, collection, ...(error ? { error } : {}) };
 }
 
 export function clearGoSergipeCache() {
@@ -338,7 +340,10 @@ export function clearGoSergipeCache() {
 export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions = {}): Promise<GoSergipeResult> {
   const now = options.now ?? (() => new Date());
   const nowMs = now().getTime();
-  if (cacheEntry && cacheEntry.expiresAt > nowMs) return cacheEntry.result;
+  if (cacheEntry && cacheEntry.expiresAt > nowMs) return {
+    ...cacheEntry.result,
+    collection: { ...cacheEntry.result.collection, servedFromCache: true, sourceFetched: false, durationMs: 0 },
+  };
 
   const fetcher = options.fetcher ?? fetch;
   const timeoutMs = options.timeoutMs ?? GO_SERGIPE_TIMEOUT_MS;
@@ -350,6 +355,9 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
   let error: string | undefined;
   let items: DiscoveryItem[] = [];
   let receivedValidResponse = false;
+  let paginationComplete = false;
+  let pagesSucceeded = 0;
+  let requestCount = 0;
   const visited = new Set<string>();
 
   console.info(`[go-sergipe] coleta iniciada url=${GO_SERGIPE_API_URL} state=SE`);
@@ -359,6 +367,7 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
+      requestCount += 1;
       const response = await fetcher(pageUrl, {
         headers: { accept: "application/json", "user-agent": GO_SERGIPE_USER_AGENT },
         signal: controller.signal,
@@ -368,9 +377,13 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
       const page = parseGoSergipeApiResponse(await response.json(), { collectedAt });
       if (!page.sawOpportunityMarkup) throw new Error("Resposta JSON pública sem lista estruturada de oportunidades");
       receivedValidResponse = true;
+      pagesSucceeded += 1;
       items = deduplicateGoSergipeItems([...items, ...page.items]);
       const nextUrl = page.nextUrl;
-      if (!nextUrl || nextUrl === pageUrl || page.items.length === 0) break;
+      if (!nextUrl || nextUrl === pageUrl || page.items.length === 0) {
+        paginationComplete = true;
+        break;
+      }
       pageUrl = nextUrl;
     } catch (collectionError) {
       partial = true;
@@ -384,7 +397,8 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
   const durationMs = Date.now() - startedAt;
   console.info(`[go-sergipe] coleta finalizada pages=${pages} items=${items.length} durationMs=${durationMs} partial=${partial}`);
   if (receivedValidResponse) {
-    const result = resultFrom(items, collectedAt, false, partial, pages, error);
+    const collection: SourceCollectionMetadata = { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs, requestCount, pagesRequested: pages, pagesSucceeded, paginationComplete, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: true };
+    const result = resultFrom(items, collectedAt, false, partial, pages, collection, error);
     lastSuccessfulResult = result;
     cacheEntry = { expiresAt: nowMs + GO_SERGIPE_CACHE_TTL_MS, result };
     return result;
@@ -392,9 +406,9 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
 
   const fallbackError = "As vagas do GO Sergipe não puderam ser atualizadas agora.";
   if (lastSuccessfulResult) {
-    return { ...lastSuccessfulResult, stale: true, partial: true, error: fallbackError, pages };
+    return { ...lastSuccessfulResult, stale: true, partial: true, error: fallbackError, pages, collection: { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs, requestCount, pagesRequested: pages, pagesSucceeded, paginationComplete: false, sourceFetched: true, servedFromCache: false, servedFromStale: true, success: false } };
   }
-  return resultFrom([], collectedAt, true, true, pages, error ?? fallbackError);
+  return resultFrom([], collectedAt, true, true, pages, { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs, requestCount, pagesRequested: pages, pagesSucceeded, paginationComplete: false, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: false }, error ?? fallbackError);
 }
 
 export function filterGoSergipeItems(items: DiscoveryItem[], query: { q?: string; municipality?: string }) {
