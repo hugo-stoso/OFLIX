@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
     "check:go-sergipe": "node scripts/check-go-sergipe.mjs",
+    "audit:occupations": "node scripts/audit-occupations.mjs",
     "db:seed": "node prisma/seed.cjs",
     "db:setup": "node prisma/seed.cjs"
   },

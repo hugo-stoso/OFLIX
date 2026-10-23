@@ -45,6 +45,27 @@ test.describe("harmonização ocupacional OFLIX", () => {
     expect(harmonizeOccupation(pj).family).toBe("CONSTRUCTION_MAINTENANCE");
   });
 
+  test("cobre títulos observados no diagnóstico sem forçar rótulos ambíguos", () => {
+    const expectedFamilies = [
+      ["Servente (construção civil)", "CONSTRUCTION_MAINTENANCE"],
+      ["Carpinteiro", "CONSTRUCTION_MAINTENANCE"],
+      ["ESTÁGIO EM ADMINISTRAÇÃO", "ADMINISTRATION"],
+      ["Armador de ferragens na construção civil", "CONSTRUCTION_MAINTENANCE"],
+      ["Ajudante de cozinha", "FOOD_HOSPITALITY"],
+      ["Operador de empilhadeira", "LOGISTICS_TRANSPORT"],
+      ["AUXILIAR DE ENFERMAGEM", "HEALTH"],
+      ["Agente de Portaria", "SECURITY"],
+      ["Analista de mídias sociais", "COMMUNICATION_DESIGN"],
+      ["Analista de cobrança", "FINANCE_ACCOUNTING"],
+      ["Operador de betoneira", "CONSTRUCTION_MAINTENANCE"],
+      ["Técnico de edificações", "CONSTRUCTION_MAINTENANCE"],
+      ["Operador de caldeira a vapor", "INDUSTRY_PRODUCTION"],
+    ] as const;
+    for (const [title, family] of expectedFamilies) expect(harmonizeOccupation(item({ kind: "external_job", source: "GO_SERGIPE", title })).family).toBe(family);
+    expect(harmonizeOccupation(item({ kind: "external_job", source: "GO_SERGIPE", title: "Comprador" })).family).toBe("UNCLASSIFIED");
+    expect(harmonizeOccupation(item({ kind: "external_job", source: "GO_SERGIPE", title: "Técnico em segurança do trabalho" })).family).toBe("UNCLASSIFIED");
+  });
+
   test("agrega famílias, municípios, fontes e cobertura sem transformar vagas em postos", () => {
     const items = [
       ...Array.from({ length: 5 }, (_, index) => item({ kind: "external_job", source: "GO_SERGIPE", title: `Logística ${index + 1}`, location: { state: "SE", municipality: "Aracaju" } })),

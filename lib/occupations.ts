@@ -106,21 +106,21 @@ export function normalizeOccupationText(value: string) {
 type OccupationRule = { family: OccupationFamily; patterns: RegExp[] };
 
 const TITLE_RULES: OccupationRule[] = [
-  { family: "ADMINISTRATION", patterns: [/\badministrativ/u, /\bassistente de escritorio\b/u, /\bauxiliar de escritorio\b/u, /\bsecretari(?:a|o)/u, /\bescriturari/u] },
-  { family: "CUSTOMER_SERVICE_SALES", patterns: [/\bvendedor/u, /\bvendas?/u, /\batendente/u, /\boperador de caixa\b/u, /\btelemarketing\b/u, /\bcomercial/u, /\bpromotor de vendas\b/u] },
-  { family: "LOGISTICS_TRANSPORT", patterns: [/\blogistic/u, /\bestoquist/u, /\balmoxarif/u, /\bmotorista/u, /\bentregador/u, /\bconferente/u, /\bexpedicao/u, /\barmazem/u, /\bcarga e descarga\b/u] },
-  { family: "CLEANING_GENERAL_SERVICES", patterns: [/\blimpeza/u, /\bfaxineir/u, /\bservicos gerais\b/u, /\bauxiliar de servicos\b/u] },
-  { family: "CONSTRUCTION_MAINTENANCE", patterns: [/\beletricist/u, /\bencanador/u, /\bpedreir/u, /\bpintor/u, /\bmanutenc(?:ao|ista)/u, /\bmecanico/u, /\bsoldador/u, /\binstalador/u] },
-  { family: "INDUSTRY_PRODUCTION", patterns: [/\bproducao/u, /\bindustrial/u, /\boperador de maquina\b/u, /\bcostureir/u, /\btorneir/u] },
+  { family: "ADMINISTRATION", patterns: [/\badministrativ/u, /\bassistente de escritorio\b/u, /\bauxiliar de escritorio\b/u, /\bsecretari(?:a|o)/u, /\bescriturari/u, /\bestagio em administracao\b/u, /\bcoordenador de rh\b/u, /\brecursos humanos\b/u] },
+  { family: "CUSTOMER_SERVICE_SALES", patterns: [/\bvendedor/u, /\bvendas?/u, /\batendente/u, /\boperador de caixa\b/u, /\btelemarketing\b/u, /\bcomercial/u, /\bpromotor de vendas\b/u, /\bagente de relacionamento\b/u, /\brecepcionist/u, /\batendimento\b/u] },
+  { family: "LOGISTICS_TRANSPORT", patterns: [/\blogistic/u, /\bestoquist/u, /\balmoxarif/u, /\bmotorista/u, /\bcaminhoneir/u, /\bentregador/u, /\bconferente/u, /\bexpedicao/u, /\barmazem/u, /\bcarga e descarga\b/u, /\bcarregador/u, /\boperador de empilhadeira\b/u, /\bmotofretist/u, /\brepositor/u] },
+  { family: "CLEANING_GENERAL_SERVICES", patterns: [/\blimpeza/u, /\bfaxineir/u, /\bservicos gerais\b/u, /\bauxiliar de servicos\b/u, /\bauxiliar de limpeza\b/u, /\bservente de limpeza\b/u, /\bzelador/u] },
+  { family: "CONSTRUCTION_MAINTENANCE", patterns: [/\beletricist/u, /\bencanador/u, /\bpedreir/u, /\bconstrucao civil\b/u, /\bservente(?: de)? construcao\b/u, /\bservente pedreiro\b/u, /\bcarpinteir/u, /\bmarceneir/u, /\bgesseir/u, /\barmador de ferragens\b/u, /\bmontador de estruturas metalicas\b/u, /\bmarteleteir/u, /\boperador de betoneira\b/u, /\btecnico de edificacoes\b/u, /\btecnico de refrigeracao\b/u, /\btecnicos? em eletricidade\b/u, /\bagrimensur/u, /\bestagio em engenharia civ\b/u, /\bpintor/u, /\bmanutenc(?:ao|ista)/u, /\bmecanico/u, /\bchefe de oficina\b/u, /\bborracheir/u, /\bestofador de moveis\b/u, /\bsoldador/u, /\binstalador/u, /\bauxiliar de eletrotecnico\b/u, /\bengenheir(?:o|a)? civil\b/u] },
+  { family: "INDUSTRY_PRODUCTION", patterns: [/\bproducao/u, /\boperador de maquinas?\b/u, /\boperador de caldeira\b/u, /\bcostureir/u, /\btorneir/u, /\btecnico quimic/u, /\blaboratorio de controle de qualidade\b/u] },
   { family: "TECHNOLOGY", patterns: [/\bdesenvolvedor/u, /\bprogramador/u, /\banalista de sistemas\b/u, /\bsuporte tecnico\b/u, /\btecnologia/u, /\binfraestrutura de ti\b/u, /\bdados\b/u] },
-  { family: "HEALTH", patterns: [/\benfermeir/u, /\bmedic/u, /\bfarmaceut/u, /\bfisioterap/u, /\bdentist/u, /\btecnico de enfermagem\b/u, /\bsaude/u] },
-  { family: "EDUCATION", patterns: [/\bprofessor/u, /\bpedagog/u, /\binstrutor/u, /\beducador/u, /\blicenciatur/u] },
-  { family: "FOOD_HOSPITALITY", patterns: [/\bcozinheir/u, /\bgarcom/u, /\bconfeiteir/u, /\bhotel/u, /\brestaurante/u, /\blanchonete/u, /\bpadaria/u] },
-  { family: "SECURITY", patterns: [/\bvigilante/u, /\bseguranca patrimonial\b/u, /\bporteiro/u] },
+  { family: "HEALTH", patterns: [/\benfermeir/u, /\bmedic/u, /\bfarmaceut/u, /\bfisioterap/u, /\bdentist/u, /\btecnico de enfermagem\b/u, /\bauxiliar de enfermagem\b/u, /\bcuidador\b/u, /\bsaude/u] },
+  { family: "EDUCATION", patterns: [/\bprofessor/u, /\bpedagog/u, /\binstrutor/u, /\beducador/u, /\bprojetos educativos\b/u, /\blicenciatur/u] },
+  { family: "FOOD_HOSPITALITY", patterns: [/\bcozinheir/u, /\bajudante de cozinha\b/u, /\bauxiliar de cozinha\b/u, /\bgarcom/u, /\bconfeiteir/u, /\bcopeir/u, /\bpadeir/u, /\bhotel/u, /\brestaurante/u, /\blanchonete/u, /\bpadaria/u] },
+  { family: "SECURITY", patterns: [/\bvigilante/u, /\bseguranca patrimonial\b/u, /\bporteiro/u, /\bagente de portaria\b/u] },
   { family: "AGRICULTURE", patterns: [/\bagricult/u, /\brural/u, /\bpecuar/u, /\bjardineir/u, /\btratorista/u, /\bpescador/u] },
-  { family: "FINANCE_ACCOUNTING", patterns: [/\bcontador/u, /\bcontabil/u, /\bfinanceir/u, /\bfiscal/u, /\btesour/u] },
-  { family: "COMMUNICATION_DESIGN", patterns: [/\bcomunicacao/u, /\bredator/u, /\bdesigner/u, /\bdesign/u, /\bmarketing/u, /\bjornal/u, /\bsocial media\b/u, /\bpublicidade/u, /\bgrafico/u] },
-  { family: "OTHER", patterns: [/\badvogad\b/u, /\bjuridic\b/u, /\bpsicolog\b/u, /\bengenheir\b/u, /\brecursos humanos\b/u] },
+  { family: "FINANCE_ACCOUNTING", patterns: [/\bcontador/u, /\bcontabil/u, /\bfinanceir/u, /\bfiscal/u, /\btesour/u, /\bcobranca\b/u] },
+  { family: "COMMUNICATION_DESIGN", patterns: [/\bcomunicacao/u, /\bredator/u, /\bdesigner/u, /\bdesign/u, /\bmarketing/u, /\bjornal/u, /\bsocial media\b/u, /\bmidias sociais\b/u, /\bpublicidade/u, /\bgrafico/u, /\bdesenhista grafico\b/u] },
+  { family: "OTHER", patterns: [/\badvogad\b/u, /\bjuridic\b/u, /\bpsicolog\b/u, /\bassistente social\b/u, /\bcabeleireir/u, /\bfrentist/u, /\bengenheir\b/u, /\brecursos humanos\b/u] },
 ];
 
 function textValue(value: unknown) {
