@@ -1,6 +1,6 @@
 # OFLIX
 
-OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em demonstração para Sergipe. As três frentes originais — trabalho formal, serviços autônomos e voluntariado — continuam existindo e agora convivem com descoberta contextual de capacitação, concursos/processos seletivos públicos, vagas externas autorizadas e oportunidades de fornecimento ao poder público.
+OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em demonstração para Sergipe. As três frentes originais — trabalho formal, serviços autônomos e voluntariado — continuam existindo e agora convivem com descoberta contextual de capacitação, concursos/processos seletivos públicos, vagas externas autorizadas e oportunidades de fornecimento ao poder público. No Observatório, “Empregos observados” combina vagas formais OFLIX e anúncios `external_job`; serviços, voluntariado e conexões continuam exclusivamente OFLIX.
 
 ## O que está nesta fundação
 
@@ -48,7 +48,7 @@ Formação, currículo, residência e publicação no banco de talentos permanec
 
 Os dados do seed são DEMO DATA, fictícios e substituíveis. Nenhum dado pessoal da proposta de inscrição deve ser incluído no repositório.
 
-O mapa do Observatório usa a Malha Municipal Digital do IBGE, versão 2024, recortada para Sergipe e simplificada para web. O artefato local mantém nome oficial e código IBGE; ausência de registros OFLIX deixa o município neutro e não significa ausência de atividade econômica real. As métricas do mapa contam somente oportunidades formais, serviços, voluntariado e interações da base operacional da demonstração. Cursos, concursos, vagas externas e sinais de contratação pública permanecem separados.
+O mapa do Observatório usa a Malha Municipal Digital do IBGE, versão 2024, recortada para Sergipe e simplificada para web. O artefato local mantém nome oficial e código IBGE; ausência de registros observados deixa o município neutro e não significa ausência de atividade econômica real. As métricas do mapa, ranking, resumo e panorama usam o mesmo recorte: empregos observados (OFLIX + `external_job`), prestação de serviços OFLIX, voluntariado OFLIX e interações OFLIX. Cursos, concursos e sinais de contratação pública permanecem separados.
 
 ## Stack
 

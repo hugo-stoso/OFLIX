@@ -138,7 +138,7 @@ A remuneração de vaga usa valores numéricos em BRL mensal, com mínimo, máxi
 
 ## Empregos externos no Observatório Territorial
 
-O Observatório mantém as métricas-base OFLIX intactas e acrescenta um `employmentMarket` calculado em memória por `lib/territory-market.ts`. A rota geral `/api/territory` faz uma única coleta server-side de `fetchExternalJobs({ source: "all" })`; perfis sem escopo geral continuam no recorte por interesses e não recebem vagas externas. Não há nova persistência SQLite nem chamada a IA/LLM.
+O Observatório mantém as métricas-base OFLIX intactas e acrescenta um `employmentMarket` calculado em memória por `lib/territory-market.ts`. A rota geral `/api/territory` faz uma única coleta server-side de `fetchExternalJobs({ source: "all" })`; perfis sem escopo geral continuam no recorte por interesses e não recebem vagas externas. `aggregateObservedTerritory()` é a camada determinística compartilhada pela apresentação: jobs usam origem/fonte/município/área ocupacional; serviços e voluntariado usam somente categorias OFLIX; interações nunca vêm de fontes externas. O denominador de “Oportunidades observadas” é empregos observados + serviços OFLIX + voluntariado OFLIX. Não há nova persistência SQLite nem chamada a IA/LLM.
 
 O mercado observado conta anúncios/listagens (`DiscoveryItem`) e não soma o campo textual de quantidade de vagas. Só entram itens `kind === "external_job"` com UF `SE`, usando chave municipal trimada, minúscula, sem acentos e com espaços normalizados; a chave canônica do GeoJSON permanece o nome exibido pela base/primeira fonte. A proveniência e o estado por fonte (`enabled`, `stale`, `partial`, `error`, `count`) acompanham a resposta, inclusive em falha parcial.
 

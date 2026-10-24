@@ -40,6 +40,43 @@ export type TerritoryEmploymentSelection = {
   sourceCounts: Record<TerritoryEmploymentSource, number>;
 };
 
+export type TerritoryObservedFilters = {
+  municipality?: string | null;
+  category?: string | null;
+  employmentOrigin?: TerritoryEmploymentOrigin;
+  externalSource?: TerritoryEmploymentSource | string | null;
+  occupationFamily?: OccupationFamily | null;
+};
+
+export type TerritoryObservedCategory = {
+  front: "service" | "volunteer";
+  category: string;
+  total: number;
+};
+
+export type TerritoryObservedMunicipality = {
+  municipality: string;
+  ibgeCode?: string;
+  employment: number;
+  services: number;
+  volunteer: number;
+  opportunities: number;
+  interactions: number;
+  categories: TerritoryObservedCategory[];
+};
+
+export type TerritoryObservedAggregation = {
+  employment: TerritoryEmploymentSelection;
+  services: number;
+  volunteer: number;
+  opportunities: number;
+  interactions: number;
+  activeMunicipalities: number;
+  municipalities: TerritoryObservedMunicipality[];
+  categories: TerritoryObservedCategory[];
+  occupations: OccupationAggregates;
+};
+
 function emptySourceCounts(): Record<TerritoryEmploymentSource, number> {
   return { GO_SERGIPE: 0, EMPREGAJU: 0, IEL_SERGIPE: 0 };
 }
@@ -89,6 +126,12 @@ export function buildTerritoryEmploymentMarket(baseMunicipalities: MunicipalityA
   const municipalities = Array.from(municipalityMap.values()).sort((left, right) => right.total - left.total || left.municipality.localeCompare(right.municipality, "pt-BR"));
   const externalCount = municipalities.reduce((total, municipality) => total + municipality.external, 0);
 
+  const eligibleExternalItems = external.items.filter(isSergipeExternalJob).map((item) => ({
+    ...item,
+    location: { ...item.location, municipality: displayMunicipalityName(item.location.municipality) },
+  }));
+  const eligibleOflixItems = oflixItems.filter((item) => item.kind === "formal" && item.source === "OFLIX");
+
   return {
     total: oflix + externalCount,
     oflix,
@@ -98,7 +141,7 @@ export function buildTerritoryEmploymentMarket(baseMunicipalities: MunicipalityA
     collectedAt: external.collectedAt,
     stale: external.stale,
     partial: external.partial,
-    occupations: buildOccupationAggregates([...oflixItems, ...external.items]),
+    occupations: buildOccupationAggregates([...eligibleOflixItems, ...eligibleExternalItems]),
     ...(external.error ? { error: external.error } : {}),
   };
 }
@@ -158,5 +201,86 @@ export function territoryEmploymentValue(market: TerritoryEmploymentMarket, muni
 export function territoryEmploymentBreakdown(market: TerritoryEmploymentMarket, municipality: string | null, origin: TerritoryEmploymentOrigin, source?: string | null, occupationFamily?: OccupationFamily) {
   if (!municipality) return resolveTerritoryEmploymentSelection(market, origin, source, occupationFamily);
   return resolveTerritoryEmploymentSelection({ ...market, municipalities: market.municipalities.filter((item) => item.normalizedMunicipality === normalizeMunicipalityKey(municipality)) }, origin, source, occupationFamily);
+}
+
+function normalizedEmploymentOrigin(origin?: TerritoryEmploymentOrigin): TerritoryEmploymentOrigin {
+  return origin === "oflix" || origin === "external" ? origin : "all";
+}
+
+function normalizedExternalSource(origin: TerritoryEmploymentOrigin, source?: string | null) {
+  if (origin === "oflix" || !source || !TERRITORY_EMPLOYMENT_SOURCES.includes(source as TerritoryEmploymentSource)) return undefined;
+  return source as TerritoryEmploymentSource;
+}
+
+function internalCategories(municipality: MunicipalityAggregate | undefined, category?: string | null) {
+  return (municipality?.categories ?? [])
+    .filter((item) => (item.front === "service" || item.front === "volunteer") && (!category || item.category === category))
+    .map((item) => ({ front: item.front as "service" | "volunteer", category: item.category, total: item.total }));
+}
+
+function aggregateCategories(categories: TerritoryObservedCategory[]) {
+  return Array.from(categories.reduce((map, item) => {
+    const key = `${item.front}:${item.category}`;
+    const current = map.get(key) ?? { front: item.front, category: item.category, total: 0 };
+    current.total += item.total;
+    map.set(key, current);
+    return map;
+  }, new Map<string, TerritoryObservedCategory>()).values()).sort((left, right) => right.total - left.total || left.category.localeCompare(right.category, "pt-BR"));
+}
+
+export function aggregateObservedTerritory(
+  baseMunicipalities: MunicipalityAggregate[],
+  employmentMarket: TerritoryEmploymentMarket | undefined,
+  filters: TerritoryObservedFilters = {},
+): TerritoryObservedAggregation {
+  const origin = normalizedEmploymentOrigin(filters.employmentOrigin);
+  const source = normalizedExternalSource(origin, filters.externalSource);
+  const municipalityKey = filters.municipality ? normalizeMunicipalityKey(filters.municipality) : undefined;
+  const marketMunicipalities = employmentMarket?.municipalities ?? [];
+  const names = new Map<string, { municipality: string; ibgeCode?: string }>();
+
+  for (const municipality of baseMunicipalities) {
+    names.set(normalizeMunicipalityKey(municipality.municipality), { municipality: municipality.municipality, ...(municipality.ibgeCode ? { ibgeCode: municipality.ibgeCode } : {}) });
+  }
+  for (const municipality of marketMunicipalities) {
+    const key = normalizeMunicipalityKey(municipality.municipality);
+    if (!names.has(key)) names.set(key, { municipality: municipality.municipality, ...(municipality.ibgeCode ? { ibgeCode: municipality.ibgeCode } : {}) });
+  }
+
+  const municipalities = Array.from(names.entries())
+    .filter(([key]) => !municipalityKey || key === municipalityKey)
+    .map(([key, identity]) => {
+      const internal = baseMunicipalities.find((item) => normalizeMunicipalityKey(item.municipality) === key);
+      const categories = internalCategories(internal, filters.category);
+      const employment = employmentMarket
+        ? territoryEmploymentBreakdown(employmentMarket, identity.municipality, origin, source, filters.occupationFamily ?? undefined)
+        : { origin, ...(source ? { source } : {}), oflix: 0, external: 0, total: 0, sourceCounts: emptySourceCounts() };
+      const services = categories.filter((item) => item.front === "service").reduce((total, item) => total + item.total, 0);
+      const volunteer = categories.filter((item) => item.front === "volunteer").reduce((total, item) => total + item.total, 0);
+      const interactions = (internal?.categories ?? []).filter((item) => !filters.category || item.category === filters.category).reduce((total, item) => total + item.interactions, 0);
+      return { municipality: identity.municipality, ...(identity.ibgeCode ? { ibgeCode: identity.ibgeCode } : {}), employment: employment.total, services, volunteer, opportunities: employment.total + services + volunteer, interactions, categories };
+    })
+    .sort((left, right) => right.opportunities - left.opportunities || right.interactions - left.interactions || left.municipality.localeCompare(right.municipality, "pt-BR"));
+
+  const employment = employmentMarket
+    ? territoryEmploymentBreakdown(employmentMarket, filters.municipality ?? null, origin, source, filters.occupationFamily ?? undefined)
+    : { origin, ...(source ? { source } : {}), oflix: 0, external: 0, total: 0, sourceCounts: emptySourceCounts() };
+  const categories = aggregateCategories(municipalities.flatMap((item) => item.categories));
+  const services = municipalities.reduce((total, municipality) => total + municipality.services, 0);
+  const volunteer = municipalities.reduce((total, municipality) => total + municipality.volunteer, 0);
+  const interactions = municipalities.reduce((total, municipality) => total + municipality.interactions, 0);
+  const occupations = employmentMarket ? selectOccupationAggregates(employmentMarket.occupations, { origin, ...(source ? { source } : {}), ...(filters.municipality ? { municipality: filters.municipality } : {}) }) : { total: 0, classified: 0, unclassified: 0, coverageRate: 0, families: [], occupations: [] };
+
+  return {
+    employment,
+    services,
+    volunteer,
+    opportunities: employment.total + services + volunteer,
+    interactions,
+    activeMunicipalities: municipalities.filter((municipality) => municipality.opportunities > 0 || municipality.interactions > 0).length,
+    municipalities,
+    categories,
+    occupations,
+  };
 }
 

@@ -1,7 +1,7 @@
 import { fetchExternalJobs } from "@/lib/connectors/external-jobs";
 import { listOpportunities, territoryDataForProfile } from "@/lib/db";
 import { internalToDiscoveryItem } from "@/lib/discovery";
-import { buildTerritoryEmploymentMarket } from "@/lib/territory-market";
+import { aggregateObservedTerritory, buildTerritoryEmploymentMarket } from "@/lib/territory-market";
 import type { TerritoryData } from "@/lib/territory";
 
 export async function loadTerritoryDataForProfile(profileId: string, activities: string[] = []): Promise<TerritoryData | null> {
@@ -10,6 +10,15 @@ export async function loadTerritoryDataForProfile(profileId: string, activities:
 
   const external = await fetchExternalJobs({ source: "all" });
   const formalItems = listOpportunities().formal.map(internalToDiscoveryItem);
-  return { ...data, employmentMarket: buildTerritoryEmploymentMarket(data.municipalities, external, formalItems) };
+  const employmentMarket = buildTerritoryEmploymentMarket(data.municipalities, external, formalItems);
+  const observed = aggregateObservedTerritory(data.municipalities, employmentMarket);
+  return {
+    ...data,
+    fronts: [{ key: "employment", label: "Empregos observados", total: observed.employment.total }, { key: "service", label: "Prestação de serviços", total: observed.services }, { key: "volunteer", label: "Voluntariado", total: observed.volunteer }],
+    totalOpportunities: observed.opportunities,
+    interactions: observed.interactions,
+    activeMunicipalities: observed.activeMunicipalities,
+    employmentMarket,
+  };
 }
 

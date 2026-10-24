@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import type { MunicipalityAggregate, TerritoryGeometry, TerritoryMetric } from "@/lib/territory";
 import { territoryMetricLabel } from "@/lib/territory";
-import type { TerritoryEmploymentMarket, TerritoryEmploymentOrigin } from "@/lib/territory-market";
-import { territoryEmploymentValue } from "@/lib/territory-market";
+import type { TerritoryEmploymentMarket, TerritoryEmploymentOrigin, TerritoryObservedAggregation } from "@/lib/territory-market";
+import { aggregateObservedTerritory, normalizeMunicipalityKey, territoryEmploymentValue } from "@/lib/territory-market";
 import type { OccupationFamily } from "@/lib/occupations";
 
 type Position = [number, number];
@@ -42,10 +42,11 @@ function formatPath(rings: Position[][], project: (position: Position) => Positi
   return rings.map((ring) => ring.map((position, index) => `${index === 0 ? "M" : "L"} ${project(position)[0].toFixed(2)} ${project(position)[1].toFixed(2)}`).join(" ") + " Z").join(" ");
 }
 
-export function TerritoryMap({ geometry, municipalities, metric, category, selectedMunicipality, onSelect, employmentMarket, employmentOrigin, employmentSource, occupationFamily }: TerritoryMapProps & { employmentMarket?: TerritoryEmploymentMarket; employmentOrigin?: TerritoryEmploymentOrigin; employmentSource?: string; occupationFamily?: OccupationFamily }) {
+export function TerritoryMap({ geometry, municipalities, metric, category, selectedMunicipality, onSelect, employmentMarket, employmentOrigin, employmentSource, occupationFamily, observed }: TerritoryMapProps & { employmentMarket?: TerritoryEmploymentMarket; employmentOrigin?: TerritoryEmploymentOrigin; employmentSource?: string; occupationFamily?: OccupationFamily; observed?: TerritoryObservedAggregation }) {
   const [hoveredMunicipality, setHoveredMunicipality] = useState<string | null>(null);
   const byCode = useMemo(() => new Map(municipalities.filter((item) => item.ibgeCode).map((item) => [item.ibgeCode, item])), [municipalities]);
   const byName = useMemo(() => new Map(municipalities.map((item) => [item.municipality, item])), [municipalities]);
+  const observedAggregation = useMemo(() => observed ?? aggregateObservedTerritory(municipalities, employmentMarket, { category, employmentOrigin, externalSource: employmentSource, occupationFamily }), [category, employmentMarket, employmentOrigin, employmentSource, municipalities, occupationFamily, observed]);
   const projection = useMemo(() => {
     const positions = geometry.features.flatMap((feature) => ringsForFeature(feature).flat());
     const longitudes = positions.map(([longitude]) => longitude);
@@ -65,7 +66,9 @@ export function TerritoryMap({ geometry, municipalities, metric, category, selec
   }, [geometry]);
   const values = geometry.features.map((feature) => {
     const municipality = byCode.get(feature.properties.ibgeCode) ?? byName.get(feature.properties.municipality);
-    return { feature, municipality, value: valueForMunicipality(municipality, metric, category, employmentMarket, employmentOrigin, employmentSource, feature.properties.municipality, occupationFamily) };
+    const observedMunicipality = observedAggregation.municipalities.find((item) => normalizeMunicipalityKey(item.municipality) === normalizeMunicipalityKey(feature.properties.municipality));
+    const observedValue = observedMunicipality?.[metric === "employment" ? "employment" : metric];
+    return { feature, municipality, value: observedValue ?? valueForMunicipality(municipality, metric, category, employmentMarket, employmentOrigin, employmentSource, feature.properties.municipality, occupationFamily) };
   });
   const maxValue = Math.max(1, ...values.map((item) => item.value));
   const hovered = values.find((item) => item.feature.properties.municipality === hoveredMunicipality);
