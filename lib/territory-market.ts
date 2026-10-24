@@ -218,6 +218,12 @@ function internalCategories(municipality: MunicipalityAggregate | undefined, cat
     .map((item) => ({ front: item.front as "service" | "volunteer", category: item.category, total: item.total }));
 }
 
+export function territoryActivityCategoryOptions(baseMunicipalities: MunicipalityAggregate[]) {
+  return Array.from(new Set(baseMunicipalities.flatMap((municipality) => municipality.categories
+    .filter((item) => item.front === "service" || item.front === "volunteer")
+    .map((item) => item.category)))).sort((left, right) => left.localeCompare(right, "pt-BR"));
+}
+
 function aggregateCategories(categories: TerritoryObservedCategory[]) {
   return Array.from(categories.reduce((map, item) => {
     const key = `${item.front}:${item.category}`;
@@ -257,7 +263,9 @@ export function aggregateObservedTerritory(
         : { origin, ...(source ? { source } : {}), oflix: 0, external: 0, total: 0, sourceCounts: emptySourceCounts() };
       const services = categories.filter((item) => item.front === "service").reduce((total, item) => total + item.total, 0);
       const volunteer = categories.filter((item) => item.front === "volunteer").reduce((total, item) => total + item.total, 0);
-      const interactions = (internal?.categories ?? []).filter((item) => !filters.category || item.category === filters.category).reduce((total, item) => total + item.interactions, 0);
+      const interactions = (internal?.categories ?? [])
+        .filter((item) => !filters.category || (item.front === "service" || item.front === "volunteer") && item.category === filters.category)
+        .reduce((total, item) => total + item.interactions, 0);
       return { municipality: identity.municipality, ...(identity.ibgeCode ? { ibgeCode: identity.ibgeCode } : {}), employment: employment.total, services, volunteer, opportunities: employment.total + services + volunteer, interactions, categories };
     })
     .sort((left, right) => right.opportunities - left.opportunities || right.interactions - left.interactions || left.municipality.localeCompare(right.municipality, "pt-BR"));

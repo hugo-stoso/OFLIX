@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { DiscoveryItem } from "../lib/domain";
 import type { ExternalJobsResult } from "../lib/connectors/external-jobs";
 import type { MunicipalityAggregate } from "../lib/territory";
-import { aggregateObservedTerritory, buildTerritoryEmploymentMarket, normalizeMunicipalityKey, resolveTerritoryEmploymentSelection, territoryEmploymentValue } from "../lib/territory-market";
+import { aggregateObservedTerritory, buildTerritoryEmploymentMarket, normalizeMunicipalityKey, resolveTerritoryEmploymentSelection, territoryActivityCategoryOptions, territoryEmploymentValue } from "../lib/territory-market";
 
 const baseMunicipalities: MunicipalityAggregate[] = [
   { municipality: "Aracaju", ibgeCode: "2800308", opportunities: 3, formal: 2, clt: 2, internship: 0, services: 1, volunteer: 0, interactions: 0, categories: [] },
@@ -38,7 +38,7 @@ const external = {
 } satisfies ExternalJobsResult;
 
 const municipalitiesWithOflixFronts: MunicipalityAggregate[] = [
-  { ...baseMunicipalities[0], opportunities: 6, services: 2, volunteer: 1, interactions: 2, categories: [{ front: "formal", category: "Emprego", total: 2, interactions: 0, clt: 2, internship: 0 }, { front: "service", category: "Manutenção", total: 2, interactions: 1, clt: 0, internship: 0 }, { front: "volunteer", category: "Apoio comunitário", total: 1, interactions: 1, clt: 0, internship: 0 }] },
+  { ...baseMunicipalities[0], opportunities: 6, services: 2, volunteer: 1, interactions: 2, categories: [{ front: "formal", category: "Manutenção", total: 2, interactions: 3, clt: 2, internship: 0 }, { front: "service", category: "Manutenção", total: 2, interactions: 1, clt: 0, internship: 0 }, { front: "volunteer", category: "Apoio comunitário", total: 1, interactions: 1, clt: 0, internship: 0 }] },
   { ...baseMunicipalities[1], opportunities: 2, services: 1, volunteer: 0, interactions: 0, categories: [{ front: "formal", category: "Emprego", total: 1, interactions: 0, clt: 0, internship: 1 }, { front: "service", category: "Manutenção", total: 1, interactions: 0, clt: 0, internship: 0 }] },
 ];
 
@@ -88,5 +88,20 @@ test.describe("mercado de empregos do Observatório", () => {
     expect(all.occupations.families.filter((family) => family.family !== "UNCLASSIFIED").some((family) => family.family === "LOGISTICS_TRANSPORT")).toBe(true);
     expect(all.municipalities.reduce((total, municipality) => total + municipality.opportunities, 0)).toBe(all.opportunities);
     expect(all.activeMunicipalities).toBe(3);
+  });
+
+  test("mantém atividade OFLIX restrita a serviços e voluntariado", () => {
+    expect(territoryActivityCategoryOptions(municipalitiesWithOflixFronts)).toEqual(["Apoio comunitário", "Manutenção"]);
+    expect(territoryActivityCategoryOptions([{ ...baseMunicipalities[0], categories: [{ front: "formal", category: "Emprego", total: 2, interactions: 2, clt: 2, internship: 0 }] }])).toEqual([]);
+
+    const market = buildTerritoryEmploymentMarket(municipalitiesWithOflixFronts, external, [oflixFormal]);
+    const all = aggregateObservedTerritory(municipalitiesWithOflixFronts, market);
+    const maintenance = aggregateObservedTerritory(municipalitiesWithOflixFronts, market, { category: "Manutenção" });
+
+    expect(all.interactions).toBe(5);
+    expect(maintenance.interactions).toBe(1);
+    expect(maintenance.municipalities.flatMap((municipality) => municipality.categories)).not.toContainEqual(expect.objectContaining({ front: "formal" }));
+    expect(maintenance.employment).toEqual(all.employment);
+    expect(maintenance.employment.total).toBe(6);
   });
 });

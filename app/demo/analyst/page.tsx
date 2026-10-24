@@ -13,7 +13,7 @@ import { ANALYST_PROFILE_ID, externalSourceLabel } from "@/lib/domain";
 import { OCCUPATION_FAMILY_LABELS, selectOccupationAggregates, type OccupationFamily } from "@/lib/occupations";
 import type { TerritoryData, TerritoryGeometry, TerritoryMetric } from "@/lib/territory";
 import { TERRITORY_METRICS } from "@/lib/territory";
-import { aggregateObservedTerritory, TERRITORY_EMPLOYMENT_SOURCES, type TerritoryEmploymentOrigin, type TerritoryEmploymentSource, type TerritoryObservedAggregation } from "@/lib/territory-market";
+import { aggregateObservedTerritory, TERRITORY_EMPLOYMENT_SOURCES, territoryActivityCategoryOptions, type TerritoryEmploymentOrigin, type TerritoryEmploymentSource, type TerritoryObservedAggregation } from "@/lib/territory-market";
 
 function FrontDistribution({ values }: { values: TerritoryObservedAggregation }) {
   const items = [["employment", "Empregos observados", values.employment.total], ["service", "Prestação de serviços", values.services], ["volunteer", "Voluntariado", values.volunteer]] as const;
@@ -60,7 +60,7 @@ export default function AnalystPage() {
     ...(data?.municipalities.map((municipality) => municipality.municipality) ?? []),
     ...(data?.employmentMarket?.municipalities.map((municipality) => municipality.municipality) ?? []),
   ])).sort((a, b) => a.localeCompare(b, "pt-BR")), [data, geometry]);
-  const categoryOptions = useMemo(() => Array.from(new Set(data?.municipalities.flatMap((municipality) => municipality.categories.map((item) => item.category)) ?? [])).sort((a, b) => a.localeCompare(b)), [data]);
+  const categoryOptions = useMemo(() => territoryActivityCategoryOptions(data?.municipalities ?? []), [data]);
   const occupationOptions = useMemo(() => data?.employmentMarket ? selectOccupationAggregates(data.employmentMarket.occupations, { origin: selectedEmploymentOrigin, ...(selectedEmploymentSource ? { source: selectedEmploymentSource } : {}) }).families.filter((family) => family.family !== "UNCLASSIFIED") : [], [data, selectedEmploymentOrigin, selectedEmploymentSource]);
   const occupationCoverage = useMemo(() => data?.employmentMarket ? selectOccupationAggregates(data.employmentMarket.occupations, { origin: selectedEmploymentOrigin, ...(selectedEmploymentSource ? { source: selectedEmploymentSource } : {}), ...(selectedMunicipality ? { municipality: selectedMunicipality } : {}) }) : undefined, [data, selectedEmploymentOrigin, selectedEmploymentSource, selectedMunicipality]);
   const selectedOccupation = useMemo(() => selectedOccupationFamily ? occupationOptions.find((item) => item.family === selectedOccupationFamily) : undefined, [occupationOptions, selectedOccupationFamily]);
