@@ -24,8 +24,15 @@ function externalLabel(item: DiscoveryItem) {
   return "Ver no site oficial";
 }
 
+function externalDetailPath(item: DiscoveryItem) {
+  if (item.kind !== "external_job" || !item.sourceId) return undefined;
+  const source = item.source === "GO_SERGIPE" ? "go-sergipe" : item.source === "EMPREGAJU" ? "empregaju" : item.source === "IEL_SERGIPE" ? "iel-sergipe" : undefined;
+  return source ? `/external-job/${source}/${encodeURIComponent(item.sourceId)}` : undefined;
+}
+
 export function DiscoveryRow({ item, reason, returnTo }: { item: DiscoveryItem; reason?: string[]; returnTo?: string }) {
   const isInternal = item.source === "OFLIX";
+  const detailPath = externalDetailPath(item);
   const label = DISCOVERY_KIND_LABELS[item.kind];
   const content = <>
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-bold text-[#6b7d8d]">
@@ -58,7 +65,7 @@ export function DiscoveryRow({ item, reason, returnTo }: { item: DiscoveryItem; 
   return <article className="group grid gap-4 border-b border-line py-6 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
     <div className="min-w-0">{content}</div>
     <div className="flex items-center gap-2 sm:justify-end">
-      {isInternal ? <Link href={withReturnTo(`/opportunity/${item.id}?kind=${item.kind}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link> : item.source === "EMPREGAJU" && item.sourceId ? <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end"><Link href={withReturnTo(`/external-jobs/empregaju/${encodeURIComponent(item.sourceId)}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhes <ArrowUpRight size={16} /></Link>{item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="button-quiet w-full whitespace-nowrap sm:w-auto">Abrir EmpregAju <ExternalLink size={14} /></a>}{item.applicationUrl && <a href={item.applicationUrl} target="_blank" rel="noreferrer" className="button-quiet w-full whitespace-nowrap sm:w-auto">Candidatar-se no EmpregAju <ExternalLink size={14} /></a>}</div> : item.sourceUrl && item.source !== "DEMO_DATA" ? <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end"><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="button-secondary w-full whitespace-nowrap sm:w-auto">{externalLabel(item)} <ExternalLink size={16} /></a>{item.applicationUrl && item.applicationUrl !== item.sourceUrl && <a href={item.applicationUrl} target="_blank" rel="noreferrer" className="button-quiet w-full whitespace-nowrap sm:w-auto">Candidatar-se na fonte <ExternalLink size={14} /></a>}</div> : <Link href={withReturnTo(`/discovery/${item.id}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link>}
+      {isInternal ? <Link href={withReturnTo(`/opportunity/${item.id}?kind=${item.kind}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link> : detailPath && item.sourceUrl ? <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end"><Link href={withReturnTo(detailPath, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhes <ArrowUpRight size={16} /></Link><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="button-quiet w-full whitespace-nowrap sm:w-auto">{externalLabel(item)} <ExternalLink size={16} /></a>{item.applicationUrl && item.applicationUrl !== item.sourceUrl && <a href={item.applicationUrl} target="_blank" rel="noreferrer" className="button-quiet w-full whitespace-nowrap sm:w-auto">Candidatar-se na fonte <ExternalLink size={14} /></a>}</div> : item.sourceUrl && item.source !== "DEMO_DATA" ? <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end"><a href={item.sourceUrl} target="_blank" rel="noreferrer" className="button-secondary w-full whitespace-nowrap sm:w-auto">{externalLabel(item)} <ExternalLink size={16} /></a>{item.applicationUrl && item.applicationUrl !== item.sourceUrl && <a href={item.applicationUrl} target="_blank" rel="noreferrer" className="button-quiet w-full whitespace-nowrap sm:w-auto">Candidatar-se na fonte <ExternalLink size={14} /></a>}</div> : <Link href={withReturnTo(`/discovery/${item.id}`, returnTo)} className="button-secondary w-full whitespace-nowrap sm:w-auto">Ver detalhe <ArrowUpRight size={16} /></Link>}
     </div>
   </article>;
 }

@@ -1,6 +1,7 @@
 import { load } from "cheerio";
 import type { DiscoveryItem, PcdAvailability } from "@/lib/domain";
 import type { SourceCollectionMetadata } from "@/lib/connectors/collection";
+import { createJobDetailProvenance } from "@/lib/job-details";
 import { deduplicateExternalItems, EXTERNAL_JOB_USER_AGENT, markExternalLifecycle, normalizeExternalFields, parseBrazilianDate, parseLocation, parseSalary, parseVacancies, stableExternalFingerprint, textFromHtml } from "@/lib/connectors/external-utils";
 
 export const EMPREGAJU_HOST = "empregaju.aracaju.se.gov.br";
@@ -147,7 +148,11 @@ export function parseEmpregAjuPage(html: string, options: { pageUrl?: string; co
       vacancies: details.map(parseVacancies).find(Boolean),
       pcd,
     };
-    items.push(normalizeExternalFields(item));
+    const normalized = normalizeExternalFields(item);
+    items.push({
+      ...normalized,
+      jobDetailProvenance: createJobDetailProvenance(normalized, ["modality", "contractType", "salary", "pcd"]),
+    });
   });
 
   return { items: deduplicateExternalItems(items), nextUrl: extractNextUrl(document), sawOpportunityMarkup: cards.length > 0 };

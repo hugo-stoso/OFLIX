@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { load } from "cheerio";
 import type { DiscoveryItem, PcdAvailability } from "@/lib/domain";
 import type { SourceCollectionMetadata } from "@/lib/connectors/collection";
+import { createJobDetailProvenance, mergeJobDetailText, normalizeJobDetailText } from "@/lib/job-details";
 
 export const GO_SERGIPE_HOST = "gosergipe.se.gov.br";
 export const GO_SERGIPE_PATH = "/oportunidades";
@@ -283,8 +284,7 @@ export function parseGoSergipeApiResponse(payload: unknown, options: { collected
     const salary = apiRecordText(record, "salary") || undefined;
     const contractType = apiRecordText(record, "contract_type") || undefined;
     const education = apiRecordText(record, "schooling") || undefined;
-
-    items.push({
+    const item: DiscoveryItem = {
       id: `go-sergipe-${sourceId}`,
       kind: "external_job",
       title,
@@ -304,11 +304,17 @@ export function parseGoSergipeApiResponse(payload: unknown, options: { collected
       salary,
       contractType,
       education,
+      requirements: normalizeJobDetailText(record.requirements),
+      benefits: mergeJobDetailText(record.benefits, record.other_benefits),
+      experience: normalizeJobDetailText(record.minimum_experience),
+      workSchedule: normalizeJobDetailText(record.work_schedule),
       vacancies: apiRecordVacancies(record),
       pcd,
       occupationCode,
       occupationLabel,
-    });
+    };
+    item.jobDetailProvenance = createJobDetailProvenance(item, ["requirements", "benefits", "education", "experience", "workSchedule", "contractType", "salary", "pcd"]);
+    items.push(item);
   }
 
   return { items: deduplicateGoSergipeItems(items), nextUrl: safeApiNextUrl(payload.next), sawOpportunityMarkup: true, ignoredOutsideState };

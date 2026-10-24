@@ -12,9 +12,10 @@
 | [Vagas Sergipe](https://vagassergipe.com.br/) | `PENDING` | HTML e sitemap públicos, termos/política localizados, mas sem feed estruturado confirmado e com necessidade de revisão de escopo/licença | Não coletar automaticamente |
 | [Oficial News](https://www.oficialnews.com/) | `BLOCKED` | Respostas inconsistentes, incluindo 403, sem feed público estruturado confirmado | Não coletar |
 | [BNE](https://www.bne.com.br/vagas-de-emprego-em-aracaju-se) | `BLOCKED` | Página pública ampla, mas APIs observadas estão em áreas desautorizadas no `robots.txt` e não há recorte Sergipe controlado para esta integração | Não coletar |
-| [Gupy](https://portal.gupy.io/) | `BLOCKED` | Portal nacional sem listagem Sergipe delimitada; tráfego de candidato usa API privada com 401 | Não coletar |
+| [Gupy](https://portal.gupy.io/) | `NEEDS_AUTHORIZATION` | Portal público e documentação da API existem, mas `GET /api/v1/jobs` exige Bearer token do tenant; não há autorização para uma coleta estruturada de Sergipe | Não coletar até autorização |
+| [Sólides](https://solides.vagas.solides.com.br/) | `NEEDS_MORE_VALIDATION` | Listagem pública observada para um tenant; detalhe API retornou 403 e não foi validada cobertura estadual, estabilidade ou permissão para coleta | Não coletar até validação |
 
-`PENDING` significa que ainda pode haver um caminho de integração, mas não foi confirmado um contrato público seguro. `BLOCKED` significa que a coleta automática não tem um canal permitido e delimitado nesta execução. Nenhuma fonte não integrada é chamada pela aplicação.
+`PENDING` significa que ainda pode haver um caminho de integração, mas não foi confirmado um contrato público seguro. `NEEDS_AUTHORIZATION` exige credencial/autorização do tenant; `NEEDS_MORE_VALIDATION` exige confirmar cobertura, estabilidade e permissão antes de coletar. `BLOCKED` significa que a coleta automática não tem um canal permitido e delimitado nesta execução. Nenhuma fonte não integrada é chamada pela aplicação.
 
 ## Método implementado
 
@@ -41,7 +42,7 @@ Datas de publicação são datas da fonte (`DD/MM/YYYY`). `collectedAt`, `firstS
 
 O parser usa allowlist de seletores e textos, remove tags executáveis via Cheerio e nunca retorna o rodapé, e-mail, telefone, endereço, token ou dados de candidato. Cada URL de origem/candidatura é validada em HTTPS contra host e caminho permitidos. Links são renderizados com `target="_blank"` e `rel="noreferrer"`.
 
-EmpregAju não expõe uma URL de detalhe no card: o ID público é preservado como `sourceJobId`, `verDetalhes(id)` apenas abre um modal local com a mensagem de cadastro e não executa endpoint/XHR de detalhe. Por isso `sourceUrl` permanece honestamente na lista oficial, enquanto a OFLIX oferece `Ver detalhes` em `/external-jobs/empregaju/{sourceId}`, renderizado server-side com os campos públicos normalizados. A página também separa `Abrir EmpregAju` (listagem oficial) de `Candidatar-se no EmpregAju` (`/register`). IEL fornece o link individual público; a OFLIX não automatiza candidatura.
+EmpregAju não expõe uma URL de detalhe no card: o ID público é preservado como `sourceJobId`, `verDetalhes(id)` apenas abre um modal local com a mensagem de cadastro e não executa endpoint/XHR de detalhe. Por isso `sourceUrl` permanece honestamente na lista oficial, enquanto a OFLIX oferece `Ver detalhes` em `/external-job/empregaju/{sourceId}`, renderizado server-side com os campos públicos normalizados. A página também separa `Abrir EmpregAju` (listagem oficial) de `Candidatar-se no EmpregAju` (`/register`). IEL fornece o link individual público; a OFLIX não automatiza candidatura.
 
 ## Flags, atualização e expiração
 

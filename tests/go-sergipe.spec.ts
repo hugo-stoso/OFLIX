@@ -54,6 +54,10 @@ test.describe("connector do GO Sergipe", () => {
       salary: "2.052,88",
       contractType: "Trabalho permanente",
       education: "Superior completo",
+      requirements: "CNH B\n-Disponibilidade para viagens",
+      benefits: "-Vale alimentação\n-Plano odontológico",
+      experience: "6 meses",
+      workSchedule: "44 horas semanais",
       occupationCode: "8623-05",
       occupationLabel: "Operador de estação de tratamento de água",
       pcd: "also_available",
@@ -61,8 +65,18 @@ test.describe("connector do GO Sergipe", () => {
       deadline: "2026-10-31",
     });
     expect(withSalary.description).toBe("Operar a estação. Seguir procedimentos.");
+    expect(withSalary.jobDetailProvenance).toEqual(expect.arrayContaining([
+      { field: "requirements", source: "GO_SERGIPE", extraction: "structured_field", verifiedAt: "2026-10-09T12:00:00.000Z" },
+      { field: "benefits", source: "GO_SERGIPE", extraction: "structured_field", verifiedAt: "2026-10-09T12:00:00.000Z" },
+      { field: "education", source: "GO_SERGIPE", extraction: "structured_field", verifiedAt: "2026-10-09T12:00:00.000Z" },
+      { field: "experience", source: "GO_SERGIPE", extraction: "structured_field", verifiedAt: "2026-10-09T12:00:00.000Z" },
+      { field: "workSchedule", source: "GO_SERGIPE", extraction: "structured_field", verifiedAt: "2026-10-09T12:00:00.000Z" },
+    ]));
     expect(withoutSalary).toMatchObject({ sourceId: "4778", sourceUrl: "https://gosergipe.se.gov.br/detalheOportunidades/4778", pcd: "exclusive", vacancies: "1 vaga" });
     expect(withoutSalary.salary).toBeUndefined();
+    expect(withoutSalary.requirements).toBeUndefined();
+    expect(withoutSalary.experience).toBeUndefined();
+    expect(withoutSalary.jobDetailProvenance?.some((entry) => entry.field === "experience")).toBe(false);
 
     const sourceWithoutId = jsonFixture("go-sergipe-api-page-1.json") as { results: Array<Record<string, unknown>> };
     delete sourceWithoutId.results[0].id;
@@ -111,8 +125,22 @@ test.describe("connector do GO Sergipe", () => {
     expect(parsed.items[0].sourceUrl).toBe("https://gosergipe.se.gov.br/oportunidades");
     expect(parsed.items[0].sourceUrl).not.toContain("evil.example");
   });
-});
 
+  test("não envia cookies, Authorization ou URL fora do host allowlisted", async () => {
+    clearGoSergipeCache();
+    const requests: Array<{ url: string; headers: Headers }> = [];
+    await fetchGoSergipeOpportunities({
+      fetcher: async (input, init) => {
+        requests.push({ url: String(input), headers: new Headers(init?.headers) });
+        return new Response(JSON.stringify({ results: [], next: null }), { status: 200, headers: { "content-type": "application/json" } });
+      },
+      now: () => new Date("2026-10-09T12:00:00.000Z"),
+    });
+    expect(requests[0].url).toMatch(/^https:\/\/gosergipe\\.se\\.gov\\.br\/api\/oportunidades/u);
+    expect(requests[0].headers.has("cookie")).toBe(false);
+    expect(requests[0].headers.has("authorization")).toBe(false);
+  });
+});
 const mockedExternalJobs = {
   source: "GO_SERGIPE",
   provider: "GO Sergipe",

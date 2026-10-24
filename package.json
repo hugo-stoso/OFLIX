@@ -12,6 +12,7 @@
     "check:go-sergipe": "node scripts/check-go-sergipe.mjs",
     "audit:occupations": "node scripts/audit-occupations.mjs",
     "audit:job-freshness": "node scripts/audit-job-freshness.mjs",
+    "audit:job-details": "node scripts/audit-job-details.mjs",
     "db:seed": "node prisma/seed.cjs",
     "db:setup": "node prisma/seed.cjs"
   },

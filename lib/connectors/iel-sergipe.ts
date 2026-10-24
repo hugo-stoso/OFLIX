@@ -1,6 +1,7 @@
 import { load } from "cheerio";
 import type { DiscoveryItem } from "@/lib/domain";
 import type { SourceCollectionMetadata } from "@/lib/connectors/collection";
+import { createJobDetailProvenance } from "@/lib/job-details";
 import { deduplicateExternalItems, EXTERNAL_JOB_USER_AGENT, markExternalLifecycle, normalizeExternalFields, parseBrazilianDate, parseLocation, parseSalary, stableExternalFingerprint, textFromHtml } from "@/lib/connectors/external-utils";
 
 export const IEL_SERGIPE_HOST = "carreiras.iel.org.br";
@@ -112,7 +113,11 @@ export function parseIelSergipePage(html: string, options: { collectedAt?: strin
       contractType: contractType(category),
       modality,
     };
-    items.push(normalizeExternalFields(item));
+    const normalized = normalizeExternalFields(item);
+    items.push({
+      ...normalized,
+      jobDetailProvenance: createJobDetailProvenance(normalized, ["modality", "contractType", "salary"]),
+    });
   });
 
   return { items: deduplicateExternalItems(items), sawOpportunityMarkup: cards.length > 0 };

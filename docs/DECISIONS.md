@@ -179,3 +179,11 @@ Ausência não é interpretada como encerramento. Uma publicação de vaga só f
 Discovery latency só é calculada quando a fonte fornece data/hora confiável (`DATETIME`) e a primeira observação não é anterior à publicação; datas sem horário são preservadas com precisão `DATE`, sem falsa precisão em milissegundos. Datas futuras e relações de datas inconsistentes são ignoradas para a métrica.
 
 O endpoint `GET /api/observability/jobs?profileId=profile-analista` expõe apenas agregados para a visão institucional e alimenta o painel “Cobertura e atualização”. A implementação usa uma abstração de store com memória para request/runtime e testes. Como o SQLite atual do Vercel fica em `/tmp` por deployment/instância, `historyAvailable=false` em Production: a UI explica que ainda não há histórico durável para calcular latência entre deployments. TTL de quatro horas, timeouts, retries, paralelismo e ausência de cron permanecem inalterados.
+
+## Detalhes de vagas: fatos públicos antes de interpretação
+
+Foi adotado um contrato explícito de detalhes estruturados em `DiscoveryItem`, com requisitos, responsabilidades, benefícios, escolaridade, experiência, skills, jornada, modalidade, contrato, salário, PcD e proveniência por campo. A proveniência registra a fonte, o método de extração e o momento de verificação. O parser remove conteúdo executável e mantém apenas texto público normalizado; ausência não significa inexistência do requisito.
+
+O GO Sergipe é a primeira fonte com cobertura estruturada confirmada. O conector mapeia apenas os campos efetivamente presentes no endpoint público utilizado pela aplicação web e não cria responsabilidades, skills, modalidade ou dispensa de experiência por inferência. A página local de detalhe usa a coleta da fonte sob demanda, sem buscar detalhes item a item. `npm run audit:job-details` publica apenas contagens e taxas agregadas por fonte, sem dumps ou dados sensíveis.
+
+Gupy foi mantida fora do escopo por falta de autorização Bearer do tenant para a API estruturada (`NEEDS_AUTHORIZATION`). Sólides foi mantida fora do escopo até validação adicional de tenant, cobertura estadual, estabilidade e permissão de detalhe (`NEEDS_MORE_VALIDATION`). Não houve mudança em Gemini, flags ou variáveis de IA.

@@ -78,6 +78,26 @@ export const PUBLIC_PROCUREMENT_CATEGORIES = [
 
 export type DiscoveryLocation = { state: string; municipality: string; district?: string };
 export type PcdAvailability = "exclusive" | "also_available" | "not_specified";
+export type JobDetailField =
+  | "requirements"
+  | "responsibilities"
+  | "benefits"
+  | "education"
+  | "experience"
+  | "skills"
+  | "workSchedule"
+  | "workMode"
+  | "modality"
+  | "contractType"
+  | "salary"
+  | "pcd";
+export type JobDetailExtraction = "structured_field" | "public_description" | "public_detail_page";
+export type JobDetailProvenance = {
+  field: JobDetailField;
+  source: DiscoverySource;
+  extraction: JobDetailExtraction;
+  verifiedAt: string;
+};
 export function externalSourceLabel(source: DiscoverySource | "ALL") {
   if (source === "GO_SERGIPE") return "GO Sergipe";
   if (source === "EMPREGAJU") return "EmpregAju";
@@ -124,10 +144,14 @@ export type DiscoveryItem = {
   salaryPeriod?: "MONTHLY" | "HOURLY" | "DAILY" | "UNKNOWN";
   salaryIsEstimated?: boolean;
   requirements?: string;
+  responsibilities?: string;
   benefits?: string;
+  experience?: string;
+  skills?: string[];
   city?: string;
   state?: string;
   workMode?: string;
+  workSchedule?: string;
   opportunityType?: string;
   vacanciesCount?: number;
   isPcdEligible?: boolean;
@@ -141,6 +165,7 @@ export type DiscoveryItem = {
   positions?: string;
   vacancies?: string;
   pcd?: PcdAvailability;
+  jobDetailProvenance?: JobDetailProvenance[];
   occupationCode?: string;
   occupationLabel?: string;
   board?: string;

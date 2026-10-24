@@ -107,7 +107,7 @@ test.describe("filtros multifonte na busca", () => {
     await page.getByRole("button", { name: /Empregos/ }).click();
     await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Estágio em administração", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Ver detalhes" }).first()).toHaveAttribute("href", /\/external-jobs\/empregaju\/872/);
+    await expect(page.getByRole("link", { name: "Ver detalhes" }).first()).toHaveAttribute("href", /\/external-job\/empregaju\/872/);
     await expect(page.getByRole("link", { name: "Abrir EmpregAju" }).first()).toHaveAttribute("href", "https://empregaju.aracaju.se.gov.br/cidadao/vagas");
     await expect(page.getByRole("link", { name: "Candidatar-se no EmpregAju" }).first()).toHaveAttribute("href", "https://empregaju.aracaju.se.gov.br/register");
     const filtersToggle = page.getByRole("button", { name: "Filtros", exact: true });
