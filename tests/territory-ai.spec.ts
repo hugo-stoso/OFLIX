@@ -71,6 +71,28 @@ test.describe("IA territorial determinística", () => {
     expect(executeTerritoryQuery(validated.plan, context).result).toEqual([{ municipality: "Aracaju", count: 2 }]);
     const compare = executeTerritoryQuery({ metric: "employment", aggregation: "compare_municipalities", employmentOrigin: "external", compareMunicipalities: ["Aracaju", "Lagarto"], order: "desc", limit: 2 }, context);
     expect(compare.result).toEqual([{ municipality: "Aracaju", count: 2 }, { municipality: "Lagarto", count: 2 }]);
+
+    const sourceContext = buildTerritoryAiContext(territoryData(), { metric: "employment", employmentOrigin: "external", externalSource: "GO_SERGIPE" });
+    const sourcePlan = validateTerritoryQueryPlan({ metric: "employment", aggregation: "by_source", externalSource: "GO_SERGIPE" }, sourceContext);
+    expect(sourcePlan.success).toBeTruthy();
+    if (!sourcePlan.success) return;
+    expect(sourcePlan.plan).toMatchObject({ aggregation: "by_source", employmentOrigin: "external" });
+    expect(sourcePlan.plan.externalSource).toBeUndefined();
+    expect(executeTerritoryQuery(sourcePlan.plan, sourceContext).result).toEqual([
+      { source: "GO_SERGIPE", label: "GO Sergipe", count: 2 },
+      { source: "EMPREGAJU", label: "EmpregAju", count: 1 },
+      { source: "IEL_SERGIPE", label: "IEL Sergipe", count: 1 },
+    ]);
+
+    const oflixContext = buildTerritoryAiContext(territoryData(), { metric: "employment", employmentOrigin: "oflix" });
+    const oflixSourcePlan = validateTerritoryQueryPlan({ metric: "employment", aggregation: "by_source" }, oflixContext);
+    expect(oflixSourcePlan.success).toBeTruthy();
+    if (!oflixSourcePlan.success) return;
+    expect(oflixSourcePlan.plan.employmentOrigin).toBe("external");
+    expect(oflixSourcePlan.plan.externalSource).toBeUndefined();
+
+    expect(validateTerritoryQueryPlan({ metric: "services", aggregation: "by_source" }, context).success).toBeFalsy();
+    expect(validateTerritoryQueryPlan({ metric: "volunteer", aggregation: "by_source" }, context).success).toBeFalsy();
   });
 
   test("executor ocupa famílias harmonizadas e mantém números determinísticos", () => {
@@ -92,6 +114,69 @@ test.describe("IA territorial determinística", () => {
     expect(administrationPlan.success).toBeTruthy();
     if (!administrationPlan.success) return;
     expect(executeTerritoryQuery(administrationPlan.plan, administrationContext).result).toEqual([{ municipality: "Lagarto", count: 6 }, { municipality: "Aracaju", count: 3 }]);
+
+    const sourceByOccupationPlan = validateTerritoryQueryPlan({ metric: "employment", aggregation: "by_source", externalSource: "GO_SERGIPE", occupationFamily: "LOGISTICS_TRANSPORT" }, logisticsContext);
+    expect(sourceByOccupationPlan.success).toBeTruthy();
+    if (!sourceByOccupationPlan.success) return;
+    expect(executeTerritoryQuery(sourceByOccupationPlan.plan, logisticsContext).result).toEqual([
+      { source: "GO_SERGIPE", label: "GO Sergipe", count: 5 },
+      { source: "EMPREGAJU", label: "EmpregAju", count: 2 },
+      { source: "IEL_SERGIPE", label: "IEL Sergipe", count: 0 },
+    ]);
+
+    const unfilteredExternalContext = buildTerritoryAiContext(data, { metric: "employment", employmentOrigin: "external" });
+    const sourceTotalPlan = validateTerritoryQueryPlan({ metric: "employment", aggregation: "by_source", employmentOrigin: "external" }, unfilteredExternalContext);
+    expect(sourceTotalPlan.success).toBeTruthy();
+    if (!sourceTotalPlan.success) return;
+    expect(executeTerritoryQuery(sourceTotalPlan.plan, unfilteredExternalContext).result).toEqual([
+      { source: "GO_SERGIPE", label: "GO Sergipe", count: 8 },
+      { source: "IEL_SERGIPE", label: "IEL Sergipe", count: 6 },
+      { source: "EMPREGAJU", label: "EmpregAju", count: 2 },
+    ]);
+
+    const byOccupationPlan = validateTerritoryQueryPlan({ metric: "employment", aggregation: "by_occupation", employmentOrigin: "external", limit: 2 }, administrationContext);
+    expect(byOccupationPlan.success).toBeTruthy();
+    if (!byOccupationPlan.success) return;
+    const byOccupation = executeTerritoryQuery(byOccupationPlan.plan, administrationContext);
+    expect(byOccupation.result).toEqual([
+      { occupationFamily: "ADMINISTRATION", label: "Administração", count: 9 },
+      { occupationFamily: "LOGISTICS_TRANSPORT", label: "Logística e transporte", count: 7 },
+    ]);
+    expect(byOccupation.caveat).toContain("Cobertura ocupacional: 16 de 16 anúncios classificados (100%).");
+
+    const municipalOccupationPlan = validateTerritoryQueryPlan({ metric: "employment", aggregation: "by_occupation", employmentOrigin: "external", municipality: "Aracaju" }, administrationContext);
+    expect(municipalOccupationPlan.success).toBeTruthy();
+    if (!municipalOccupationPlan.success) return;
+    expect(executeTerritoryQuery(municipalOccupationPlan.plan, administrationContext).result[0]).toMatchObject({ occupationFamily: "LOGISTICS_TRANSPORT", count: 5 });
+  });
+
+  test("perguntas mockadas de fonte e área ocupacional geram planos DSL válidos", async () => {
+    const sourceContext = buildTerritoryAiContext(territoryData(), { metric: "employment", employmentOrigin: "external", externalSource: "GO_SERGIPE" });
+    const occupationalItems: DiscoveryItem[] = [
+      ...Array.from({ length: 5 }, (_, index) => ({ ...item("GO_SERGIPE", "Aracaju"), id: `question-logistics-aracaju-${index}`, title: `Logística ${index}` })),
+      ...Array.from({ length: 3 }, (_, index) => ({ ...item("GO_SERGIPE", "Aracaju"), id: `question-admin-aracaju-${index}`, title: `Auxiliar administrativo ${index}` })),
+      ...Array.from({ length: 2 }, (_, index) => ({ ...item("EMPREGAJU", "Lagarto"), id: `question-logistics-lagarto-${index}`, title: `Logística Lagarto ${index}` })),
+      ...Array.from({ length: 6 }, (_, index) => ({ ...item("IEL_SERGIPE", "Lagarto"), id: `question-admin-lagarto-${index}`, title: `Administrativo Lagarto ${index}` })),
+    ];
+    const occupationalData = { ...territoryData(), employmentMarket: buildTerritoryEmploymentMarket(municipalities, { ...external, items: occupationalItems, sources: external.sources }) };
+    const logisticsSourceContext = buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "external", externalSource: "GO_SERGIPE" });
+    const cases = [
+      { context: sourceContext, question: "Qual fonte tem mais anúncios?", plan: { metric: "employment", aggregation: "by_source" } },
+      { context: sourceContext, question: "Qual fonte externa tem mais vagas?", plan: { metric: "employment", aggregation: "by_source" } },
+      { context: logisticsSourceContext, question: "Qual fonte tem mais anúncios de logística?", plan: { metric: "employment", aggregation: "by_source", occupationFamily: "LOGISTICS_TRANSPORT" } },
+      { context: sourceContext, question: "Entre GO Sergipe, EmpregAju e IEL, qual tem mais vagas?", plan: { metric: "employment", aggregation: "by_source" } },
+      { context: buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "all" }), question: "Qual área ocupacional tem mais vagas?", plan: { metric: "employment", aggregation: "by_occupation" } },
+      { context: buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "external" }), question: "Qual área ocupacional tem mais vagas externas?", plan: { metric: "employment", aggregation: "by_occupation", employmentOrigin: "external" } },
+      { context: buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "external" }), question: "Qual área ocupacional tem mais vagas em Aracaju?", plan: { metric: "employment", aggregation: "by_occupation", employmentOrigin: "external", municipality: "Aracaju" } },
+      { context: buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "external", externalSource: "IEL_SERGIPE" }), question: "Qual área ocupacional tem mais vagas no IEL?", plan: { metric: "employment", aggregation: "by_occupation", employmentOrigin: "external", externalSource: "IEL_SERGIPE" } },
+      { context: buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "oflix" }), question: "Qual área ocupacional tem mais vagas publicadas na OFLIX?", plan: { metric: "employment", aggregation: "by_occupation", employmentOrigin: "oflix" } },
+    ] as const;
+
+    for (const testCase of cases) {
+      const result = await answerTerritoryQuestion(testCase.context, testCase.question, createMockTerritoryAiProvider([testCase.plan, { answer: "Consulta determinística concluída." }]));
+      expect(result.plan, testCase.question).toMatchObject(testCase.plan);
+      if (testCase.plan.aggregation === "by_source") expect(result.plan?.externalSource, testCase.question).toBeUndefined();
+    }
   });
 
   test("perguntas de crescimento e escassez são recusadas com segurança", async () => {

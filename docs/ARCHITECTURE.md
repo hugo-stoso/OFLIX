@@ -122,6 +122,8 @@ O Observatório mantém uma separação explícita entre cálculo e interpretaç
 
 `POST /api/territory/ai/analyze` recebe somente `profileId` e filtros, reconstrói os dados no servidor e retorna análise JSON validada. `POST /api/territory/ai/ask` interpreta a pergunta em uma `TerritoryQueryPlan` restrita, valida enums e municípios com Zod, executa a consulta sem LLM e só então solicita uma explicação curta. O cliente renderiza texto em componentes próprios; não há HTML gerado pelo modelo. `TERRITORY_AI_ENABLED` é server-side, false por padrão, e o status é consultado antes de exibir o enhancement.
 
+A DSL de perguntas aceita `total`, `by_municipality`, `compare_municipalities`, `by_source` e `by_occupation`. `by_source` sempre compara todas as fontes externas e normaliza o recorte para `employmentOrigin=external`, descartando uma fonte herdada dos filtros atuais. `by_occupation` compara somente as famílias ocupacionais controladas e usa `occupationsBySource` ou `occupationsByOrigin` já classificadas; `UNCLASSIFIED` não é apresentado como área vencedora. Município, origem e fonte continuam sendo recortes determinísticos do executor, e cobertura ocupacional é reportada como cobertura de classificação, nunca como acurácia ou demanda de mercado.
+
 O provider usa interface própria e endpoint JSON compatível configurado por `AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY`/`AI_GATEWAY_API_KEY` e `AI_BASE_URL`, com timeout de 12 segundos. Há rate limit em memória por janela e tipo de endpoint, cache de dez minutos apenas para análises e fallback 503 amigável. Essas proteções são por instância serverless e não substituem autenticação real; o Observatório geral continua restrito à persona institucional de analista.
 
 ## Observabilidade de fontes externas
