@@ -45,7 +45,7 @@ const municipalitiesWithOflixFronts: MunicipalityAggregate[] = [
 const oflixFormal = { ...item("GO_SERGIPE", "Aracaju", "formal", "SE", "Oportunidade interna"), source: "OFLIX", sourceLabel: "OFLIX" } satisfies DiscoveryItem;
 
 test.describe("mercado de empregos do Observatório", () => {
-  test("normaliza município, restringe UF e conta anúncios, não vagas nominais", () => {
+  test("normaliza município, restringe UF e conta publicações, não vagas nominais", () => {
     expect(normalizeMunicipalityKey("  São  Cristóvão ")).toBe("sao cristovao");
     const market = buildTerritoryEmploymentMarket(baseMunicipalities, external);
     expect(market).toMatchObject({ total: 6, oflix: 3, external: 3, partial: true, stale: false });

@@ -1,6 +1,6 @@
 # OFLIX
 
-OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em demonstração para Sergipe. As três frentes originais — trabalho formal, serviços autônomos e voluntariado — continuam existindo e agora convivem com descoberta contextual de capacitação, concursos/processos seletivos públicos, vagas externas autorizadas e oportunidades de fornecimento ao poder público. No Observatório, “Empregos observados” combina vagas formais OFLIX e anúncios `external_job`; serviços, voluntariado e conexões continuam exclusivamente OFLIX.
+OFLIX é um hub territorial de oportunidades e desenvolvimento profissional em demonstração para Sergipe. As três frentes originais — trabalho formal, serviços autônomos e voluntariado — continuam existindo e agora convivem com descoberta contextual de capacitação, concursos/processos seletivos públicos, vagas externas autorizadas e oportunidades de fornecimento ao poder público. No Observatório, “Empregos observados” combina vagas formais OFLIX e publicações de vagas `external_job`; serviços, voluntariado e conexões continuam exclusivamente OFLIX.
 
 ## O que está nesta fundação
 
@@ -44,7 +44,7 @@ Formação, currículo, residência e publicação no banco de talentos permanec
 - Pessoa com atividade autônoma pode ativar, em Preferências, oportunidades com o poder público; a interface orienta a conferir o edital e não afirma habilitação jurídica.
 - Organizações só recebem o hub de fornecimento quando a capacidade `canSupplyPublic` está marcada; organizações sem essa capacidade continuam fora desse recorte.
 - Contratações públicas usam “Poder público” e “Forma de contratação”; concurso público e processo seletivo permanecem distintos dos demais itens por badges e detalhes próprios.
-- A primeira fonte pública externa real é o GO Sergipe. A página é uma SPA, mas sua listagem usa um endpoint JSON público estruturado em `GET /api/oportunidades`; a OFLIX reproduz essa chamada sem autenticação, sem Cookie/Authorization/CSRF, sem candidatura, sem navegador headless em produção e sem coletar os campos administrativos extras da resposta. Em 09/10/2026 o check obteve 156 anúncios em 13 páginas filtradas por Sergipe, e o deploy público respondeu com vagas e 156 URLs de detalhe válidas. `GO_SERGIPE_ENABLED` fica ligado por padrão e foi configurado como `true` no Production do Vercel; pode ser desligado explicitamente com `false`. ComprasNet.SE, cursos e concursos reais seguem pendentes de canal próprio.
+- A primeira fonte pública externa real é o GO Sergipe. A página é uma SPA, mas sua listagem usa um endpoint JSON público estruturado em `GET /api/oportunidades`; a OFLIX reproduz essa chamada sem autenticação, sem Cookie/Authorization/CSRF, sem candidatura, sem navegador headless em produção e sem coletar os campos administrativos extras da resposta. Em 09/10/2026 o check obteve 156 publicações de vagas em 13 páginas filtradas por Sergipe, e o deploy público respondeu com vagas e 156 URLs de detalhe válidas. `GO_SERGIPE_ENABLED` fica ligado por padrão e foi configurado como `true` no Production do Vercel; pode ser desligado explicitamente com `false`. ComprasNet.SE, cursos e concursos reais seguem pendentes de canal próprio.
 
 Os dados do seed são DEMO DATA, fictícios e substituíveis. Nenhum dado pessoal da proposta de inscrição deve ser incluído no repositório.
 

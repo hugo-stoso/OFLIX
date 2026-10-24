@@ -58,7 +58,7 @@ test.describe("IA territorial determinística", () => {
     expect(prompt).toContain('"totalObserved": 4');
     expect(prompt).toContain('"oflix": 0');
     expect(prompt).toContain('"external": 4');
-    const result = await analyzeTerritory(context, createMockTerritoryAiProvider([{ summary: "Os anúncios estão concentrados em poucos municípios.", highlights: ["Há concentração territorial observável."], caveats: [] }]));
+    const result = await analyzeTerritory(context, createMockTerritoryAiProvider([{ summary: "As publicações de vagas estão concentradas em poucos municípios.", highlights: ["Há concentração territorial observável."], caveats: [] }]));
     expect(result.facts.some((fact) => fact.includes("4"))).toBeTruthy();
     expect(result.caveats.some((caveat) => /parcial|desatualizada/i.test(caveat))).toBeTruthy();
   });
@@ -83,6 +83,7 @@ test.describe("IA territorial determinística", () => {
       { source: "EMPREGAJU", label: "EmpregAju", count: 1 },
       { source: "IEL_SERGIPE", label: "IEL Sergipe", count: 1 },
     ]);
+    expect(executeTerritoryQuery(sourcePlan.plan, sourceContext).facts.every((fact) => fact.includes("publicações de vagas") && !fact.includes("anúncios"))).toBe(true);
 
     const oflixContext = buildTerritoryAiContext(territoryData(), { metric: "employment", employmentOrigin: "oflix" });
     const oflixSourcePlan = validateTerritoryQueryPlan({ metric: "employment", aggregation: "by_source" }, oflixContext);
@@ -142,7 +143,8 @@ test.describe("IA territorial determinística", () => {
       { occupationFamily: "ADMINISTRATION", label: "Administração", count: 9 },
       { occupationFamily: "LOGISTICS_TRANSPORT", label: "Logística e transporte", count: 7 },
     ]);
-    expect(byOccupation.caveat).toContain("Cobertura ocupacional: 16 de 16 anúncios classificados (100%).");
+    expect(byOccupation.caveat).toContain("Cobertura ocupacional: 16 de 16 publicações de vagas classificadas (100%).");
+    expect(byOccupation.facts.every((fact) => fact.includes("publicações de vagas") && !fact.includes("anúncios"))).toBe(true);
 
     const municipalOccupationPlan = validateTerritoryQueryPlan({ metric: "employment", aggregation: "by_occupation", employmentOrigin: "external", municipality: "Aracaju" }, administrationContext);
     expect(municipalOccupationPlan.success).toBeTruthy();
@@ -162,8 +164,10 @@ test.describe("IA territorial determinística", () => {
     const logisticsSourceContext = buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "external", externalSource: "GO_SERGIPE" });
     const cases = [
       { context: sourceContext, question: "Qual fonte tem mais anúncios?", plan: { metric: "employment", aggregation: "by_source" } },
+      { context: sourceContext, question: "Qual fonte tem mais publicações de vagas?", plan: { metric: "employment", aggregation: "by_source" } },
       { context: sourceContext, question: "Qual fonte externa tem mais vagas?", plan: { metric: "employment", aggregation: "by_source" } },
       { context: logisticsSourceContext, question: "Qual fonte tem mais anúncios de logística?", plan: { metric: "employment", aggregation: "by_source", occupationFamily: "LOGISTICS_TRANSPORT" } },
+      { context: logisticsSourceContext, question: "Qual fonte tem mais vagas publicadas na área de logística?", plan: { metric: "employment", aggregation: "by_source", occupationFamily: "LOGISTICS_TRANSPORT" } },
       { context: sourceContext, question: "Entre GO Sergipe, EmpregAju e IEL, qual tem mais vagas?", plan: { metric: "employment", aggregation: "by_source" } },
       { context: buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "all" }), question: "Qual área ocupacional tem mais vagas?", plan: { metric: "employment", aggregation: "by_occupation" } },
       { context: buildTerritoryAiContext(occupationalData, { metric: "employment", employmentOrigin: "external" }), question: "Qual área ocupacional tem mais vagas externas?", plan: { metric: "employment", aggregation: "by_occupation", employmentOrigin: "external" } },

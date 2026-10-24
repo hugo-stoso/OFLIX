@@ -419,10 +419,10 @@ class MemoryJobObservabilityStore implements JobObservabilityStore {
       },
       sources,
       methodology: {
-        identity: "Identidade por source + sourceJobId (com fallback para sourceId/id); fingerprints usam campos públicos e estáveis do anúncio.",
-        disappearance: `Ausência só é marcada em coleta FULL bem-sucedida com paginação completa, após ${MISSING_GRACE_RUNS} coletas consecutivas; não significa encerramento da vaga.`,
+        identity: "Identidade por source + sourceJobId (com fallback para sourceId/id); fingerprints usam campos públicos e estáveis da publicação de vaga.",
+        disappearance: `Ausência só é marcada em coleta FULL bem-sucedida com paginação completa, após ${MISSING_GRACE_RUNS} coletas consecutivas; não significa encerramento da vaga publicada.`,
         latency: "Discovery latency só usa timestamp publicado confiável com precisão DATETIME; datas sem horário são preservadas como DATE sem latência exata.",
-        cache: "Cache hit não cria uma nova coleta; fallback stale registra tentativa falha sem alterar o lifecycle dos anúncios.",
+        cache: "Cache hit não cria uma nova coleta; fallback stale registra tentativa falha sem alterar o ciclo de observação das publicações de vagas.",
       },
     };
   }

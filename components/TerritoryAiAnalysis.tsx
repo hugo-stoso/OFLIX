@@ -75,7 +75,7 @@ export function TerritoryAiAnalysis({ profileId, filters }: TerritoryAiAnalysisP
       <div className="max-w-2xl">
         <div className="flex items-center gap-2"><BrainCircuit size={20} className="text-blue" /><p className="eyebrow">Inteligência territorial</p></div>
         <h2 id="territory-ai-title" className="mt-2 text-2xl font-black tracking-[-.035em] text-navy">Leitura assistida por IA</h2>
-        <p className="mt-2 text-sm leading-6 text-[#637688]">A IA interpreta os dados observados neste recorte. As contagens representam anúncios e registros disponíveis nas fontes integradas, não uma estimativa de todo o mercado.</p>
+        <p className="mt-2 text-sm leading-6 text-[#637688]">A IA interpreta os dados observados neste recorte. As contagens representam publicações de vagas e registros disponíveis nas fontes integradas, não uma estimativa de todo o mercado.</p>
       </div>
       <button type="button" className="button-primary shrink-0" onClick={generateAnalysis} disabled={busy !== null}><BrainCircuit size={16} />{busy === "analysis" ? "Gerando análise..." : "Gerar análise"}</button>
     </div>
@@ -86,7 +86,7 @@ export function TerritoryAiAnalysis({ profileId, filters }: TerritoryAiAnalysisP
     <div className="mt-8 border-t border-line pt-6">
       <p className="eyebrow">Pergunte ao território</p>
       <h3 className="mt-2 text-xl font-bold text-navy">Explore o recorte com uma pergunta</h3>
-      <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={askTerritory}><label htmlFor="territory-question" className="sr-only">Pergunta ao território</label><input id="territory-question" value={question} onChange={(event) => setQuestion(event.target.value)} className="input min-w-0 flex-1" placeholder="Ex.: qual município tem mais anúncios do GO Sergipe?" maxLength={500} disabled={busy !== null} /><button type="submit" className="button-secondary shrink-0" disabled={busy !== null || !question.trim()}><Send size={16} />{busy === "question" ? "Analisando pergunta..." : "Perguntar"}</button></form>
+      <form className="mt-4 flex flex-col gap-3 sm:flex-row" onSubmit={askTerritory}><label htmlFor="territory-question" className="sr-only">Pergunta ao território</label><input id="territory-question" value={question} onChange={(event) => setQuestion(event.target.value)} className="input min-w-0 flex-1" placeholder="Ex.: qual município tem mais vagas publicadas pelo GO Sergipe?" maxLength={500} disabled={busy !== null} /><button type="submit" className="button-secondary shrink-0" disabled={busy !== null || !question.trim()}><Send size={16} />{busy === "question" ? "Analisando pergunta..." : "Perguntar"}</button></form>
       {busy === "question" ? <p className="mt-3 flex items-center gap-2 text-sm text-[#637688]" role="status"><Loader2 size={16} className="animate-spin" />Analisando pergunta...</p> : null}
       {answer ? <div className="mt-5 rounded-xl border border-[#c9dce8] bg-[#f5fafc] p-4" aria-live="polite"><p className="text-sm leading-6 text-navy">{answer.answer}</p>{answer.facts.length ? <p className="mt-3 text-xs leading-5 text-[#40576b]"><strong>Fatos:</strong> {answer.facts.join(" ")}</p> : null}<p className="mt-3 text-xs leading-5 text-[#637688]"><strong>Leitura aplicada:</strong> {answer.interpretedQuery}</p><p className="mt-2 text-xs leading-5 text-[#718291]">{answer.caveat}</p></div> : null}
     </div>

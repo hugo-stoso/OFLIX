@@ -34,7 +34,7 @@ O HTML observado em 08/10/2026 é um shell de SPA (`#app` e bundle JavaScript), 
 
 O parser JSON usa allowlist de campos públicos de oportunidade: ID, título, descrição, empresa, município/UF, datas, vagas, salário textual, PcD, escolaridade, tipo de contratação e CBO quando retornados. Ignora `created_by`, contatos, CNPJ, endereço/CEP, aplicações, limites internos e demais campos administrativos. Não acessa detalhes em massa, não executa candidatura, não usa autenticação e não usa navegador headless em produção. `sourceId` vem do ID real; a URL é construída como `/detalheOportunidades/{id}` somente após validação browser da rota pública. O parser HTML anterior permanece como fixture/fallback futuro, mas não é o mecanismo live.
 
-O endpoint não é chamado de API oficial ou documentada: é o endpoint público estruturado utilizado pela aplicação web do GO Sergipe. A checagem de 09/10/2026 obteve 156 anúncios, 13 páginas, 156 IDs únicos e somente UF SE. `GO_SERGIPE_ENABLED` fica habilitado por padrão após a validação anônima e pode ser desligado explicitamente com `false`; o fallback mantém a aplicação operante e registra apenas início/fim da coleta, sem títulos ou dados pessoais nos logs.
+O endpoint não é chamado de API oficial ou documentada: é o endpoint público estruturado utilizado pela aplicação web do GO Sergipe. A checagem de 09/10/2026 obteve 156 publicações de vagas, 13 páginas, 156 IDs únicos e somente UF SE. `GO_SERGIPE_ENABLED` fica habilitado por padrão após a validação anônima e pode ser desligado explicitamente com `false`; o fallback mantém a aplicação operante e registra apenas início/fim da coleta, sem títulos ou dados pessoais nos logs.
 
 ## EMPREGAJU E IEL SERGIPE: MULTIFONTES PÚBLICAS
 

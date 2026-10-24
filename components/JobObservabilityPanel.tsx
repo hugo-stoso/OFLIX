@@ -52,7 +52,7 @@ export function JobObservabilityPanel({ profileId }: { profileId: string }) {
       <div className="max-w-3xl">
         <p className="eyebrow">Saúde das fontes</p>
         <h2 id="job-observability-title" className="mt-2 text-2xl font-black tracking-[-.035em] text-navy">Cobertura e atualização</h2>
-        <p className="mt-2 text-sm leading-6 text-[#637688]">Métricas agregadas da coleta pública de empregos externos. Cache hit não conta como nova coleta; anúncios são identificados por fonte e identificador público.</p>
+        <p className="mt-2 text-sm leading-6 text-[#637688]">Métricas agregadas da coleta pública de empregos externos. Cache hit não conta como nova coleta; as publicações de vagas são identificadas por fonte e identificador público.</p>
       </div>
       <RefreshCw size={20} className="text-blue" aria-hidden="true" />
     </div>
@@ -60,7 +60,7 @@ export function JobObservabilityPanel({ profileId }: { profileId: string }) {
     {!snapshot && !error ? <div className="mt-6 flex items-center gap-2 text-sm text-[#637688]" role="status"><Loader2 size={16} className="animate-spin" />Atualizando métricas...</div> : null}
     {snapshot ? <>
       <div className="mt-6 grid gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-line bg-[#f8fbfd] p-4"><p className="eyebrow">Anúncios observados</p><p className="mt-2 text-2xl font-black text-navy">{snapshot.overview.currentCount}</p></div>
+        <div className="rounded-xl border border-line bg-[#f8fbfd] p-4"><p className="eyebrow">Publicações de vagas</p><p className="mt-2 text-2xl font-black text-navy">{snapshot.overview.currentCount}</p></div>
         <div className="rounded-xl border border-line bg-[#f8fbfd] p-4"><p className="eyebrow">Fontes ativas</p><p className="mt-2 text-2xl font-black text-navy">{snapshot.overview.sourceCount}</p></div>
         <div className="rounded-xl border border-line bg-[#f8fbfd] p-4"><p className="eyebrow">Novos na coleta</p><p className="mt-2 text-2xl font-black text-navy">{snapshot.overview.newCount}</p></div>
         <div className="rounded-xl border border-line bg-[#f8fbfd] p-4"><p className="eyebrow">Última coleta OK</p><p className="mt-2 text-sm font-bold text-navy">{dateLabel(snapshot.overview.lastSuccessfulCollectedAt)}</p></div>
