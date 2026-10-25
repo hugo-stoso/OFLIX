@@ -18,12 +18,13 @@ import { ServiceCallPanel } from "@/components/ServiceCallPanel";
 import { ServiceCallTeaser } from "@/components/ServiceCallTeaser";
 import { TalentBasePanel } from "@/components/TalentBasePanel";
 import { VolunteerManagementPanel } from "@/components/VolunteerManagementPanel";
-import { ANALYST_PROFILE_ID, canDiscoverPublicOpportunities, canManageVolunteers, canPublishFormal, canPublishServiceDemand, canPublishVolunteer, canUseServiceToday, canUseTalentDirectory, DISCOVERY_FILTER_LABELS, discoveryItemMatchesFilter, EXTERNAL_DISCOVERY_SOURCES, externalSourceLabel, isExternalDiscoverySource, organizationKindLabel, type DiscoveryFilterKind, type DiscoveryItem, type OpportunityKind, type OpportunityOrigin, type OrganizationKind } from "@/lib/domain";
+import { ANALYST_PROFILE_ID, canDiscoverPublicOpportunities, canManageVolunteers, canPublishFormal, canPublishServiceDemand, canPublishVolunteer, canUseServiceToday, canUseTalentDirectory, DISCOVERY_FILTER_LABELS, discoveryItemMatchesFilter, EXTERNAL_DISCOVERY_SOURCES, externalSourceLabel, isExternalDiscoverySource, organizationKindLabel, type DiscoveryFilterKind, type DiscoveryItem, type OpportunityKind, type OpportunityOrigin, type OrganizationKind, type ServiceIntent } from "@/lib/domain";
 import { demoDiscoveryItems, discoveryReasons, internalToDiscoveryItem, rankDiscoveryItems } from "@/lib/discovery";
+import { discoveryItemMatchesMarketSection } from "@/lib/opportunity-classification";
 import { formatWorkOpportunityCount } from "@/lib/ui-copy";
 
 type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; organizationKind?: OrganizationKind; operatingArea?: string; summary: string; capabilities: string; canSupplyPublic: boolean; location: { state: string; municipality: string; district: string } };
-type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; location: { municipality: string; district: string }; owner: { id: string; name: string }; ownerType: Profile["type"]; employmentType?: "CLT" | "INTERNSHIP"; compensation?: { min: number; max?: number; currency: "BRL"; period: "MONTHLY"; kind: "SALARY" | "INTERNSHIP_STIPEND" }; eventDate?: string; requiredActivities?: string[]; schedule?: string; requirements?: string; desiredVolunteers?: number; institutionalGuidance?: string };
+type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; serviceIntent?: ServiceIntent; location: { municipality: string; district: string }; owner: { id: string; name: string }; ownerType: Profile["type"]; employmentType?: "CLT" | "INTERNSHIP"; compensation?: { min: number; max?: number; currency: "BRL"; period: "MONTHLY"; kind: "SALARY" | "INTERNSHIP_STIPEND" }; eventDate?: string; requiredActivities?: string[]; schedule?: string; requirements?: string; desiredVolunteers?: number; institutionalGuidance?: string };
 type Talent = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
 type PublicationMode = "offers" | "demands";
 const externalSourceRequests = [
@@ -66,13 +67,13 @@ function isMarketFilter(filter: DiscoveryFilterKind) {
 
 function publicationContext(filter: DiscoveryFilterKind) {
   return filter === "service"
-    ? { offers: "Ofertas de serviço", demands: "Demandas de serviço" }
-    : { offers: "Pessoas e autônomos", demands: "Vagas e contratantes" };
+    ? { offers: "Divulgação de serviços autônomos", demands: "Pedidos de serviço" }
+    : { offers: "Profissionais e Serviços", demands: "Vagas e Contratações" };
 }
 
 const homeShortcutItems = [
-  { filter: "employment" as DiscoveryFilterKind, title: "Empregos", copy: "Vagas e oportunidades de trabalho", icon: BriefcaseBusiness },
-  { filter: "service" as DiscoveryFilterKind, title: "Prestação de serviços", copy: "Ofertas e demandas de serviço", icon: Wrench },
+  { filter: "employment" as DiscoveryFilterKind, title: "Vagas e Contratações", copy: "Vagas, contratações e pedidos de serviço", icon: BriefcaseBusiness },
+  { filter: "service" as DiscoveryFilterKind, title: "Profissionais e Serviços", copy: "Serviços oferecidos por autônomos", icon: Wrench },
   { filter: "public_exam" as DiscoveryFilterKind, title: "Concursos", copy: "Concursos e seleções", icon: Network },
   { filter: "course" as DiscoveryFilterKind, title: "Capacitação", copy: "Cursos e qualificação", icon: GraduationCap },
   { filter: "volunteer" as DiscoveryFilterKind, title: "Voluntariado", copy: "Ações e iniciativas", icon: HandHeart },
@@ -347,13 +348,13 @@ export default function DemoPage() {
       if (!isMarketFilter(activeFilter)) {
         return isPersonProfile || opportunity.ownerType === "PERSON" || opportunity.owner.id === selectedProfile.id;
       }
-      if (publicationMode === "offers") return opportunity.ownerType === "PERSON";
       if (selectedProfile.type === "ORGANIZATION") return opportunity.ownerType !== "PERSON" && opportunity.owner.id === selectedProfile.id;
-      return opportunity.ownerType !== "PERSON";
+      return discoveryItemMatchesMarketSection(item, activeFilter);
     });
-    const personDemoItems = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement" && item.kind !== "external_job" && (!isMarketFilter(activeFilter) || publicationMode === "demands")) : [];
-    return [...internal, ...personDemoItems, ...(selectedProfile?.type === "PERSON" ? externalJobs : []), ...(publicAccess ? publicItems : [])];
-  }, [activeFilter, allInternalDiscovery, externalJobs, opportunities, publicationMode, publicAccess, publicItems, selectedProfile]);
+    const personDemoItems = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement" && item.kind !== "external_job" && (!isMarketFilter(activeFilter) || discoveryItemMatchesMarketSection(item, activeFilter))) : [];
+    const visibleExternalJobs = selectedProfile?.type === "PERSON" && (activeFilter === "all" || activeFilter === "employment") ? externalJobs : [];
+    return [...internal, ...personDemoItems, ...visibleExternalJobs, ...(publicAccess ? publicItems : [])];
+  }, [activeFilter, allInternalDiscovery, externalJobs, opportunities, publicAccess, publicItems, selectedProfile]);
   const filterTabs = useMemo(() => {
     const base: DiscoveryFilterKind[] = selectedProfile?.organizationKind === "PUBLIC_INSTITUTION" ? ["all", "volunteer"] : ["all", "employment", "service", "volunteer"];
     if (selectedProfile?.type === "PERSON") base.push("public_exam", "course");
@@ -381,11 +382,9 @@ export default function DemoPage() {
   const filterDiscoveryItem = useCallback((item: DiscoveryItem) => {
     if (!filterBaseDiscoveryItem(item)) return false;
     if (activeFilter !== "employment") return true;
-    const matchesOrigin = originFilter === "all"
-      ? (item.kind === "formal" && item.source === "OFLIX") || item.kind === "external_job"
-      : originFilter === "oflix"
-        ? item.kind === "formal" && item.source === "OFLIX"
-        : item.kind === "external_job";
+    const isOflixContract = item.source === "OFLIX" && (item.kind === "formal" || item.kind === "service" && item.serviceIntent !== "service_offer");
+    const isExternalJob = item.kind === "external_job";
+    const matchesOrigin = originFilter === "all" ? isOflixContract || isExternalJob : originFilter === "oflix" ? isOflixContract : isExternalJob;
     return matchesOrigin && (!sourceFilter || item.source === sourceFilter);
   }, [activeFilter, filterBaseDiscoveryItem, originFilter, sourceFilter]);
   const scopedDiscovery = useMemo(() => {
@@ -401,7 +400,7 @@ export default function DemoPage() {
   const statuses = useMemo(() => Array.from(new Set(filterScopedItems.map((item) => item.status).filter(Boolean) as string[])).sort(), [filterScopedItems]);
   const officialTypes = useMemo(() => Array.from(new Set(filterScopedItems.map((item) => item.officialType).filter(Boolean) as string[])).sort(), [filterScopedItems]);
   const origins = useMemo(() => {
-    const oflixCount = filterScopedItems.filter((item) => item.kind === "formal" && item.source === "OFLIX").length;
+    const oflixCount = filterScopedItems.filter((item) => item.source === "OFLIX" && (item.kind === "formal" || item.kind === "service" && item.serviceIntent !== "service_offer")).length;
     const externalCount = filterScopedItems.filter((item) => item.kind === "external_job").length;
     return [
       { value: "all" as OpportunityOrigin, label: "Todas as vagas", count: oflixCount + externalCount },
@@ -499,7 +498,7 @@ export default function DemoPage() {
 
   function addCreatedOpportunity(opportunity: Opportunity) {
     setOpportunities((current) => ({ ...current, [opportunity.kind]: [opportunity, ...current[opportunity.kind]] }));
-    setPublicationMode(opportunity.ownerType === "PERSON" ? "offers" : "demands");
+    setPublicationMode(opportunity.serviceIntent === "service_offer" ? "offers" : "demands");
     setActiveFilter(opportunity.kind === "formal" ? "employment" : opportunity.kind);
   }
 
@@ -517,7 +516,7 @@ export default function DemoPage() {
   const canUseToday = canUseServiceToday(selectedProfile);
   const canUseTalents = canUseTalentDirectory(selectedProfile);
   const showPublicPanel = canDiscoverPublicOpportunities(selectedProfile) && publicInterestEnabled;
-  const showPublicationMode = isMarketFilter(activeFilter);
+  const showPublicationMode = false;
   const publicationLabels = publicationContext(activeFilter);
   const discoveryReturnTo = (() => {
     const params = new URLSearchParams({ view: "discover" });

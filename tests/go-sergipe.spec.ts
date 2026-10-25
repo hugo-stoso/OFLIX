@@ -165,7 +165,7 @@ test.describe("GO Sergipe na busca", () => {
     await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: /Hugo Silva/ }).click();
     await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-    await page.getByRole("button", { name: /Empregos/ }).click();
+    await page.getByRole("button", { name: /Vagas e Contratações/ }).click();
     await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toBeVisible();
     await expect(page.getByText("Empresa Exemplo", { exact: true })).toBeVisible();
     await expect(page.getByText("Aracaju · SE", { exact: true })).toBeVisible();
@@ -179,7 +179,7 @@ test.describe("GO Sergipe na busca", () => {
     await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: /Hugo Silva/ }).click();
     await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-    await page.getByRole("button", { name: /Empregos/ }).click();
+    await page.getByRole("button", { name: /Vagas e Contratações/ }).click();
     await page.getByPlaceholder("Buscar profissão, atividade ou oportunidade").fill("eletricista");
     await expect(page.getByRole("heading", { name: "Eletricista", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toHaveCount(0);

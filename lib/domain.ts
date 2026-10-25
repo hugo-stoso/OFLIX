@@ -1,6 +1,7 @@
 import type { Compensation } from "@/lib/compensation";
 
 export type OpportunityKind = "formal" | "service" | "volunteer";
+export type ServiceIntent = "service_offer" | "service_request";
 export type DiscoveryKind = OpportunityKind | "course" | "public_exam" | "public_selection" | "external_job" | "public_procurement";
 export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "AUTHORIZED_PARTNER" | "GO_SERGIPE" | "EMPREGAJU" | "IEL_SERGIPE";
 export type OpportunityOrigin = "all" | "oflix" | "external";
@@ -45,8 +46,8 @@ export function workPreferenceLabel(preference: WorkPreference | string) {
 
 export const DISCOVERY_FILTER_LABELS: Record<DiscoveryFilterKind, string> = {
   all: "Todos",
-  employment: "Empregos",
-  service: "Prestação de serviços",
+  employment: "Vagas e Contratações",
+  service: "Profissionais e Serviços",
   volunteer: "Voluntariado",
   public_exam: "Concursos",
   course: "Capacitação",
@@ -120,6 +121,7 @@ export type DiscoveryItem = {
   location: DiscoveryLocation;
   source: DiscoverySource;
   sourceLabel: string;
+  serviceIntent?: ServiceIntent;
   sourceId?: string;
   sourceJobId?: string;
   sourceUrl?: string;
@@ -176,13 +178,13 @@ export function discoveryKindLabel(kind: DiscoveryKind) {
   return DISCOVERY_KIND_LABELS[kind];
 }
 
-export function discoveryItemMatchesFilter(item: DiscoveryItem, filter: DiscoveryFilterKind) {
+export function discoveryItemMatchesFilter(item: Pick<DiscoveryItem, "kind" | "serviceIntent">, filter: DiscoveryFilterKind) {
   if (filter === "all") return true;
-  if (filter === "employment") return item.kind === "formal" || item.kind === "external_job";
+  if (filter === "employment") return item.kind === "formal" || item.kind === "external_job" || item.kind === "service" && item.serviceIntent !== "service_offer";
   if (filter === "public_exam") return item.kind === "public_exam" || item.kind === "public_selection";
   if (filter === "course") return item.kind === "course";
   if (filter === "public_procurement") return item.kind === "public_procurement";
-  return item.kind === filter;
+  return item.kind === filter && (filter !== "service" || item.serviceIntent === "service_offer");
 }
 
 export function canDiscoverPublicOpportunities(profile: { type: ProfileType; canSupplyPublic?: boolean; capabilities?: string }) {

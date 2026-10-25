@@ -6,6 +6,7 @@ import { createOpportunity, listOpportunities } from "@/lib/db";
 const createSchema = z.object({
   ownerProfileId: z.string().min(1),
   kind: z.enum(["formal", "service", "volunteer"]),
+  serviceIntent: z.enum(["service_offer", "service_request"]).optional(),
   title: z.string().min(3).max(120),
   description: z.string().min(10).max(2000),
   category: z.string().min(1).max(80),

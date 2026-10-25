@@ -53,7 +53,7 @@ export function OpportunityFilters({ filterKind, search, category, municipality,
   const showEducation = filterKind === "employment" || filterKind === "public_exam" || filterKind === "course";
   const showPublicFilters = filterKind === "public_exam" || filterKind === "public_procurement";
   return <section className="panel mb-6 p-4 sm:p-6" aria-label="Filtros de oportunidades">
-    {filterKind === "service" && <p className="mb-4 rounded-lg border border-[#c9dce8] bg-[#f5fafc] p-3 text-sm leading-6 text-[#637688]">Ofertas e demandas para realização de serviços. Vagas de trabalho ficam na área Empregos.</p>}
+    {filterKind === "service" && <p className="mb-4 rounded-lg border border-[#c9dce8] bg-[#f5fafc] p-3 text-sm leading-6 text-[#637688]">Profissionais autônomos divulgam serviços aqui. Pedidos de serviço e vagas ficam em Vagas e Contratações.</p>}
     {filterKind === "employment" && <p className="mb-4 rounded-lg border border-[#c9dce8] bg-[#f5fafc] p-3 text-sm leading-6 text-[#637688]">As condições e o tipo de contratação são exibidos conforme informado pela publicação ou pela fonte.</p>}
     <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="eyebrow inline-flex items-center gap-2"><Search size={14} /> Buscar oportunidades</p><p className="mt-2 hidden text-sm text-[#637688] sm:block">Pesquise por profissão, atividade, título ou descrição.</p></div>{hasFilters && <button type="button" className="button-quiet" onClick={onClear}><X size={15} /> Limpar filtros</button>}</div>
     <div className="mt-4 flex gap-2">

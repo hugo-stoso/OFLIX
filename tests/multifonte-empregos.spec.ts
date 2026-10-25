@@ -104,7 +104,7 @@ test.describe("filtros multifonte na busca", () => {
     await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: /Hugo Silva/ }).click();
     await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-    await page.getByRole("button", { name: /Empregos/ }).click();
+    await page.getByRole("button", { name: /Vagas e Contratações/ }).click();
     await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Estágio em administração", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Ver detalhes" }).first()).toHaveAttribute("href", /\/external-job\/empregaju\/872/);
@@ -131,7 +131,7 @@ test.describe("filtros multifonte na busca", () => {
     await page.goto("/demo");
     await page.getByRole("button", { name: /Hugo Silva/ }).click();
     await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-    await page.getByRole("button", { name: /Empregos/ }).click();
+    await page.getByRole("button", { name: /Vagas e Contratações/ }).click();
     const filtersToggle = page.getByRole("button", { name: "Filtros", exact: true });
     if (await filtersToggle.isVisible()) await filtersToggle.click();
 
@@ -192,22 +192,23 @@ test.describe("semântica de emprego e prestação de serviços", () => {
     source: kind === "service" ? "OFLIX" : "GO_SERGIPE",
     sourceLabel: kind === "service" ? "OFLIX · publicação da demonstração" : "GO Sergipe",
     tags: [],
+    serviceIntent: kind === "service" ? "service_offer" : undefined,
     contractType,
   });
 
-  test("vaga externa Autônomo continua em Empregos e não vira prestação de serviços", () => {
+  test("vaga externa Autônomo continua em Vagas e Contratações e não vira Profissionais e Serviços", () => {
     const autonomous = item("external_job", "Autônomo");
     expect(discoveryItemMatchesFilter(autonomous, "employment")).toBe(true);
     expect(discoveryItemMatchesFilter(autonomous, "service")).toBe(false);
   });
 
-  test("vaga externa PJ continua em Empregos e não vira prestação de serviços", () => {
+  test("vaga externa PJ continua em Vagas e Contratações e não vira Profissionais e Serviços", () => {
     const pj = item("external_job", "PJ");
     expect(discoveryItemMatchesFilter(pj, "employment")).toBe(true);
     expect(discoveryItemMatchesFilter(pj, "service")).toBe(false);
   });
 
-  test("service aparece em Prestação de serviços, não em Empregos", () => {
+  test("oferta de serviço aparece em Profissionais e Serviços, não em Vagas e Contratações", () => {
     const service = item("service");
     expect(discoveryItemMatchesFilter(service, "service")).toBe(true);
     expect(discoveryItemMatchesFilter(service, "employment")).toBe(false);

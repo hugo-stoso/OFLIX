@@ -1,5 +1,5 @@
 import type { Compensation } from "@/lib/compensation";
-import { workPreferenceLabel, type DiscoveryItem, type DiscoveryKind, type DiscoveryLocation, type DiscoverySource } from "@/lib/domain";
+import { workPreferenceLabel, type DiscoveryItem, type DiscoveryKind, type DiscoveryLocation, type DiscoverySource, type ServiceIntent } from "@/lib/domain";
 
 const demoLocation = (municipality: string): DiscoveryLocation => ({ state: "SE", municipality });
 
@@ -104,7 +104,7 @@ export const demoDiscoveryItems: DiscoveryItem[] = [
   },
 ];
 
-export function internalToDiscoveryItem(opportunity: { id: string; title: string; description: string; category: string; kind: "formal" | "service" | "volunteer"; location: { state?: string; municipality: string; district?: string }; owner: { name: string }; employmentType?: "CLT" | "INTERNSHIP"; compensation?: Compensation; requiredActivities?: string[] }): DiscoveryItem {
+export function internalToDiscoveryItem(opportunity: { id: string; title: string; description: string; category: string; kind: "formal" | "service" | "volunteer"; location: { state?: string; municipality: string; district?: string }; owner: { name: string }; ownerType?: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; serviceIntent?: ServiceIntent; employmentType?: "CLT" | "INTERNSHIP"; compensation?: Compensation; requiredActivities?: string[] }): DiscoveryItem {
   const kind: DiscoveryKind = opportunity.kind;
   return {
     id: opportunity.id,
@@ -116,6 +116,7 @@ export function internalToDiscoveryItem(opportunity: { id: string; title: string
     location: { state: opportunity.location.state ?? "SE", municipality: opportunity.location.municipality, district: opportunity.location.district },
     source: "OFLIX",
     sourceLabel: "OFLIX · publicação da demonstração",
+    ...(opportunity.kind === "service" ? { serviceIntent: opportunity.serviceIntent ?? (opportunity.ownerType === "PERSON" ? "service_offer" : "service_request") } : {}),
     status: "Disponível",
     modality: opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : undefined,
     compensation: opportunity.compensation,

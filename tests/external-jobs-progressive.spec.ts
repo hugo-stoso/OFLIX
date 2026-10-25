@@ -40,7 +40,7 @@ async function openEmploymentSearch(page: Page) {
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
-  await page.getByRole("button", { name: /Empregos/ }).click();
+  await page.getByRole("button", { name: /Vagas e Contratações/ }).click();
 }
 
 function mockProgressiveSources(page: Page, delays: Partial<Record<SourceParam, number>>, failing: SourceParam[] = []) {
