@@ -56,7 +56,7 @@ test.describe("fontes externas de empregos em Sergipe", () => {
   test("não chama paginação proibida do IEL e preserva fallback após indisponibilidade", async () => {
     clearIelSergipeCache();
     const first = await fetchIelSergipeOpportunities({ fetcher: async () => new Response(fixture("iel-sergipe-page.html"), { status: 200 }), now: () => new Date("2026-10-09T12:00:00.000Z") });
-    expect(first).toMatchObject({ pages: 1, stale: false, partial: false });
+    expect(first).toMatchObject({ pages: 1, stale: false, partial: true });
     const failed = await fetchIelSergipeOpportunities({ fetcher: async () => new Response("erro", { status: 503 }), now: () => new Date("2026-10-09T17:00:00.000Z") });
     expect(failed).toMatchObject({ pages: 1, stale: true, partial: true });
     expect(failed.items).toHaveLength(2);

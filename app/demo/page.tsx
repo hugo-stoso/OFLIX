@@ -26,6 +26,32 @@ type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "IN
 type Opportunity = { id: string; title: string; description: string; category: string; kind: OpportunityKind; location: { municipality: string; district: string }; owner: { id: string; name: string }; ownerType: Profile["type"]; employmentType?: "CLT" | "INTERNSHIP"; compensation?: { min: number; max?: number; currency: "BRL"; period: "MONTHLY"; kind: "SALARY" | "INTERNSHIP_STIPEND" }; eventDate?: string; requiredActivities?: string[]; schedule?: string; requirements?: string; desiredVolunteers?: number; institutionalGuidance?: string };
 type Talent = { id: string; profileId: string; name: string; summary: string; capabilities: string; opportunityId: string; opportunityTitle: string; category: string; ownerId: string; action: string };
 type PublicationMode = "offers" | "demands";
+const externalSourceRequests = [
+  { param: "go-sergipe", label: "GO Sergipe" },
+  { param: "empregaju", label: "EmpregAju" },
+  { param: "iel-sergipe", label: "IEL Sergipe" },
+] as const;
+type ExternalSourceParam = (typeof externalSourceRequests)[number]["param"];
+type ExternalSourceState = { status: "idle" | "loading" | "success" | "error"; count: number; stale: boolean; partial: boolean; error?: string };
+type ExternalJobsBySource = Record<ExternalSourceParam, DiscoveryItem[]>;
+type ExternalSourceStates = Record<ExternalSourceParam, ExternalSourceState>;
+
+const emptyExternalJobsBySource = (): ExternalJobsBySource => ({ "go-sergipe": [], empregaju: [], "iel-sergipe": [] });
+const idleExternalSourceStates = (): ExternalSourceStates => ({
+  "go-sergipe": { status: "idle", count: 0, stale: false, partial: false },
+  empregaju: { status: "idle", count: 0, stale: false, partial: false },
+  "iel-sergipe": { status: "idle", count: 0, stale: false, partial: false },
+});
+
+function deduplicateExternalDiscoveryItems(items: DiscoveryItem[]) {
+  const unique = new Map<string, DiscoveryItem>();
+  for (const item of items) {
+    const key = `${item.source}:${item.sourceId ?? item.id}`;
+    if (!unique.has(key)) unique.set(key, item);
+  }
+  return Array.from(unique.values());
+}
+
 function favoriteIds() {
   try { return JSON.parse(window.localStorage.getItem("oflix-favorite-opportunities") ?? "[]") as string[]; } catch { return []; }
 }
@@ -88,13 +114,14 @@ export default function DemoPage() {
   const [publicError, setPublicError] = useState("");
   const [publicLoaded, setPublicLoaded] = useState(false);
   const [publicInterestEnabled, setPublicInterestEnabled] = useState(false);
-  const [externalJobs, setExternalJobs] = useState<DiscoveryItem[]>([]);
-  const [externalJobsLoading, setExternalJobsLoading] = useState(false);
-  const [externalJobsError, setExternalJobsError] = useState("");
+  const [externalJobsBySource, setExternalJobsBySource] = useState<ExternalJobsBySource>(emptyExternalJobsBySource);
+  const [externalSourceStates, setExternalSourceStates] = useState<ExternalSourceStates>(idleExternalSourceStates);
   const [externalJobsLoaded, setExternalJobsLoaded] = useState(false);
   const [savedActivities, setSavedActivities] = useState<string[]>([]);
   const [savedWorkPreferences, setSavedWorkPreferences] = useState<string[]>([]);
   const searchUrlHydrated = useRef(false);
+  const externalRequestGeneration = useRef(0);
+  const firstExternalResultLogged = useRef(false);
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId) ?? null, [profiles, selectedId]);
   const publicAccess = Boolean(selectedProfile && canDiscoverPublicOpportunities(selectedProfile) && (selectedProfile.type === "ORGANIZATION" || publicInterestEnabled));
 
@@ -130,9 +157,9 @@ export default function DemoPage() {
   }, [selectedProfile]);
 
   useEffect(() => {
-    setExternalJobs([]);
-    setExternalJobsLoading(false);
-    setExternalJobsError("");
+    externalRequestGeneration.current += 1;
+    setExternalJobsBySource(emptyExternalJobsBySource());
+    setExternalSourceStates(idleExternalSourceStates());
     setExternalJobsLoaded(false);
   }, [selectedProfile]);
 
@@ -172,29 +199,61 @@ export default function DemoPage() {
     return () => { cancelled = true; };
   }, [activeFilter, publicInterestEnabled, publicLoaded, selectedProfile]);
 
+  const shouldLoadExternalJobs = activeView === "discover" && selectedProfile?.type === "PERSON" && (activeFilter === "all" || activeFilter === "employment") && !externalJobsLoaded;
+
   useEffect(() => {
-    const shouldLoad = activeView === "discover" && selectedProfile?.type === "PERSON" && (activeFilter === "all" || activeFilter === "employment") && !externalJobsLoaded;
-    if (!shouldLoad) return;
+    const shouldLoad = shouldLoadExternalJobs;
+    const generation = ++externalRequestGeneration.current;
+    const controller = new AbortController();
     let cancelled = false;
-    setExternalJobsLoading(true);
-    setExternalJobsError("");
-    fetch("/api/external-jobs?source=all")
-      .then(async (response) => {
+    if (!shouldLoad) return () => { cancelled = true; controller.abort(); };
+
+    firstExternalResultLogged.current = false;
+    setExternalSourceStates({
+      "go-sergipe": { status: "loading", count: 0, stale: false, partial: false },
+      empregaju: { status: "loading", count: 0, stale: false, partial: false },
+      "iel-sergipe": { status: "loading", count: 0, stale: false, partial: false },
+    });
+
+    const isCurrent = () => !cancelled && externalRequestGeneration.current === generation;
+    const loadSource = async ({ param, label }: (typeof externalSourceRequests)[number]) => {
+      const startedAt = performance.now();
+      try {
+        const response = await fetch(`/api/external-jobs?source=${param}`, { signal: controller.signal });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error ?? "Não foi possível atualizar as vagas do GO Sergipe agora.");
-        if (cancelled) return;
-        if (data.enabled === false && !Array.isArray(data.sources)) {
-          setExternalJobs([]);
-          setExternalJobsError("");
-        } else {
-          setExternalJobs(Array.isArray(data.items) ? data.items : []);
-          setExternalJobsError(data.error ? "Não foi possível atualizar as vagas do GO Sergipe agora; outras fontes externas também podem estar indisponíveis." : "");
+        if (!response.ok) throw new Error(data.error ?? `Não foi possível atualizar as vagas do ${label} agora.`);
+        if (!isCurrent()) return;
+        const items = Array.isArray(data.items) ? data.items as DiscoveryItem[] : [];
+        setExternalJobsBySource((current) => ({ ...current, [param]: items }));
+        setExternalSourceStates((current) => ({ ...current, [param]: { status: "success", count: items.length, stale: Boolean(data.stale), partial: Boolean(data.partial), ...(data.error ? { error: data.error } : {}) } }));
+        const durationMs = Math.round(performance.now() - startedAt);
+        console.info(`[external-jobs] ${param} concluído`, { durationMs, count: items.length, stale: Boolean(data.stale), partial: Boolean(data.partial) });
+        if (items.length > 0 && !firstExternalResultLogged.current) {
+          firstExternalResultLogged.current = true;
+          console.info("[external-jobs] primeiro resultado externo", { source: param, durationMs });
         }
-      })
-      .catch(() => { if (!cancelled) setExternalJobsError("Não foi possível atualizar as vagas do GO Sergipe agora."); })
-      .finally(() => { if (!cancelled) { setExternalJobsLoaded(true); setExternalJobsLoading(false); } });
-    return () => { cancelled = true; };
-  }, [activeFilter, activeView, externalJobsLoaded, selectedProfile]);
+      } catch (loadError) {
+        if (!isCurrent() || (loadError instanceof DOMException && loadError.name === "AbortError")) return;
+        setExternalJobsBySource((current) => ({ ...current, [param]: [] }));
+        setExternalSourceStates((current) => ({ ...current, [param]: { status: "error", count: 0, stale: true, partial: true, error: loadError instanceof Error ? loadError.message : "Falha desconhecida na coleta" } }));
+        console.info(`[external-jobs] ${param} falhou`, { durationMs: Math.round(performance.now() - startedAt) });
+      }
+    };
+
+    void Promise.all(externalSourceRequests.map(loadSource));
+    return () => { cancelled = true; controller.abort(); };
+  }, [shouldLoadExternalJobs, selectedProfile]);
+
+  const externalJobs = useMemo(() => deduplicateExternalDiscoveryItems(externalSourceRequests.flatMap(({ param }) => externalJobsBySource[param])), [externalJobsBySource]);
+  const externalJobsLoading = useMemo(() => Object.values(externalSourceStates).some((state) => state.status === "loading"), [externalSourceStates]);
+  const externalJobsError = useMemo(() => Object.values(externalSourceStates).some((state) => state.status === "error") ? "Não foi possível atualizar as vagas do GO Sergipe agora; outras fontes externas também podem estar indisponíveis." : "", [externalSourceStates]);
+  const pendingExternalSources = useMemo(() => externalSourceRequests.filter(({ param }) => externalSourceStates[param].status === "loading").map(({ label }) => label), [externalSourceStates]);
+  const failedExternalSources = useMemo(() => externalSourceRequests.filter(({ param }) => externalSourceStates[param].status === "error").map(({ label }) => label), [externalSourceStates]);
+
+  useEffect(() => {
+    const states = Object.values(externalSourceStates);
+    if (states.some((state) => state.status !== "idle" && state.status !== "loading") && states.every((state) => state.status === "success" || state.status === "error")) setExternalJobsLoaded(true);
+  }, [externalSourceStates]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -387,7 +446,6 @@ export default function DemoPage() {
   }
 
   function refreshExternalJobs() {
-    setExternalJobsError("");
     setExternalJobsLoaded(false);
   }
 
@@ -520,7 +578,7 @@ export default function DemoPage() {
 
       {activeView === "talents" && canUseTalents && <section aria-labelledby="people-title"><div className="page-intro"><p className="eyebrow">{isNonprofit ? "Pessoas" : "Talentos"}</p><h1 id="people-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">{isNonprofit ? "Acompanhe voluntários e encontre talentos." : "Encontre pessoas para o próximo passo."}</h1><p className="body-copy mt-3 max-w-[650px]">{isNonprofit ? "Separe a gestão das ações voluntárias da busca por perfis profissionais." : "Busque perfis que autorizaram a divulgação de competências, formação e interesses."}</p></div>{isNonprofit && <div className="segmented-control mt-7 max-w-md" role="tablist" aria-label="Pessoas da organização"><button type="button" role="tab" aria-selected={peopleTab === "volunteers"} onClick={() => setPeopleTab("volunteers")} className={peopleTab === "volunteers" ? "is-active" : ""}>Voluntários</button><button type="button" role="tab" aria-selected={peopleTab === "talents"} onClick={() => setPeopleTab("talents")} className={peopleTab === "talents" ? "is-active" : ""}>Talentos</button></div>}{isNonprofit && peopleTab === "volunteers" ? <VolunteerManagementPanel organizerId={selectedProfile.id} /> : <div className="mt-7"><TalentBasePanel ownerId={selectedProfile.id} talents={talents} /></div>}</section>}
 
-      {activeView === "discover" && <section aria-labelledby="discover-title"><div className="page-intro"><p className="eyebrow">Buscar</p><h1 id="discover-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Descubra oportunidades</h1><p className="body-copy mt-3 max-w-[650px]">Trabalho, concursos, capacitação e outras oportunidades para você.</p></div>{showPublicationMode && <section className="mt-7" aria-label={`Separar ofertas e demandas de ${activeFilter === "service" ? "serviços" : "trabalho"}`}><div className="segmented-control" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); resetFilters(); }} className={publicationMode === "offers" ? "is-active" : ""}>Ofertas <span>{publicationLabels.offers}</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); resetFilters(); }} className={publicationMode === "demands" ? "is-active" : ""}>Demandas <span>{publicationLabels.demands}</span></button></div></section>}<nav className={`${showPublicationMode ? "mt-6" : "mt-7"} flex max-w-full gap-1 overflow-x-auto border-b border-line`} aria-label="Tipos de oportunidade">{filterTabs.map((filter) => <button key={filter} type="button" onClick={() => { setActiveFilter(filter); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); }} className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-bold transition first:pl-0 ${activeFilter === filter ? "border-blue text-blue" : "border-transparent text-[#718291] hover:text-navy"}`}>{DISCOVERY_FILTER_LABELS[filter]}<span className="ml-2 text-xs font-normal text-[#8a9aa7]">{discoveryItems.filter((item) => discoveryItemMatchesFilter(item, filter)).length}</span></button>)}</nav><div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><OpportunityFilters filterKind={activeFilter} search={search} category={category} municipality={municipality} modality={modality} education={education} status={status} officialType={officialType} origin={originFilter} source={sourceFilter} contractType={contractTypeFilter} salaryMinimum={salaryMinimum} publishedSince={publishedSince} pcdOnly={pcdOnly} favoritesOnly={favoritesOnly} categories={categories} municipalities={municipalities} modalities={modalities} educations={educations} statuses={statuses} officialTypes={officialTypes} origins={origins} sources={sources} contractTypes={contractTypes} onSearch={setSearch} onCategory={setCategory} onMunicipality={setMunicipality} onModality={setModality} onEducation={setEducation} onStatus={setStatus} onOfficialType={setOfficialType} onOrigin={setOriginFilter} onSource={setSourceFilter} onContractType={setContractTypeFilter} onSalaryMinimum={setSalaryMinimum} onPublishedSince={setPublishedSince} onPcdOnly={setPcdOnly} onFavoritesOnly={setFavoritesOnly} onClear={resetFilters} />{externalJobsError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as vagas do GO Sergipe agora; outras fontes externas também podem estar indisponíveis.<button type="button" className="button-quiet" onClick={refreshExternalJobs} disabled={externalJobsLoading}>{externalJobsLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{externalJobsLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando vagas externas…</p>}{publicError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as oportunidades agora.<button type="button" className="button-quiet" onClick={refreshPublicOpportunities} disabled={publicLoading}>{publicLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{publicLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando oportunidades públicas…</p>}<div className="panel px-5 sm:px-8">{visibleDiscovery.length ? visibleDiscovery.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} reason={discoveryReasons(item, { search, activities: savedActivities, workPreferences: savedWorkPreferences, municipality, publicEnabled: publicAccess })} returnTo={discoveryReturnTo} />) : <div className="py-14 text-center"><p className="font-bold text-navy">Nenhuma oportunidade encontrada.</p><p className="mt-2 text-sm text-[#607286]">Tente outra palavra ou limpe os filtros para ampliar a busca.</p><button type="button" className="subtle-link mt-4" onClick={resetFilters}>Limpar busca</button></div>}</div>{externalJobs.length > 0 && (activeFilter === "all" || activeFilter === "employment") && <p className="mt-4 text-xs leading-5 text-[#718291]">Algumas vagas são exibidas a partir de fontes públicas externas. Consulte a fonte original para informações atualizadas e candidatura.</p>}</div><aside className="hidden h-fit border-l-2 border-[#c9dce8] pl-5 lg:block"><p className="eyebrow">Neste recorte</p><p className="mt-3 text-sm leading-6 text-[#607286]">{showPublicationMode ? publicationMode === "offers" ? activeFilter === "service" ? "Profissionais oferecendo serviços e suas atividades." : "Pessoas apresentam sua força de trabalho." : isOrganization ? "Sua organização vê suas demandas e oportunidades públicas quando habilitada." : "Contratantes e fontes externas aparecem neste lado do mercado." : "Todos os universos permitidos para este perfil aparecem nesta busca."}</p><Link href="/profile" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline"><BarChart3 size={16} /> Ver meu perfil <ArrowRight size={15} /></Link></aside></div></section>}
+      {activeView === "discover" && <section aria-labelledby="discover-title"><div className="page-intro"><p className="eyebrow">Buscar</p><h1 id="discover-title" className="mt-2 text-3xl font-black tracking-[-.04em] text-navy sm:text-4xl">Descubra oportunidades</h1><p className="body-copy mt-3 max-w-[650px]">Trabalho, concursos, capacitação e outras oportunidades para você.</p></div>{showPublicationMode && <section className="mt-7" aria-label={`Separar ofertas e demandas de ${activeFilter === "service" ? "serviços" : "trabalho"}`}><div className="segmented-control" role="tablist" aria-label="Tipo de publicação"><button type="button" role="tab" aria-selected={publicationMode === "offers"} onClick={() => { setPublicationMode("offers"); resetFilters(); }} className={publicationMode === "offers" ? "is-active" : ""}>Ofertas <span>{publicationLabels.offers}</span></button><button type="button" role="tab" aria-selected={publicationMode === "demands"} onClick={() => { setPublicationMode("demands"); resetFilters(); }} className={publicationMode === "demands" ? "is-active" : ""}>Demandas <span>{publicationLabels.demands}</span></button></div></section>}<nav className={`${showPublicationMode ? "mt-6" : "mt-7"} flex max-w-full gap-1 overflow-x-auto border-b border-line`} aria-label="Tipos de oportunidade">{filterTabs.map((filter) => <button key={filter} type="button" onClick={() => { setActiveFilter(filter); setCategory(""); setMunicipality(""); setModality(""); setEducation(""); setStatus(""); setOfficialType(""); }} className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm font-bold transition first:pl-0 ${activeFilter === filter ? "border-blue text-blue" : "border-transparent text-[#718291] hover:text-navy"}`}>{DISCOVERY_FILTER_LABELS[filter]}<span className="ml-2 text-xs font-normal text-[#8a9aa7]">{discoveryItems.filter((item) => discoveryItemMatchesFilter(item, filter)).length}</span></button>)}</nav><div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]"><div><OpportunityFilters filterKind={activeFilter} search={search} category={category} municipality={municipality} modality={modality} education={education} status={status} officialType={officialType} origin={originFilter} source={sourceFilter} contractType={contractTypeFilter} salaryMinimum={salaryMinimum} publishedSince={publishedSince} pcdOnly={pcdOnly} favoritesOnly={favoritesOnly} categories={categories} municipalities={municipalities} modalities={modalities} educations={educations} statuses={statuses} officialTypes={officialTypes} origins={origins} sources={sources} contractTypes={contractTypes} onSearch={setSearch} onCategory={setCategory} onMunicipality={setMunicipality} onModality={setModality} onEducation={setEducation} onStatus={setStatus} onOfficialType={setOfficialType} onOrigin={setOriginFilter} onSource={setSourceFilter} onContractType={setContractTypeFilter} onSalaryMinimum={setSalaryMinimum} onPublishedSince={setPublishedSince} onPcdOnly={setPcdOnly} onFavoritesOnly={setFavoritesOnly} onClear={resetFilters} />{externalJobsError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">{externalJobsError}{failedExternalSources.length > 0 && <span> Fontes afetadas: {failedExternalSources.join(", ")}.</span>}<button type="button" className="button-quiet" onClick={refreshExternalJobs} disabled={externalJobsLoading}>{externalJobsLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{externalJobsLoading && <p role="status" className="mb-4 text-sm text-[#637688]">{externalJobs.length > 0 ? `Vagas externas carregadas parcialmente. Aguardando: ${pendingExternalSources.join(", ")}.` : `Carregando vagas externas de ${pendingExternalSources.join(", ")}…`}</p>}{publicError && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#f1d9a5] bg-[#fff9ed] p-3 text-sm font-semibold text-[#76531c]">Não foi possível atualizar as oportunidades agora.<button type="button" className="button-quiet" onClick={refreshPublicOpportunities} disabled={publicLoading}>{publicLoading ? "Tentando…" : "Tentar novamente"}</button></div>}{publicLoading && <p role="status" className="mb-4 text-sm text-[#637688]">Atualizando oportunidades públicas…</p>}<div className="panel px-5 sm:px-8">{visibleDiscovery.length ? visibleDiscovery.map((item) => <DiscoveryRow key={`${item.source}-${item.id}`} item={item} reason={discoveryReasons(item, { search, activities: savedActivities, workPreferences: savedWorkPreferences, municipality, publicEnabled: publicAccess })} returnTo={discoveryReturnTo} />) : <div className="py-14 text-center"><p className="font-bold text-navy">Nenhuma oportunidade encontrada.</p><p className="mt-2 text-sm text-[#607286]">Tente outra palavra ou limpe os filtros para ampliar a busca.</p><button type="button" className="subtle-link mt-4" onClick={resetFilters}>Limpar busca</button></div>}</div>{externalJobs.length > 0 && (activeFilter === "all" || activeFilter === "employment") && <p className="mt-4 text-xs leading-5 text-[#718291]">Algumas vagas são exibidas a partir de fontes públicas externas. Consulte a fonte original para informações atualizadas e candidatura.</p>}</div><aside className="hidden h-fit border-l-2 border-[#c9dce8] pl-5 lg:block"><p className="eyebrow">Neste recorte</p><p className="mt-3 text-sm leading-6 text-[#607286]">{showPublicationMode ? publicationMode === "offers" ? activeFilter === "service" ? "Profissionais oferecendo serviços e suas atividades." : "Pessoas apresentam sua força de trabalho." : isOrganization ? "Sua organização vê suas demandas e oportunidades públicas quando habilitada." : "Contratantes e fontes externas aparecem neste lado do mercado." : "Todos os universos permitidos para este perfil aparecem nesta busca."}</p><Link href="/profile" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline"><BarChart3 size={16} /> Ver meu perfil <ArrowRight size={15} /></Link></aside></div></section>}
     </div>
     <div className="shell"><button type="button" className="button-quiet sm:hidden" onClick={() => { window.localStorage.removeItem("oflix-demo-profile"); setSelectedId(null); window.dispatchEvent(new Event("oflix-profile-changed")); }}>Trocar perfil</button></div>
   </main>;
