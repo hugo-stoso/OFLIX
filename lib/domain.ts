@@ -113,6 +113,8 @@ export function isExternalDiscoverySource(source: string): source is ExternalDis
 export type DiscoveryItem = {
   id: string;
   kind: DiscoveryKind;
+  ownerId?: string;
+  ownerType?: ProfileType;
   title: string;
   description: string;
   category: string;

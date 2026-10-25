@@ -6,6 +6,7 @@ import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } fro
 import { DemoHeader } from "@/components/DemoHeader";
 import { DemoNavigation, type DemoView } from "@/components/DemoNavigation";
 import { DiscoveryRow } from "@/components/DiscoveryRow";
+import { ExternalJobsSyncSummary } from "@/components/ExternalJobsSyncSummary";
 import { InterestSelector } from "@/components/InterestSelector";
 import { MarketKnowledgeTeaser } from "@/components/MarketKnowledgeTeaser";
 import { OpportunityComposer } from "@/components/OpportunityComposer";
@@ -20,7 +21,7 @@ import { TalentBasePanel } from "@/components/TalentBasePanel";
 import { VolunteerManagementPanel } from "@/components/VolunteerManagementPanel";
 import { ANALYST_PROFILE_ID, canDiscoverPublicOpportunities, canManageVolunteers, canPublishFormal, canPublishServiceDemand, canPublishVolunteer, canUseServiceToday, canUseTalentDirectory, DISCOVERY_FILTER_LABELS, discoveryItemMatchesFilter, EXTERNAL_DISCOVERY_SOURCES, externalSourceLabel, isExternalDiscoverySource, organizationKindLabel, type DiscoveryFilterKind, type DiscoveryItem, type OpportunityKind, type OpportunityOrigin, type OrganizationKind, type ServiceIntent } from "@/lib/domain";
 import { demoDiscoveryItems, discoveryReasons, internalToDiscoveryItem, rankDiscoveryItems } from "@/lib/discovery";
-import { discoveryItemMatchesMarketSection } from "@/lib/opportunity-classification";
+import { itemAvailableInCatalog, itemMatchesNavigationFilter } from "@/lib/discovery-catalog";
 import { formatWorkOpportunityCount } from "@/lib/ui-copy";
 
 type Profile = { id: string; name: string; type: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; organizationKind?: OrganizationKind; operatingArea?: string; summary: string; capabilities: string; canSupplyPublic: boolean; location: { state: string; municipality: string; district: string } };
@@ -59,10 +60,6 @@ function favoriteIds() {
 
 function displayType(profile: Profile) {
   return profile.type === "PERSON" ? "Pessoa" : profile.type === "ORGANIZATION" ? organizationKindLabel(profile.organizationKind) : "Analista institucional";
-}
-
-function isMarketFilter(filter: DiscoveryFilterKind) {
-  return filter === "employment" || filter === "service";
 }
 
 function publicationContext(filter: DiscoveryFilterKind) {
@@ -338,23 +335,15 @@ export default function DemoPage() {
   }, [selectedProfile]);
 
   const allInternalDiscovery = useMemo(() => Object.values(opportunities).flat().map((opportunity) => internalToDiscoveryItem(opportunity)), [opportunities]);
-  const discoveryItems = useMemo(() => {
-    const internal = allInternalDiscovery.filter((item) => {
-      if (!selectedProfile) return false;
-      const opportunity = item.kind === "formal" || item.kind === "service" || item.kind === "volunteer" ? opportunities[item.kind].find((candidate) => candidate.id === item.id) : undefined;
-      if (!opportunity) return false;
-      const isPersonProfile = selectedProfile.type === "PERSON";
-      if (selectedProfile.organizationKind === "PUBLIC_INSTITUTION") return item.kind === "volunteer";
-      if (!isMarketFilter(activeFilter)) {
-        return isPersonProfile || opportunity.ownerType === "PERSON" || opportunity.owner.id === selectedProfile.id;
-      }
-      if (selectedProfile.type === "ORGANIZATION") return opportunity.ownerType !== "PERSON" && opportunity.owner.id === selectedProfile.id;
-      return discoveryItemMatchesMarketSection(item, activeFilter);
-    });
-    const personDemoItems = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement" && item.kind !== "external_job" && (!isMarketFilter(activeFilter) || discoveryItemMatchesMarketSection(item, activeFilter))) : [];
-    const visibleExternalJobs = selectedProfile?.type === "PERSON" && (activeFilter === "all" || activeFilter === "employment") ? externalJobs : [];
+  const catalogContext = useMemo(() => selectedProfile ? ({ profileId: selectedProfile.id, profileType: selectedProfile.type, publicAccess, publicInstitution: selectedProfile.organizationKind === "PUBLIC_INSTITUTION" }) : null, [publicAccess, selectedProfile]);
+  const catalogDiscoveryItems = useMemo(() => {
+    if (!selectedProfile || !catalogContext) return [];
+    const internal = allInternalDiscovery.filter((item) => itemAvailableInCatalog(item, catalogContext));
+    const personDemoItems = selectedProfile.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement" && item.kind !== "external_job") : [];
+    const visibleExternalJobs = selectedProfile.type === "PERSON" ? externalJobs : [];
     return [...internal, ...personDemoItems, ...visibleExternalJobs, ...(publicAccess ? publicItems : [])];
-  }, [activeFilter, allInternalDiscovery, externalJobs, opportunities, publicAccess, publicItems, selectedProfile]);
+  }, [allInternalDiscovery, catalogContext, externalJobs, publicAccess, publicItems, selectedProfile]);
+  const discoveryItems = catalogDiscoveryItems;
   const filterTabs = useMemo(() => {
     const base: DiscoveryFilterKind[] = selectedProfile?.organizationKind === "PUBLIC_INSTITUTION" ? ["all", "volunteer"] : ["all", "employment", "service", "volunteer"];
     if (selectedProfile?.type === "PERSON") base.push("public_exam", "course");
@@ -377,8 +366,8 @@ export default function DemoPage() {
     const matchesPublishedSince = !publishedSince || Boolean(item.publishedAt && item.publishedAt >= publishedSince);
     const matchesPcd = !pcdOnly || item.isPcdEligible === true || Boolean(item.pcd);
     const matchesFavorite = !favoritesOnly || favoriteIds().includes(item.id);
-    return discoveryItemMatchesFilter(item, activeFilter) && matchesTerm && matchesCategory && matchesMunicipality && matchesModality && matchesEducation && matchesStatus && matchesOfficialType && matchesContractType && matchesSalary && matchesPublishedSince && matchesPcd && matchesFavorite;
-  }, [activeFilter, category, contractTypeFilter, education, favoritesOnly, modality, municipality, officialType, pcdOnly, publishedSince, salaryMinimum, search, status]);
+    return catalogContext !== null && itemMatchesNavigationFilter(item, activeFilter, catalogContext) && matchesTerm && matchesCategory && matchesMunicipality && matchesModality && matchesEducation && matchesStatus && matchesOfficialType && matchesContractType && matchesSalary && matchesPublishedSince && matchesPcd && matchesFavorite;
+  }, [activeFilter, category, catalogContext, contractTypeFilter, education, favoritesOnly, modality, municipality, officialType, pcdOnly, publishedSince, salaryMinimum, search, status]);
   const filterDiscoveryItem = useCallback((item: DiscoveryItem) => {
     if (!filterBaseDiscoveryItem(item)) return false;
     if (activeFilter !== "employment") return true;
@@ -391,7 +380,10 @@ export default function DemoPage() {
     void favoriteVersion;
     return discoveryItems.filter(filterDiscoveryItem);
   }, [discoveryItems, favoriteVersion, filterDiscoveryItem]);
-  const visibleDiscovery = useMemo(() => rankDiscoveryItems(scopedDiscovery, { search, activities: savedActivities, workPreferences: savedWorkPreferences, municipality }), [municipality, savedActivities, savedWorkPreferences, scopedDiscovery, search]);
+  const visibleDiscovery = useMemo(() => {
+    const ranked = rankDiscoveryItems(scopedDiscovery, { search, activities: savedActivities, workPreferences: savedWorkPreferences, municipality });
+    return ranked.length || !externalJobsLoading || activeFilter !== "employment" ? ranked : new Array<DiscoveryItem>(1);
+  }, [activeFilter, externalJobsLoading, municipality, savedActivities, savedWorkPreferences, scopedDiscovery, search]);
   const filterScopedItems = useMemo(() => discoveryItems.filter(filterBaseDiscoveryItem), [discoveryItems, filterBaseDiscoveryItem]);
   const categories = useMemo(() => Array.from(new Set(filterScopedItems.flatMap((item) => [item.category, ...item.tags]))).filter(Boolean).sort(), [filterScopedItems]);
   const municipalities = useMemo(() => Array.from(new Set(filterScopedItems.map((item) => item.location.municipality))).sort(), [filterScopedItems]);
@@ -545,6 +537,7 @@ export default function DemoPage() {
     <div className="shell py-6 sm:py-10">
       <div className="mb-6 flex items-center justify-between gap-4"><div><p className="eyebrow">{displayType(selectedProfile)} · Sergipe</p><p className="mt-1 text-sm font-semibold text-[#607286]"><MapPin size={14} className="mr-1 inline text-blue" />{selectedProfile.location.municipality} · {selectedProfile.location.district}</p></div><button type="button" className="button-quiet hidden sm:inline-flex" onClick={() => { window.localStorage.removeItem("oflix-demo-profile"); setSelectedId(null); window.dispatchEvent(new Event("oflix-profile-changed")); }}>Trocar perfil</button></div>
       <DemoNavigation profileType={selectedProfile.type} organizationKind={selectedProfile.organizationKind} activeView={activeView} onNavigate={goTo} />
+      <ExternalJobsSyncSummary sources={externalSourceRequests.map(({ param, label }) => ({ label, count: externalSourceStates[param].count, status: externalSourceStates[param].status, partial: externalSourceStates[param].partial, stale: externalSourceStates[param].stale }))} total={externalJobs.length} loading={externalJobsLoading} />
 
       {activeView === "home" && <section aria-labelledby="home-title">
         <div className="demo-hero"><div><p className="eyebrow">Início</p><h1 id="home-title" className="mt-2 max-w-[720px] text-3xl font-black leading-tight tracking-[-.045em] text-navy sm:text-5xl">{isPerson ? `Olá, ${selectedProfile.name.split(" ")[0]}.` : `Olá, ${selectedProfile.name}.`}</h1><p className="body-copy mt-3 max-w-[700px]">{isPerson ? `Descubra oportunidades para trabalhar, aprender e crescer em ${selectedProfile.location.municipality}.` : isPublicInstitution ? "Organize ações voluntárias e acompanhe as pessoas que participam." : isNonprofit ? "Mobilize pessoas para sua causa e acompanhe suas ações no território." : "Veja o que sua organização pode fazer agora no território."}</p></div><div className="demo-hero-note"><Sparkles size={18} className="text-blue" /><span>{isPerson ? "Oportunidades no seu território" : isPublicInstitution ? "Ações do território" : isNonprofit ? "Ações, voluntariado e pessoas" : "Conexões do território"}</span></div></div>

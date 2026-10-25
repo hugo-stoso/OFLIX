@@ -104,11 +104,13 @@ export const demoDiscoveryItems: DiscoveryItem[] = [
   },
 ];
 
-export function internalToDiscoveryItem(opportunity: { id: string; title: string; description: string; category: string; kind: "formal" | "service" | "volunteer"; location: { state?: string; municipality: string; district?: string }; owner: { name: string }; ownerType?: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; serviceIntent?: ServiceIntent; employmentType?: "CLT" | "INTERNSHIP"; compensation?: Compensation; requiredActivities?: string[] }): DiscoveryItem {
+export function internalToDiscoveryItem(opportunity: { id: string; title: string; description: string; category: string; kind: "formal" | "service" | "volunteer"; location: { state?: string; municipality: string; district?: string }; owner: { id: string; name: string }; ownerType?: "PERSON" | "ORGANIZATION" | "INSTITUTIONAL_ANALYST"; serviceIntent?: ServiceIntent; employmentType?: "CLT" | "INTERNSHIP"; compensation?: Compensation; requiredActivities?: string[] }): DiscoveryItem {
   const kind: DiscoveryKind = opportunity.kind;
   return {
     id: opportunity.id,
     kind,
+    ownerId: opportunity.owner?.id,
+    ownerType: opportunity.ownerType,
     title: opportunity.title,
     description: opportunity.description,
     category: opportunity.category,
