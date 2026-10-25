@@ -152,6 +152,37 @@ test.describe("IA territorial determinística", () => {
     expect(executeTerritoryQuery(municipalOccupationPlan.plan, administrationContext).result[0]).toMatchObject({ occupationFamily: "LOGISTICS_TRANSPORT", count: 5 });
   });
 
+  test("resolve occupationQuery deterministically e não confunde família com ocupação", async () => {
+    const occupationalItems: DiscoveryItem[] = [
+      ...Array.from({ length: 4 }, () => ({ ...item("GO_SERGIPE", "Aracaju"), title: "Assistente administrativo" })),
+      { ...item("EMPREGAJU", "Aracaju"), title: "Assistente administrativo" },
+      ...Array.from({ length: 2 }, () => ({ ...item("GO_SERGIPE", "Lagarto"), title: "Assistente administrativo" })),
+      ...Array.from({ length: 3 }, () => ({ ...item("GO_SERGIPE", "Aracaju"), title: "Auxiliar administrativo" })),
+    ];
+    const data = { ...territoryData(), employmentMarket: buildTerritoryEmploymentMarket(municipalities, { ...external, items: occupationalItems, sources: external.sources }) };
+    const context = buildTerritoryAiContext(data, { metric: "employment", employmentOrigin: "external" });
+    const question = await answerTerritoryQuestion(context, "Onde tem mais vagas de assistente administrativo?", createMockTerritoryAiProvider([{ metric: "employment", aggregation: "by_municipality", employmentOrigin: "external", occupationQuery: "assistente administrativo" }, { answer: "Aracaju concentra as publicações." }]));
+    expect(question.plan).toMatchObject({ aggregation: "by_municipality", occupationQuery: "assistente administrativo", occupationLabel: "Assistente administrativo" });
+    expect(question.facts[0]).toContain("Aracaju");
+    expect(executeTerritoryQuery(question.plan!, context).result).toEqual([{ municipality: "Aracaju", count: 5 }, { municipality: "Lagarto", count: 2 }]);
+    const source = await answerTerritoryQuestion(context, "Qual fonte tem mais vagas de assistente administrativo?", createMockTerritoryAiProvider([{ metric: "employment", aggregation: "by_source", occupationQuery: "assistente administrativo" }, { answer: "GO Sergipe." }]));
+    expect(source.plan).toMatchObject({ aggregation: "by_source", occupationQuery: "assistente administrativo" });
+    expect(executeTerritoryQuery(source.plan!, context).result[0]).toMatchObject({ source: "GO_SERGIPE", count: 6 });
+  });
+
+  test("encerra deterministicamente em ambiguous e not_found", async () => {
+    const ambiguousItems = [item("GO_SERGIPE", "Aracaju"), item("GO_SERGIPE", "Lagarto"), item("GO_SERGIPE", "Aracaju")].map((value, index) => ({ ...value, title: ["Assistente administrativo", "Assistente comercial", "Assistente social"][index] }));
+    const ambiguousData = { ...territoryData(), employmentMarket: buildTerritoryEmploymentMarket(municipalities, { ...external, items: ambiguousItems, sources: external.sources }) };
+    const context = buildTerritoryAiContext(ambiguousData, { metric: "employment", employmentOrigin: "external" });
+    const ambiguous = await answerTerritoryQuestion(context, "Onde tem vagas de assistente?", createMockTerritoryAiProvider([{ metric: "employment", aggregation: "by_municipality", occupationQuery: "assistente" }]));
+    expect(ambiguous.plan).toBeNull();
+    expect(ambiguous.answer).toMatch(/mais de uma ocupação compatível/i);
+    expect(ambiguous.answer).toMatch(/Assistente administrativo/);
+    const missing = await answerTerritoryQuestion(context, "Onde há vagas de astrofísico nuclear?", createMockTerritoryAiProvider([{ metric: "employment", aggregation: "total", occupationQuery: "astrofísico nuclear" }]));
+    expect(missing.plan).toBeNull();
+    expect(missing.answer).toMatch(/Não encontrei essa ocupação/i);
+  });
+
   test("perguntas mockadas de fonte e área ocupacional geram planos DSL válidos", async () => {
     const sourceContext = buildTerritoryAiContext(territoryData(), { metric: "employment", employmentOrigin: "external", externalSource: "GO_SERGIPE" });
     const occupationalItems: DiscoveryItem[] = [

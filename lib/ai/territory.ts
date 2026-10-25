@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { externalSourceLabel } from "@/lib/domain";
-import { OCCUPATION_FAMILIES, OCCUPATION_FAMILY_LABELS, occupationFamilyValue, selectOccupationAggregates, type OccupationFamily } from "@/lib/occupations";
+import { OCCUPATION_FAMILIES, OCCUPATION_FAMILY_LABELS, occupationFamilyValue, occupationValue, resolveOccupationQuery, selectOccupationAggregates, type OccupationFamily } from "@/lib/occupations";
 import type { MunicipalityAggregate, TerritoryData, TerritoryMetric } from "@/lib/territory";
 import { TERRITORY_METRICS } from "@/lib/territory";
 import {
@@ -25,6 +25,8 @@ export const territoryAiFiltersSchema = z.object({
   employmentOrigin: employmentOriginSchema.optional(),
   externalSource: employmentSourceSchema.optional(),
   occupationFamily: occupationFamilySchema.optional(),
+  occupationKey: z.string().trim().min(1).max(160).optional(),
+  occupationLabel: z.string().trim().min(1).max(160).optional(),
   municipality: z.string().trim().max(120).nullable().optional(),
 }).strict();
 
@@ -59,6 +61,9 @@ export type TerritoryAiMunicipality = {
   occupations: Record<OccupationFamily, number>;
   occupationsByOrigin: Record<TerritoryEmploymentOrigin, Record<OccupationFamily, number>>;
   occupationsBySource: Record<TerritoryEmploymentSource, Record<OccupationFamily, number>>;
+  occupationsByKey: Record<string, number>;
+  occupationsByKeyOrigin: Record<TerritoryEmploymentOrigin, Record<string, number>>;
+  occupationsByKeySource: Record<TerritoryEmploymentSource, Record<string, number>>;
 };
 
 export type TerritoryAiContext = {
@@ -71,6 +76,8 @@ export type TerritoryAiContext = {
     employmentOrigin?: TerritoryEmploymentOrigin;
     externalSource?: TerritoryEmploymentSource;
     occupationFamily?: OccupationFamily;
+    occupationKey?: string;
+    occupationLabel?: string;
   };
   selectedMetric: { totalObserved: number; byMunicipality: TerritoryAiMunicipality[] };
   employment: {
@@ -107,13 +114,14 @@ export const territoryQueryPlanSchema = z.object({
   employmentOrigin: employmentOriginSchema.optional(),
   externalSource: employmentSourceSchema.optional(),
   occupationFamily: occupationFamilySchema.optional(),
+  occupationQuery: z.string().trim().min(2).max(120).optional(),
   municipality: z.string().trim().max(120).optional(),
   compareMunicipalities: z.array(z.string().trim().min(1).max(120)).min(2).max(2).optional(),
   order: z.enum(["asc", "desc"]).optional(),
   limit: z.number().int().min(1).max(10).optional(),
 }).strict();
 
-export type TerritoryQueryPlan = z.infer<typeof territoryQueryPlanSchema>;
+export type TerritoryQueryPlan = z.infer<typeof territoryQueryPlanSchema> & { occupationKey?: string; occupationLabel?: string };
 
 export type TerritoryAiAnalysis = {
   summary: string;
@@ -176,7 +184,7 @@ Não produza SQL, JavaScript, URL, fetch ou qualquer expressão executável.
 As métricas permitidas são opportunities, employment, services, volunteer e interactions.
 As agregações permitidas são total, by_municipality, compare_municipalities, by_source e by_occupation.
 Para empregos, employmentOrigin pode ser all, oflix ou external; externalSource pode ser GO_SERGIPE, EMPREGAJU ou IEL_SERGIPE.
-occupationFamily, quando necessário, deve ser exatamente uma destas famílias: ADMINISTRATION, CUSTOMER_SERVICE_SALES, LOGISTICS_TRANSPORT, CLEANING_GENERAL_SERVICES, CONSTRUCTION_MAINTENANCE, INDUSTRY_PRODUCTION, TECHNOLOGY, HEALTH, EDUCATION, FOOD_HOSPITALITY, SECURITY, AGRICULTURE, FINANCE_ACCOUNTING, COMMUNICATION_DESIGN, OTHER ou UNCLASSIFIED. Termos como logística, administração e eletricista devem ser associados somente à família controlada correspondente quando essa família existir no contexto.
+occupationFamily é somente para áreas amplas e deve ser exatamente uma destas famílias: ADMINISTRATION, CUSTOMER_SERVICE_SALES, LOGISTICS_TRANSPORT, CLEANING_GENERAL_SERVICES, CONSTRUCTION_MAINTENANCE, INDUSTRY_PRODUCTION, TECHNOLOGY, HEALTH, EDUCATION, FOOD_HOSPITALITY, SECURITY, AGRICULTURE, FINANCE_ACCOUNTING, COMMUNICATION_DESIGN, OTHER ou UNCLASSIFIED. occupationQuery é para cargo/ocupação específica, com texto entre 2 e 120 caracteres; nunca produza occupationKey ou CBO. “assistente administrativo” usa occupationQuery; “vagas administrativas” usa occupationFamily=ADMINISTRATION; “logística” usa occupationFamily=LOGISTICS_TRANSPORT; “motorista” usa occupationQuery e o backend decide se há resolução única ou ambiguidade.
 Use by_source para comparar todas as fontes externas; nesse caso ignore uma fonte externa herdada nos filtros atuais e normalize employmentOrigin para external. Use by_occupation somente para comparar as famílias ocupacionais controladas de empregos; nunca apresente UNCLASSIFIED como vencedora. “Mais demandada” significa apenas maior quantidade de publicações de vagas observadas neste recorte, não demanda de mercado.
 O usuário pode usar “anúncio” ou “anúncios” como sinônimo informal de publicação de vaga; interprete normalmente, mas nas respostas prefira “vaga publicada” ou “publicação de vaga”. Exemplos de interpretação: “Qual fonte tem mais publicações de vagas?” e “Qual fonte externa tem mais vagas?” usam {"metric":"employment","aggregation":"by_source","employmentOrigin":"external"}; “Qual fonte tem mais vagas publicadas na área de logística?” acrescenta occupationFamily="LOGISTICS_TRANSPORT"; “Qual área ocupacional tem mais vagas em Aracaju?” usa {"metric":"employment","aggregation":"by_occupation","municipality":"Aracaju"}. Não use valores como “external” em externalSource: esse campo aceita somente GO_SERGIPE, EMPREGAJU ou IEL_SERGIPE.
 Se a pergunta não informar um recorte, preserve os filtros atuais.
@@ -229,13 +237,17 @@ function occupationCountsForSelection(market: TerritoryEmploymentMarket | undefi
   return counts;
 }
 
-function selectionForMunicipality(market: TerritoryEmploymentMarket | undefined, municipality: string, origin: TerritoryEmploymentOrigin, source?: TerritoryEmploymentSource, occupationFamily?: OccupationFamily) {
+function occupationKeyCountsForSelection(market: TerritoryEmploymentMarket | undefined, municipality: string, selection: { origin: TerritoryEmploymentOrigin; source?: TerritoryEmploymentSource }) {
+  return Object.fromEntries((market?.occupations.occupations ?? []).map((occupation) => [occupation.key, occupationValue(market?.occupations, municipality, occupation.key, selection)]));
+}
+
+function selectionForMunicipality(market: TerritoryEmploymentMarket | undefined, municipality: string, origin: TerritoryEmploymentOrigin, source?: TerritoryEmploymentSource, occupationFamily?: OccupationFamily, occupationKey?: string) {
   if (!market) return { all: 0, oflix: 0, external: 0, bySource: emptySourceCounts() };
   const item = market.municipalities.find((candidate) => candidate.normalizedMunicipality === normalizeMunicipalityKey(municipality));
   if (!item) return { all: 0, oflix: 0, external: 0, bySource: emptySourceCounts() };
   const all = resolveTerritoryEmploymentSelection({ ...market, municipalities: [item] }, "all");
-  const current = resolveTerritoryEmploymentSelection({ ...market, municipalities: [item] }, origin, source, occupationFamily);
-  const bySource = Object.fromEntries(TERRITORY_EMPLOYMENT_SOURCES.map((sourceName) => [sourceName, resolveTerritoryEmploymentSelection({ ...market, municipalities: [item] }, "external", sourceName, occupationFamily).external])) as Record<TerritoryEmploymentSource, number>;
+  const current = resolveTerritoryEmploymentSelection({ ...market, municipalities: [item] }, origin, source, occupationFamily, occupationKey);
+  const bySource = Object.fromEntries(TERRITORY_EMPLOYMENT_SOURCES.map((sourceName) => [sourceName, resolveTerritoryEmploymentSelection({ ...market, municipalities: [item] }, "external", sourceName, occupationFamily, occupationKey).external])) as Record<TerritoryEmploymentSource, number>;
   return { all: all.total, oflix: current.oflix, external: current.external, bySource };
 }
 
@@ -268,10 +280,12 @@ export function buildTerritoryAiContext(data: TerritoryData, inputFilters: Terri
   const origin = filters.metric === "employment" ? filters.employmentOrigin ?? "all" : undefined;
   const source = filters.metric === "employment" && origin !== "oflix" ? filters.externalSource : undefined;
   const occupationFamily = filters.metric === "employment" ? filters.occupationFamily : undefined;
+  const occupationKey = filters.metric === "employment" ? filters.occupationKey : undefined;
+  const occupationLabel = filters.metric === "employment" ? filters.occupationLabel : undefined;
   const selectedMunicipality = canonicalMunicipality(data, filters.municipality);
   const rows: TerritoryAiMunicipality[] = data.municipalities.map((municipality) => {
     const aggregate = aggregateMunicipality(municipality, filters.category);
-    const employment = selectionForMunicipality(market, municipality.municipality, origin ?? "all", source, occupationFamily);
+    const employment = selectionForMunicipality(market, municipality.municipality, origin ?? "all", source, occupationFamily, occupationKey);
     const occupationsByOrigin = {
       all: occupationCountsForSelection(market, municipality.municipality, { origin: "all" }),
       oflix: occupationCountsForSelection(market, municipality.municipality, { origin: "oflix" }),
@@ -282,12 +296,23 @@ export function buildTerritoryAiContext(data: TerritoryData, inputFilters: Terri
       EMPREGAJU: occupationCountsForSelection(market, municipality.municipality, { origin: "external", source: "EMPREGAJU" }),
       IEL_SERGIPE: occupationCountsForSelection(market, municipality.municipality, { origin: "external", source: "IEL_SERGIPE" }),
     } satisfies Record<TerritoryEmploymentSource, Record<OccupationFamily, number>>;
+    const occupationsByKeyOrigin = {
+      all: occupationKeyCountsForSelection(market, municipality.municipality, { origin: "all" }),
+      oflix: occupationKeyCountsForSelection(market, municipality.municipality, { origin: "oflix" }),
+      external: occupationKeyCountsForSelection(market, municipality.municipality, { origin: "external" }),
+    } satisfies Record<TerritoryEmploymentOrigin, Record<string, number>>;
+    const occupationsByKeySource = {
+      GO_SERGIPE: occupationKeyCountsForSelection(market, municipality.municipality, { origin: "external", source: "GO_SERGIPE" }),
+      EMPREGAJU: occupationKeyCountsForSelection(market, municipality.municipality, { origin: "external", source: "EMPREGAJU" }),
+      IEL_SERGIPE: occupationKeyCountsForSelection(market, municipality.municipality, { origin: "external", source: "IEL_SERGIPE" }),
+    } satisfies Record<TerritoryEmploymentSource, Record<string, number>>;
+    const occupationsByKey = occupationsByKeyOrigin[origin ?? "all"];
     const occupations = occupationCountsForSelection(market, municipality.municipality, { origin: origin ?? "all", ...(source ? { source } : {}) });
     return {
       municipality: municipality.municipality,
       metrics: {
         opportunities: aggregate.opportunities,
-        employment: market ? territoryEmploymentValue(market, municipality.municipality, origin ?? "all", source, occupationFamily) : aggregate.formal,
+        employment: market ? territoryEmploymentValue(market, municipality.municipality, origin ?? "all", source, occupationFamily, occupationKey) : aggregate.formal,
         services: aggregate.services,
         volunteer: aggregate.volunteer,
         interactions: aggregate.interactions,
@@ -296,14 +321,17 @@ export function buildTerritoryAiContext(data: TerritoryData, inputFilters: Terri
       occupations,
       occupationsByOrigin,
       occupationsBySource,
+      occupationsByKey,
+      occupationsByKeyOrigin,
+      occupationsByKeySource,
     };
   });
   const scopedRows = selectedMunicipality ? rows.filter((row) => row.municipality === selectedMunicipality) : rows;
   const employmentSelection = market
-    ? resolveTerritoryEmploymentSelection(market, origin ?? "all", source, occupationFamily)
+    ? resolveTerritoryEmploymentSelection(market, origin ?? "all", source, occupationFamily, occupationKey)
     : { total: 0, oflix: 0, external: 0, sourceCounts: emptySourceCounts() };
   const scopedEmployment = selectedMunicipality
-    ? resolveTerritoryEmploymentSelection({ ...market!, municipalities: market?.municipalities.filter((item) => item.normalizedMunicipality === normalizeMunicipalityKey(selectedMunicipality)) ?? [] }, origin ?? "all", source, occupationFamily)
+    ? resolveTerritoryEmploymentSelection({ ...market!, municipalities: market?.municipalities.filter((item) => item.normalizedMunicipality === normalizeMunicipalityKey(selectedMunicipality)) ?? [] }, origin ?? "all", source, occupationFamily, occupationKey)
     : employmentSelection;
   const occupationSelection = market ? selectOccupationAggregates(market.occupations, { origin: origin ?? "all", ...(source ? { source } : {}), ...(selectedMunicipality ? { municipality: selectedMunicipality } : {}) }) : { total: 0, classified: 0, unclassified: 0, coverageRate: 0, families: [], occupations: [] };
   const selectedMetricTotal = scopedRows.reduce((total, row) => total + metricValue(row, filters.metric), 0);
@@ -330,6 +358,8 @@ export function buildTerritoryAiContext(data: TerritoryData, inputFilters: Terri
       ...(origin ? { employmentOrigin: origin } : {}),
       ...(source ? { externalSource: source } : {}),
       ...(occupationFamily ? { occupationFamily } : {}),
+      ...(occupationKey ? { occupationKey } : {}),
+      ...(occupationLabel ? { occupationLabel } : {}),
     },
     selectedMetric: { totalObserved: selectedMetricTotal, byMunicipality },
     employment: {
@@ -375,7 +405,8 @@ function buildDeterministicFacts(context: TerritoryAiContext, values = context.s
   const top = values.filter((item) => metricValue(item, context.filters.metric) > 0).slice(0, 3);
   if (top.length) facts.push(`Municípios no topo do recorte: ${top.map((item) => `${item.municipality} (${metricValue(item, context.filters.metric)})`).join(", ")}.`);
   if (context.filters.metric === "employment") {
-    if (context.filters.occupationFamily) facts.push(`Área ocupacional: ${OCCUPATION_FAMILY_LABELS[context.filters.occupationFamily]}.`);
+    if (context.filters.occupationLabel) facts.push(`Ocupação: ${context.filters.occupationLabel}.`);
+    else if (context.filters.occupationFamily) facts.push(`Área ocupacional: ${OCCUPATION_FAMILY_LABELS[context.filters.occupationFamily]}.`);
     facts.push(`Empregos observados: ${context.employment.oflix} OFLIX e ${context.employment.external} externos.`);
     const sourceFacts = TERRITORY_EMPLOYMENT_SOURCES.filter((source) => context.employment.bySource[source] > 0).map((source) => `${externalSourceLabel(source)} (${context.employment.bySource[source]})`);
     if (sourceFacts.length) facts.push(`Fontes externas no recorte: ${sourceFacts.join(", ")}.`);
@@ -484,8 +515,11 @@ export function validateTerritoryQueryPlan(raw: unknown, context: TerritoryAiCon
   const isBySource = plan.metric === "employment" && plan.aggregation === "by_source";
   const origin = plan.metric === "employment" ? (isBySource ? "external" : plan.employmentOrigin ?? context.filters.employmentOrigin ?? "all") : undefined;
   const source = plan.metric === "employment" && !isBySource ? plan.externalSource ?? context.filters.externalSource : undefined;
-  if (plan.metric !== "employment" && (plan.employmentOrigin || plan.externalSource || plan.occupationFamily)) return { success: false as const, error: "A fonte e a área ocupacional só podem ser usadas na métrica de empregos." };
+  if (plan.metric !== "employment" && (plan.employmentOrigin || plan.externalSource || plan.occupationFamily || plan.occupationQuery)) return { success: false as const, error: "A fonte e a área ocupacional só podem ser usadas na métrica de empregos." };
   if (plan.occupationFamily && !context.occupations.families.some((item) => item.family === plan.occupationFamily)) return { success: false as const, error: "Não encontrei uma classificação ocupacional compatível no recorte atual." };
+  const occupationResolution = plan.metric === "employment" && plan.occupationQuery ? resolveOccupationQuery(context.occupations.occupations, plan.occupationQuery) : undefined;
+  if (occupationResolution?.status === "ambiguous") return { success: false as const, resolution: "ambiguous" as const, query: plan.occupationQuery, candidates: occupationResolution.candidates, error: `Encontrei mais de uma ocupação compatível com '${plan.occupationQuery}': ${occupationResolution.candidates.map((item) => item.label).join(", ")}. Especifique qual delas deseja consultar.` };
+  if (occupationResolution?.status === "not_found") return { success: false as const, resolution: "not_found" as const, query: plan.occupationQuery, error: "Não encontrei essa ocupação entre as publicações de vagas observadas neste recorte." };
   if (source && origin === "oflix") return { success: false as const, error: "Uma fonte externa não pode ser combinada com Publicadas na OFLIX." };
   if (plan.aggregation === "by_source" && plan.metric !== "employment") return { success: false as const, error: "A divisão por fonte só está disponível para empregos." };
   if (plan.aggregation === "by_occupation" && plan.metric !== "employment") return { success: false as const, error: "A divisão por área ocupacional só está disponível para empregos." };
@@ -494,13 +528,19 @@ export function validateTerritoryQueryPlan(raw: unknown, context: TerritoryAiCon
   const { externalSource: ignoredExternalSource, ...planWithoutSource } = plan;
   void ignoredExternalSource;
   const normalizedPlan = isBySource ? planWithoutSource : plan;
-  return { success: true as const, plan: { ...normalizedPlan, ...(origin ? { employmentOrigin: origin } : {}), ...(plan.externalSource && !isBySource ? { employmentOrigin: "external" as const } : {}), ...(source && !isBySource ? { externalSource: source } : {}), ...(plan.municipality ? { municipality: resolvePlanMunicipality(context, plan.municipality) } : {}), ...(plan.compareMunicipalities ? { compareMunicipalities: plan.compareMunicipalities.map((item) => resolvePlanMunicipality(context, item) as string) } : {}), limit: plan.limit ?? 5, order: plan.order ?? "desc" } };
+  const activeOccupation = occupationResolution?.status === "resolved" ? occupationResolution.occupation : context.filters.occupationKey ? context.occupations.occupations.find((item) => item.key === context.filters.occupationKey) : undefined;
+  return { success: true as const, plan: { ...normalizedPlan, ...(origin ? { employmentOrigin: origin } : {}), ...(plan.externalSource && !isBySource ? { employmentOrigin: "external" as const } : {}), ...(source && !isBySource ? { externalSource: source } : {}), ...(activeOccupation ? { occupationKey: activeOccupation.key, occupationLabel: activeOccupation.label } : {}), ...(plan.municipality ? { municipality: resolvePlanMunicipality(context, plan.municipality) } : {}), ...(plan.compareMunicipalities ? { compareMunicipalities: plan.compareMunicipalities.map((item) => resolvePlanMunicipality(context, item) as string) } : {}), limit: plan.limit ?? 5, order: plan.order ?? "desc" } };
 }
 
 function queryEmployment(row: TerritoryAiMunicipality, plan: TerritoryQueryPlan, context: TerritoryAiContext) {
   const origin = plan.employmentOrigin ?? context.filters.employmentOrigin ?? "all";
   const occupationFamily = plan.occupationFamily ?? context.filters.occupationFamily;
+  const occupationKey = plan.occupationKey ?? context.filters.occupationKey;
   const source = plan.externalSource ?? context.filters.externalSource;
+  if (occupationKey) {
+    if (source) return row.occupationsByKeySource[source][occupationKey] ?? 0;
+    return row.occupationsByKeyOrigin[origin][occupationKey] ?? 0;
+  }
   if (occupationFamily) {
     if (source) return row.occupationsBySource[source][occupationFamily];
     return row.occupationsByOrigin[origin][occupationFamily];
@@ -529,7 +569,8 @@ export function executeTerritoryQuery(plan: TerritoryQueryPlan, context: Territo
   }
   if (plan.aggregation === "by_source") {
     const occupationFamily = plan.occupationFamily ?? context.filters.occupationFamily;
-    const result = TERRITORY_EMPLOYMENT_SOURCES.map((source) => ({ source, label: externalSourceLabel(source), count: rows.reduce((total, row) => total + (occupationFamily ? row.occupationsBySource[source][occupationFamily] : row.employment.bySource[source]), 0) })).sort((left, right) => (plan.order === "asc" ? left.count - right.count : right.count - left.count) || left.label.localeCompare(right.label, "pt-BR"));
+    const occupationKey = plan.occupationKey ?? context.filters.occupationKey;
+    const result = TERRITORY_EMPLOYMENT_SOURCES.map((source) => ({ source, label: externalSourceLabel(source), count: rows.reduce((total, row) => total + (occupationKey ? row.occupationsByKeySource[source][occupationKey] ?? 0 : occupationFamily ? row.occupationsBySource[source][occupationFamily] : row.employment.bySource[source]), 0) })).sort((left, right) => (plan.order === "asc" ? left.count - right.count : right.count - left.count) || left.label.localeCompare(right.label, "pt-BR"));
     return { result: result.slice(0, plan.limit ?? 5), facts: result.slice(0, plan.limit ?? 5).map((item) => `${item.label}: ${item.count} publicações de vagas observadas.`), caveat };
   }
   if (plan.aggregation === "by_occupation") {
@@ -578,7 +619,7 @@ function interpretedQueryLabel(plan: TerritoryQueryPlan, context: TerritoryAiCon
   const origin = plan.metric === "employment" ? plan.employmentOrigin ?? context.filters.employmentOrigin : undefined;
   const source = plan.aggregation === "by_source" ? undefined : plan.externalSource ?? context.filters.externalSource;
   const occupationFamily = plan.occupationFamily ?? context.filters.occupationFamily;
-  const occupation = occupationFamily ? OCCUPATION_FAMILY_LABELS[occupationFamily] : undefined;
+  const occupation = plan.occupationLabel ?? context.filters.occupationLabel ?? (occupationFamily ? OCCUPATION_FAMILY_LABELS[occupationFamily] : undefined);
   const scope = plan.municipality ?? plan.compareMunicipalities?.join(" e ") ?? context.quality.activeMunicipality ?? "Todos os municípios";
   const sourceLabel = source ? externalSourceLabel(source) : undefined;
   const aggregation = plan.aggregation === "by_source" ? "por fonte" : plan.aggregation === "by_occupation" ? "por área ocupacional" : undefined;
@@ -592,7 +633,7 @@ export async function answerTerritoryQuestion(context: TerritoryAiContext, quest
   const provider = injectedProvider ?? createTerritoryAiProvider();
   const planResponse = await provider.generateJson({ system: QUESTION_PLAN_SYSTEM_PROMPT, user: buildTerritoryQuestionPlanPrompt(context, safeQuestion) });
   const validated = validateTerritoryQueryPlan(planResponse.object, context);
-  if (!validated.success) return { answer: "Não consegui interpretar essa pergunta com segurança. Posso comparar as vagas publicadas nas fontes integradas e a presença de oportunidades no recorte disponível.", facts: [], caveat: validated.error, interpretedQuery: "Consulta não aplicada", plan: null, ...(planResponse.usage ? { usage: planResponse.usage } : {}) };
+  if (!validated.success) return { answer: validated.resolution === "ambiguous" || validated.resolution === "not_found" ? validated.error : "Não consegui interpretar essa pergunta com segurança. Posso comparar as vagas publicadas nas fontes integradas e a presença de oportunidades no recorte disponível.", facts: [], caveat: validated.error, interpretedQuery: "Consulta não aplicada", plan: null, ...(planResponse.usage ? { usage: planResponse.usage } : {}) };
   const plan = validated.plan;
   const executed = executeTerritoryQuery(plan, context);
   if (!executed.result.length || executed.result.every((item) => Object.values(item).every((value) => value === 0))) return { answer: "Os dados atuais não suportam essa conclusão no recorte consultado.", facts: executed.facts, caveat: executed.caveat, interpretedQuery: interpretedQueryLabel(plan, context), plan, ...(planResponse.usage ? { usage: planResponse.usage } : {}) };

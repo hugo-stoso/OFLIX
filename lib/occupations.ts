@@ -255,9 +255,46 @@ export function selectOccupationAggregates(aggregates: OccupationAggregates, sel
   return { total, classified, unclassified: families.find((family) => family.family === "UNCLASSIFIED")?.total ?? 0, coverageRate: total ? Math.round((classified / total) * 10000) / 10000 : 0, families, occupations };
 }
 
+export type OccupationQueryResolution =
+  | { status: "resolved"; occupation: OccupationAggregate; match: "exact" | "unique_normalized" }
+  | { status: "ambiguous"; candidates: OccupationAggregate[] }
+  | { status: "not_found"; candidates?: OccupationAggregate[] };
+
+function occupationKeyText(key: string) {
+  return normalizeOccupationText(key.replace(/^cbo:/i, ""));
+}
+
+export function resolveOccupationQuery(occupations: OccupationAggregate[], query: string): OccupationQueryResolution {
+  const normalizedQuery = normalizeOccupationText(query);
+  if (!normalizedQuery) return { status: "not_found" };
+
+  const exactLabel = occupations.filter((occupation) => normalizeOccupationText(occupation.label) === normalizedQuery);
+  if (exactLabel.length === 1) return { status: "resolved", occupation: exactLabel[0], match: "exact" };
+  if (exactLabel.length > 1) return { status: "ambiguous", candidates: exactLabel };
+
+  const exactKey = occupations.filter((occupation) => occupationKeyText(occupation.key) === normalizedQuery);
+  if (exactKey.length === 1) return { status: "resolved", occupation: exactKey[0], match: "exact" };
+  if (exactKey.length > 1) return { status: "ambiguous", candidates: exactKey };
+
+  const candidates = occupations.filter((occupation) => {
+    const label = normalizeOccupationText(occupation.label);
+    return label === normalizedQuery || label.startsWith(`${normalizedQuery} `) || label.endsWith(` ${normalizedQuery}`) || label.includes(` ${normalizedQuery} `);
+  });
+  if (candidates.length === 1) return { status: "resolved", occupation: candidates[0], match: "unique_normalized" };
+  if (candidates.length > 1) return { status: "ambiguous", candidates };
+  return { status: "not_found" };
+}
+
 export function occupationFamilyValue(aggregates: OccupationAggregates | undefined, municipality: string, family: OccupationFamily, selection: OccupationSelection) {
   if (!aggregates) return 0;
   const selected = aggregates.families.find((item) => item.family === family);
+  if (!selected) return 0;
+  return selectAggregate(selected, { ...selection, municipality }).total;
+}
+
+export function occupationValue(aggregates: OccupationAggregates | undefined, municipality: string, occupationKey: string, selection: OccupationSelection) {
+  if (!aggregates) return 0;
+  const selected = aggregates.occupations.find((item) => item.key === occupationKey);
   if (!selected) return 0;
   return selectAggregate(selected, { ...selection, municipality }).total;
 }

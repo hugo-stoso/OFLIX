@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { DiscoveryItem } from "../lib/domain";
-import { buildOccupationAggregates, harmonizeOccupation, normalizeOccupationText, selectOccupationAggregates } from "../lib/occupations";
+import { buildOccupationAggregates, harmonizeOccupation, normalizeOccupationText, occupationValue, resolveOccupationQuery, selectOccupationAggregates } from "../lib/occupations";
 
 function item(input: Partial<DiscoveryItem> & Pick<DiscoveryItem, "title" | "kind" | "source">): DiscoveryItem {
   const { title, kind, source, ...rest } = input;
@@ -85,5 +85,32 @@ test.describe("harmonização ocupacional OFLIX", () => {
     expect(administration).toMatchObject({ total: 9, bySource: { GO_SERGIPE: 3, IEL_SERGIPE: 6 } });
     const goOnly = selectOccupationAggregates(aggregate, { origin: "external", source: "GO_SERGIPE" });
     expect(goOnly.families.find((family) => family.family === "LOGISTICS_TRANSPORT")?.total).toBe(5);
+  });
+
+  test("resolve ocupação específica sem ampliar para a família", () => {
+    const items = [
+      ...Array.from({ length: 4 }, () => item({ kind: "external_job", source: "GO_SERGIPE", title: "Assistente administrativo", location: { state: "SE", municipality: "Aracaju" } })),
+      ...Array.from({ length: 3 }, () => item({ kind: "external_job", source: "GO_SERGIPE", title: "Auxiliar administrativo", location: { state: "SE", municipality: "Aracaju" } })),
+      ...Array.from({ length: 2 }, () => item({ kind: "external_job", source: "EMPREGAJU", title: "Secretário", location: { state: "SE", municipality: "Lagarto" } })),
+    ];
+    const aggregates = buildOccupationAggregates(items);
+    const resolved = resolveOccupationQuery(aggregates.occupations, "ASSISTENTE ADMINISTRATIVO");
+    expect(resolved.status).toBe("resolved");
+    if (resolved.status !== "resolved") return;
+    expect(resolved.occupation.total).toBe(4);
+    expect(aggregates.families.find((family) => family.family === "ADMINISTRATION")?.total).toBe(9);
+    expect(occupationValue(aggregates, "Aracaju", resolved.occupation.key, { origin: "external", source: "GO_SERGIPE" })).toBe(4);
+  });
+
+  test("retorna ambiguous, not_found e preserva acentos/case", () => {
+    const aggregates = buildOccupationAggregates([
+      item({ kind: "external_job", source: "GO_SERGIPE", title: "Assistente administrativo" }),
+      item({ kind: "external_job", source: "GO_SERGIPE", title: "Assistente comercial" }),
+      item({ kind: "external_job", source: "GO_SERGIPE", title: "Assistente social" }),
+      item({ kind: "external_job", source: "GO_SERGIPE", title: "Eletricista" }),
+    ]);
+    expect(resolveOccupationQuery(aggregates.occupations, "assistente").status).toBe("ambiguous");
+    expect(resolveOccupationQuery(aggregates.occupations, "astrofísico nuclear").status).toBe("not_found");
+    expect(resolveOccupationQuery(aggregates.occupations, "ELETRICISTA").status).toBe("resolved");
   });
 });

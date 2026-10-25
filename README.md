@@ -89,3 +89,7 @@ npm run audit:job-details
 Os detalhes estruturados das vagas externas são extraídos somente de campos públicos confirmados. O GO Sergipe fornece requisitos, benefícios, escolaridade, experiência mínima quando informada, jornada, contrato, salário, quantidade e indicadores PcD; campos ausentes permanecem ausentes e não são inferidos. `npm run audit:job-details` relata cobertura agregada por fonte sem imprimir descrições, URLs, cookies, tokens ou respostas brutas. Gupy permanece sem integração até existir autorização Bearer do tenant para a API estruturada; Sólides permanece em validação adicional porque a listagem pública observada é específica de tenant e o endpoint de detalhe retornou 403. Nenhuma dessas duas fontes é chamada pela aplicação.
 
 Consulte [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) para um roteiro curto da apresentação.
+
+### Área e ocupação específica
+
+Consultas de empregos distinguem área ocupacional ampla de ocupação específica. “Vagas administrativas” usa a família Administração; “assistente administrativo” é resolvido somente contra as ocupações observadas, sem ampliar automaticamente para toda a família. A resolução determinística retorna `resolved`, `ambiguous` ou `not_found`; `occupationQuery` é texto extraído pela DSL e a chave canônica só é escolhida pelo backend.

@@ -23,8 +23,8 @@ function ringsForFeature(feature: TerritoryGeometry["features"][number]) {
   return (feature.geometry.coordinates as Position[][][]).flat();
 }
 
-function valueForMunicipality(municipality: MunicipalityAggregate | undefined, metric: TerritoryMetric, category?: string, employmentMarket?: TerritoryEmploymentMarket, employmentOrigin?: TerritoryEmploymentOrigin, employmentSource?: string, municipalityName?: string, occupationFamily?: OccupationFamily) {
-  if (metric === "employment" && employmentMarket && employmentOrigin) return territoryEmploymentValue(employmentMarket, municipalityName ?? municipality?.municipality ?? "", employmentOrigin, employmentSource, occupationFamily);
+function valueForMunicipality(municipality: MunicipalityAggregate | undefined, metric: TerritoryMetric, category?: string, employmentMarket?: TerritoryEmploymentMarket, employmentOrigin?: TerritoryEmploymentOrigin, employmentSource?: string, municipalityName?: string, occupationFamily?: OccupationFamily, occupationKey?: string) {
+  if (metric === "employment" && employmentMarket && employmentOrigin) return territoryEmploymentValue(employmentMarket, municipalityName ?? municipality?.municipality ?? "", employmentOrigin, employmentSource, occupationFamily, occupationKey);
   if (!municipality) return 0;
   if (!category) {
     if (metric === "employment") return municipality.formal;
@@ -42,11 +42,11 @@ function formatPath(rings: Position[][], project: (position: Position) => Positi
   return rings.map((ring) => ring.map((position, index) => `${index === 0 ? "M" : "L"} ${project(position)[0].toFixed(2)} ${project(position)[1].toFixed(2)}`).join(" ") + " Z").join(" ");
 }
 
-export function TerritoryMap({ geometry, municipalities, metric, category, selectedMunicipality, onSelect, employmentMarket, employmentOrigin, employmentSource, occupationFamily, observed }: TerritoryMapProps & { employmentMarket?: TerritoryEmploymentMarket; employmentOrigin?: TerritoryEmploymentOrigin; employmentSource?: string; occupationFamily?: OccupationFamily; observed?: TerritoryObservedAggregation }) {
+export function TerritoryMap({ geometry, municipalities, metric, category, selectedMunicipality, onSelect, employmentMarket, employmentOrigin, employmentSource, occupationFamily, occupationKey, observed }: TerritoryMapProps & { employmentMarket?: TerritoryEmploymentMarket; employmentOrigin?: TerritoryEmploymentOrigin; employmentSource?: string; occupationFamily?: OccupationFamily; occupationKey?: string; observed?: TerritoryObservedAggregation }) {
   const [hoveredMunicipality, setHoveredMunicipality] = useState<string | null>(null);
   const byCode = useMemo(() => new Map(municipalities.filter((item) => item.ibgeCode).map((item) => [item.ibgeCode, item])), [municipalities]);
   const byName = useMemo(() => new Map(municipalities.map((item) => [item.municipality, item])), [municipalities]);
-  const observedAggregation = useMemo(() => observed ?? aggregateObservedTerritory(municipalities, employmentMarket, { category, employmentOrigin, externalSource: employmentSource, occupationFamily }), [category, employmentMarket, employmentOrigin, employmentSource, municipalities, occupationFamily, observed]);
+  const observedAggregation = useMemo(() => observed ?? aggregateObservedTerritory(municipalities, employmentMarket, { category, employmentOrigin, externalSource: employmentSource, occupationFamily, occupationKey }), [category, employmentMarket, employmentOrigin, employmentSource, municipalities, occupationFamily, occupationKey, observed]);
   const projection = useMemo(() => {
     const positions = geometry.features.flatMap((feature) => ringsForFeature(feature).flat());
     const longitudes = positions.map(([longitude]) => longitude);
@@ -68,7 +68,7 @@ export function TerritoryMap({ geometry, municipalities, metric, category, selec
     const municipality = byCode.get(feature.properties.ibgeCode) ?? byName.get(feature.properties.municipality);
     const observedMunicipality = observedAggregation.municipalities.find((item) => normalizeMunicipalityKey(item.municipality) === normalizeMunicipalityKey(feature.properties.municipality));
     const observedValue = observedMunicipality?.[metric === "employment" ? "employment" : metric];
-    return { feature, municipality, value: observedValue ?? valueForMunicipality(municipality, metric, category, employmentMarket, employmentOrigin, employmentSource, feature.properties.municipality, occupationFamily) };
+    return { feature, municipality, value: observedValue ?? valueForMunicipality(municipality, metric, category, employmentMarket, employmentOrigin, employmentSource, feature.properties.municipality, occupationFamily, occupationKey) };
   });
   const maxValue = Math.max(1, ...values.map((item) => item.value));
   const hovered = values.find((item) => item.feature.properties.municipality === hoveredMunicipality);

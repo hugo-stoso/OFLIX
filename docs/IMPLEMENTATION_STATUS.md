@@ -127,6 +127,10 @@
 - Busca territorial, matching, notificações e indicadores evolutivos.
 - Sinais externos autorizados no mapa, separados das métricas operacionais OFLIX.
 
+## Ocupação específica
+
+- `IMPLEMENTADO`: `resolveOccupationQuery()` distingue `resolved`, `ambiguous` e `not_found`; `occupationKey` refina município, origem e fonte sem alterar serviços ou voluntariado. A família Administração continua agregando suas ocupações, enquanto Assistente administrativo usa somente sua aggregate específica.
+
 ## DESCARTADO
 
 - Microsserviços, backend separado, filas, Kubernetes, geocodificação externa e autenticação externa nesta fase.

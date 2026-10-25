@@ -104,4 +104,21 @@ test.describe("mercado de empregos do Observatório", () => {
     expect(maintenance.employment).toEqual(all.employment);
     expect(maintenance.employment.total).toBe(6);
   });
+
+  test("aplica occupationKey como filtro efetivo por município, origem e fonte", () => {
+    const specificItems = [
+      ...Array.from({ length: 4 }, () => item("GO_SERGIPE", "Aracaju", "external_job", "SE", "Assistente administrativo")),
+      ...Array.from({ length: 1 }, () => item("EMPREGAJU", "Aracaju", "external_job", "SE", "Assistente administrativo")),
+      ...Array.from({ length: 2 }, () => item("GO_SERGIPE", "Lagarto", "external_job", "SE", "Assistente administrativo")),
+      ...Array.from({ length: 3 }, () => item("GO_SERGIPE", "Aracaju", "external_job", "SE", "Auxiliar administrativo")),
+    ];
+    const market = buildTerritoryEmploymentMarket(baseMunicipalities, { ...external, items: specificItems });
+    const occupation = market.occupations.occupations.find((candidate) => candidate.label === "Assistente administrativo");
+    expect(occupation).toBeTruthy();
+    if (!occupation) return;
+    expect(resolveTerritoryEmploymentSelection(market, "external", undefined, "ADMINISTRATION", occupation.key)).toMatchObject({ total: 7, external: 7 });
+    expect(resolveTerritoryEmploymentSelection(market, "external", "GO_SERGIPE", undefined, occupation.key)).toMatchObject({ total: 6, external: 6 });
+    expect(territoryEmploymentValue(market, "Aracaju", "external", undefined, undefined, occupation.key)).toBe(5);
+    expect(aggregateObservedTerritory(baseMunicipalities, market, { employmentOrigin: "external", occupationKey: occupation.key }).municipalities.map((row) => [row.municipality, row.employment])).toEqual([["Aracaju", 5], ["Lagarto", 2]]);
+  });
 });
