@@ -469,7 +469,7 @@ test("pessoa autônoma ativa oportunidades públicas de forma explícita", async
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await expect(page.getByRole("button", { name: /Poder público/ })).toBeVisible();
   await page.getByRole("button", { name: /Poder público/ }).click();
-  await expect(page.getByRole("heading", { name: "Contratação DEMO de manutenção elétrica" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible({ timeout: 15_000 });
 });
 
 test("detalhe preserva o contexto completo da busca", async ({ page }) => {

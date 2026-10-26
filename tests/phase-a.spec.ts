@@ -155,3 +155,13 @@ test("currículo livre aceita PDF e preserva o nome sem modelo obrigatório", as
   await page.getByRole("checkbox", { name: "Permitir que organizações encontrem meu perfil" }).check();
   await expect(page.getByText("Perfil publicado no banco de talentos desta demonstração.", { exact: true })).toBeVisible();
 });
+
+test("demo torna as capacidades novas visíveis sem navegação profunda", async ({ page }) => {
+  const firstLoad = await openDemo(page);
+  if (await firstLoad.picker.isVisible()) await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await expect(page.getByRole("heading", { name: "Novidades da Demo 1.0" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Pesquisa salarial", exact: true })).toHaveAttribute("href", "/market/salaries");
+  await expect(page.getByRole("link", { name: "Concursos SEAD" })).toHaveAttribute("href", "/demo?view=discover&type=public_exam");
+  await expect(page.getByRole("link", { name: "Legislação atualizada" })).toHaveAttribute("href", "/market?tab=legislation");
+  await expect(page.getByRole("link", { name: "Artigos & evidências", exact: true })).toHaveAttribute("href", "/market?tab=articles");
+});

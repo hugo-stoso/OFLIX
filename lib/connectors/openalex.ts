@@ -81,7 +81,14 @@ function snapshotFor(topic?: string, query?: string) {
     const matchesTopic = queryTokens.length > 0 || !normalizedTopic || article.topics.some((item) => item.toLocaleLowerCase("pt-BR") === normalizedTopic);
     return matchesQuery && matchesTopic;
   });
-  return queryTokens.length > 0 ? matching : matching.length ? matching : openAlexSnapshot;
+  return (queryTokens.length > 0 ? matching : matching.length ? matching : openAlexSnapshot).map((article) => ({ ...article, relevance: editorialRelevance(article.title) }));
+}
+
+function explicitlyMatchesQuery(article: AcademicArticle, query: string) {
+  const tokens = searchTokens(query);
+  if (!tokens.length) return false;
+  const text = searchTokens(`${article.title} ${article.topics.join(" ")}`).join(" ");
+  return tokens.some((token) => text.includes(token));
 }
 
 export function rankAcademicArticles(items: AcademicArticle[], topic?: string, query?: string) {
@@ -110,12 +117,16 @@ export async function getAcademicArticles({ topic, query }: { topic?: AcademicTo
     const response = await fetch(endpoint, { next: { revalidate: 600 }, headers: { Accept: "application/json", "User-Agent": "OFLIX-demo/0.1" } });
     if (!response.ok) throw new Error(`OpenAlex ${response.status}`);
     const payload = await response.json() as { results?: Record<string, unknown>[] };
-    const items = rankAcademicArticles((payload.results ?? []).map((record) => normalizeOpenAlexWork(record, search)).filter((item): item is AcademicArticle => Boolean(item)), topic, query).sort((left, right) => Number(right.relevance === "relevant") - Number(left.relevance === "relevant")).slice(0, 8);
+    const normalizedItems = (payload.results ?? []).map((record) => normalizeOpenAlexWork(record, search)).filter((item): item is AcademicArticle => Boolean(item));
+    const allowed = normalizedItems.filter((item) => item.relevance === "relevant" || Boolean(query?.trim()) && explicitlyMatchesQuery(item, query ?? ""));
+    const items = rankAcademicArticles(allowed, topic, query).slice(0, 8);
     if (!items.length) throw new Error("OpenAlex sem resultados");
     cache.set(cacheKey, { expiresAt: Date.now() + cacheMs, items });
     return { source: "OPENALEX" as const, fallback: false, fetchedAt: new Date().toISOString(), items };
   } catch {
-    const items = rankAcademicArticles(snapshotFor(topic, query), topic, query).slice(0, 8);
+    const snapshot = snapshotFor(topic, query);
+    const allowed = snapshot.filter((item) => item.relevance === "relevant" || Boolean(query?.trim()) && explicitlyMatchesQuery(item, query ?? ""));
+    const items = rankAcademicArticles(allowed, topic, query).slice(0, 8);
     return { source: "OPENALEX_SNAPSHOT" as const, fallback: true, fetchedAt: openAlexSnapshotFetchedAt, items };
   }
 }
