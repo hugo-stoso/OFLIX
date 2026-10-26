@@ -12,6 +12,7 @@ export type AcademicArticle = {
   url?: string;
   topics: string[];
   reason: string;
+  relevance?: "relevant" | "downranked";
 };
 
 export type AcademicTopic = "Mercado de trabalho" | "Gestão" | "Produtividade";
@@ -48,6 +49,13 @@ function topicFor(query: string, record: Record<string, unknown>): string[] {
   return topics.length ? Array.from(new Set(topics)) : ["Mercado de trabalho"];
 }
 
+export function editorialRelevance(title: string, abstract = "") {
+  const text = `${title} ${abstract}`.toLocaleLowerCase("pt-BR");
+  const positive = /productiv|gest[aã]o|management|technology|tecnolog|innovation|inova|entrepren|empreend|finance|financ|skill|compet[eê]nc|consumer|consumidor|sustain|sustent|regulat|polic|business|empresa|workforce|trabalho/iu.test(text);
+  const excluded = /ceremony|cerim[oô]nia|celebration|celebra|celebrity|celebridade|visit|visita|curiosity|curiosidade/iu.test(text);
+  return positive && !excluded ? "relevant" as const : "downranked" as const;
+}
+
 export function normalizeOpenAlexWork(record: Record<string, unknown>, query = "") : AcademicArticle | null {
   const id = typeof record.id === "string" ? record.id.split("/").pop() : "";
   const title = typeof record.display_name === "string" ? record.display_name.trim() : typeof record.title === "string" ? record.title.trim() : "";
@@ -56,7 +64,8 @@ export function normalizeOpenAlexWork(record: Record<string, unknown>, query = "
   const bestLocation = record.best_oa_location as Record<string, unknown> | undefined;
   const primaryLocation = record.primary_location as Record<string, unknown> | undefined;
   const url = (typeof bestLocation?.landing_page_url === "string" && bestLocation.landing_page_url) || (typeof primaryLocation?.landing_page_url === "string" && primaryLocation.landing_page_url) || (typeof record.doi === "string" ? record.doi : undefined);
-  return { openAlexId: id, title, authors: authorNames(record), year: Number(record.publication_year ?? 0), source: sourceName(record), ...(typeof record.doi === "string" && record.doi ? { doi: record.doi } : {}), citedByCount: Number(record.cited_by_count ?? 0), openAccess, ...(url ? { url } : {}), topics: topicFor(query, record), reason: openAccess ? "Disponível em acesso aberto segundo a metadata do OpenAlex." : "Relacionado ao tema pesquisado na base OpenAlex." };
+  const relevance = editorialRelevance(title);
+  return { openAlexId: id, title, authors: authorNames(record), year: Number(record.publication_year ?? 0), source: sourceName(record), ...(typeof record.doi === "string" && record.doi ? { doi: record.doi } : {}), citedByCount: Number(record.cited_by_count ?? 0), openAccess, ...(url ? { url } : {}), topics: topicFor(query, record), reason: relevance === "relevant" ? "Conecta evidência a uma decisão de gestão, inovação, tecnologia ou desenvolvimento de pessoas." : "Relacionado ao tema, mas com aplicação empreendedora limitada; aparece apenas quando a busca é explícita.", relevance };
 }
 
 function searchTokens(value: string) {
@@ -101,7 +110,7 @@ export async function getAcademicArticles({ topic, query }: { topic?: AcademicTo
     const response = await fetch(endpoint, { next: { revalidate: 600 }, headers: { Accept: "application/json", "User-Agent": "OFLIX-demo/0.1" } });
     if (!response.ok) throw new Error(`OpenAlex ${response.status}`);
     const payload = await response.json() as { results?: Record<string, unknown>[] };
-    const items = rankAcademicArticles((payload.results ?? []).map((record) => normalizeOpenAlexWork(record, search)).filter((item): item is AcademicArticle => Boolean(item)), topic, query).slice(0, 8);
+    const items = rankAcademicArticles((payload.results ?? []).map((record) => normalizeOpenAlexWork(record, search)).filter((item): item is AcademicArticle => Boolean(item)), topic, query).sort((left, right) => Number(right.relevance === "relevant") - Number(left.relevance === "relevant")).slice(0, 8);
     if (!items.length) throw new Error("OpenAlex sem resultados");
     cache.set(cacheKey, { expiresAt: Date.now() + cacheMs, items });
     return { source: "OPENALEX" as const, fallback: false, fetchedAt: new Date().toISOString(), items };

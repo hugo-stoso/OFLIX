@@ -17,9 +17,13 @@ export type LegislationCard = {
   milestones?: { label: string; reference: string; url: string }[];
 };
 
-const checkedAt = "2026-10-05";
+const checkedAt = "2026-10-26";
 
 export const legislationCards: LegislationCard[] = [
+  { id: "ec-141-2026", title: "Emenda Constitucional nº 141/2026", shortTitle: "EC 141/2026", number: "Emenda Constitucional nº 141", year: 2026, topic: "Trabalho e negócios", summary: "Emenda promulgada em 16 de outubro de 2026 com alterações constitucionais sobre jornada semanal, descanso e regras de transição. A OFLIX resume o texto público; a aplicação concreta depende do texto oficial e da orientação profissional adequada.", audiences: ["Pessoas", "Empresas", "Autônomos"], tags: ["Jornada", "Descanso", "Transição", "MEI"], officialSourceLabel: "Planalto", officialUrl: "https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm", lastCheckedAt: checkedAt, relatedContexts: ["emprego formal", "negócios"], milestones: [
+    { label: "Promulgação", reference: "16 de outubro de 2026", url: "https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm" },
+    { label: "Resumo de transição", reference: "Consulte os marcos e a redação atual no texto oficial", url: "https://www.planalto.gov.br/ccivil_03/constituicao/emendas/emc/emc141.htm" },
+  ] },
   { id: "clt", title: "Consolidação das Leis do Trabalho", shortTitle: "CLT", number: "Decreto-Lei nº 5.452", year: 1943, topic: "Trabalho", summary: "Reúne normas gerais que estruturam relações individuais e coletivas de trabalho no regime celetista.", audiences: ["Pessoas", "Empresas"], tags: ["Trabalho", "CLT", "Relações de trabalho"], officialSourceLabel: "Planalto", officialUrl: "https://www.planalto.gov.br/ccivil_03/decreto-lei/del5452.htm", lastCheckedAt: checkedAt, relatedContexts: ["emprego formal"] },
   { id: "reforma-trabalhista", title: "Reforma Trabalhista", shortTitle: "Lei nº 13.467/2017", number: "Lei nº 13.467", year: 2017, topic: "Trabalho", summary: "Altera a Consolidação das Leis do Trabalho e outras normas relacionadas às relações de trabalho.", audiences: ["Pessoas", "Empresas"], tags: ["Trabalho", "Contratos", "Reforma trabalhista"], officialSourceLabel: "Planalto", officialUrl: "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2017/lei/l13467.htm", lastCheckedAt: checkedAt, relatedContexts: ["emprego formal"] },
   { id: "estagio", title: "Lei do Estágio", shortTitle: "Lei nº 11.788/2008", number: "Lei nº 11.788", year: 2008, topic: "Estágio", summary: "Dispõe sobre o estágio de estudantes e estabelece parâmetros para sua realização educativa.", audiences: ["Pessoas", "Empresas"], tags: ["Estágio", "Educação", "Bolsa"], officialSourceLabel: "Planalto", officialUrl: "https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2008/lei/l11788.htm", lastCheckedAt: checkedAt, relatedContexts: ["estágio"] },
