@@ -84,6 +84,8 @@ export default function DemoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [publicItems, setPublicItems] = useState<DiscoveryItem[]>(demoDiscoveryItems.filter((item) => item.kind === "public_procurement"));
+  const [contestItems, setContestItems] = useState<DiscoveryItem[]>([]);
+  const [contestLoaded, setContestLoaded] = useState(false);
   const [publicLoading, setPublicLoading] = useState(false);
   const [publicError, setPublicError] = useState("");
   const [publicLoaded, setPublicLoaded] = useState(false);
@@ -161,7 +163,7 @@ export default function DemoPage() {
     let cancelled = false;
     setPublicLoading(true);
     setPublicError("");
-    fetch("/api/public-opportunities")
+    fetch("/api/public-opportunities?live=1")
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Não foi possível atualizar as oportunidades agora.");
@@ -171,6 +173,17 @@ export default function DemoPage() {
       .finally(() => { if (!cancelled) { setPublicLoaded(true); setPublicLoading(false); } });
     return () => { cancelled = true; };
   }, [activeFilter, publicInterestEnabled, publicLoaded, selectedProfile]);
+
+  useEffect(() => {
+    if (!selectedProfile || selectedProfile.type !== "PERSON" || !["all", "public_exam"].includes(activeFilter) || contestLoaded) return;
+    let cancelled = false;
+    fetch("/api/public-contests")
+      .then(async (response) => { if (!response.ok) throw new Error("request"); return response.json(); })
+      .then((data) => { if (!cancelled && Array.isArray(data.items)) setContestItems(data.items); })
+      .catch(() => { if (!cancelled) setContestItems([]); })
+      .finally(() => { if (!cancelled) setContestLoaded(true); });
+    return () => { cancelled = true; };
+  }, [activeFilter, contestLoaded, selectedProfile]);
 
   useEffect(() => {
     const shouldLoad = activeView === "discover" && selectedProfile?.type === "PERSON" && (activeFilter === "all" || activeFilter === "employment") && !externalJobsLoaded;
@@ -293,8 +306,8 @@ export default function DemoPage() {
       return opportunity.ownerType !== "PERSON";
     });
     const personDemoItems = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement" && item.kind !== "external_job" && (!isMarketFilter(activeFilter) || publicationMode === "demands")) : [];
-    return [...internal, ...personDemoItems, ...(selectedProfile?.type === "PERSON" ? externalJobs : []), ...(publicAccess ? publicItems : [])];
-  }, [activeFilter, allInternalDiscovery, externalJobs, opportunities, publicationMode, publicAccess, publicItems, selectedProfile]);
+    return [...internal, ...personDemoItems, ...(selectedProfile?.type === "PERSON" ? externalJobs : []), ...(selectedProfile?.type === "PERSON" ? contestItems : []), ...(publicAccess ? publicItems : [])];
+  }, [activeFilter, allInternalDiscovery, contestItems, externalJobs, opportunities, publicationMode, publicAccess, publicItems, selectedProfile]);
   const filterTabs = useMemo(() => {
     const base: DiscoveryFilterKind[] = selectedProfile?.organizationKind === "PUBLIC_INSTITUTION" ? ["all", "volunteer"] : ["all", "employment", "service", "volunteer"];
     if (selectedProfile?.type === "PERSON") base.push("public_exam", "course");
