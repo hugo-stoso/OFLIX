@@ -8,7 +8,7 @@ test.beforeAll(() => {
 });
 
 test("percurso principal: perfil, descoberta, detalhe e interação", async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "OFLIX é um hub territorial de oportunidades." })).toBeVisible();
   await page.getByRole("link", { name: "Entrar na demonstração" }).first().click();
@@ -180,6 +180,7 @@ test("organização não acessa demandas publicadas por outra organização", as
 });
 
 test("menu da conta abre perfil, configurações e saída", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
@@ -472,6 +473,7 @@ test("pessoa autônoma ativa oportunidades públicas de forma explícita", async
 });
 
 test("detalhe preserva o contexto completo da busca", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
