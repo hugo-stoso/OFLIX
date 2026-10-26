@@ -56,7 +56,7 @@ test.describe("fontes externas de empregos em Sergipe", () => {
   test("não chama paginação proibida do IEL e preserva fallback após indisponibilidade", async () => {
     clearIelSergipeCache();
     const first = await fetchIelSergipeOpportunities({ fetcher: async () => new Response(fixture("iel-sergipe-page.html"), { status: 200 }), now: () => new Date("2026-10-09T12:00:00.000Z") });
-    expect(first).toMatchObject({ pages: 1, stale: false, partial: false });
+    expect(first).toMatchObject({ pages: 1, stale: false, partial: true });
     const failed = await fetchIelSergipeOpportunities({ fetcher: async () => new Response("erro", { status: 503 }), now: () => new Date("2026-10-09T17:00:00.000Z") });
     expect(failed).toMatchObject({ pages: 1, stale: true, partial: true });
     expect(failed.items).toHaveLength(2);
@@ -108,8 +108,8 @@ test.describe("filtros multifonte na busca", () => {
     await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Estágio em administração", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Ver detalhes" }).first()).toHaveAttribute("href", /\/external-job\/empregaju\/872/);
-    await expect(page.getByRole("link", { name: "Abrir EmpregAju" }).first()).toHaveAttribute("href", "https://empregaju.aracaju.se.gov.br/cidadao/vagas");
-    await expect(page.getByRole("link", { name: "Candidatar-se no EmpregAju" }).first()).toHaveAttribute("href", "https://empregaju.aracaju.se.gov.br/register");
+    await expect(page.getByRole("link", { name: "Ver vaga no site original" }).first()).toHaveAttribute("href", "https://empregaju.aracaju.se.gov.br/cidadao/vagas");
+    await expect(page.getByRole("link", { name: "Candidatar-se na fonte" }).first()).toHaveAttribute("href", "https://empregaju.aracaju.se.gov.br/register");
     const filtersToggle = page.getByRole("button", { name: "Filtros", exact: true });
     if (await filtersToggle.isVisible()) await filtersToggle.click();
     await page.getByLabel("Filtrar por fonte").selectOption("IEL_SERGIPE");

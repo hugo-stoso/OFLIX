@@ -51,7 +51,7 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await page.waitForURL("**/demo/analyst");
   await expect(page.getByRole("heading", { name: "Entenda como oportunidades e conexões se distribuem pelo território." })).toBeVisible();
   await expect(page.getByText("Distribuição por frente")).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText("Empregos no território")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Empregos observados", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Mapa coroplético municipal")).toBeVisible({ timeout: 15_000 });
   await page.goto("/demo");
   await page.waitForURL("**/demo/analyst");
@@ -116,7 +116,7 @@ test("Observatório explora município, métrica e município sem registros", as
   await page.getByLabel("Território", { exact: true }).selectOption({ label: "Lagarto" });
   await expect(page.getByRole("heading", { name: "Lagarto", exact: true })).toBeVisible();
   await expect(page.getByText("Este recorte atualiza os indicadores")).toBeVisible();
-  await expect(page.getByText("Empregos formais")).toBeVisible();
+  await expect(page.getByText("Empregos observados", { exact: true }).first()).toBeVisible();
   await page.getByLabel(/Lagarto, Oportunidades/).focus();
   await page.getByLabel(/Lagarto, Oportunidades/).press("Enter");
   await expect(page.getByRole("button", { name: /Voltar para Sergipe/ })).toBeVisible();

@@ -136,7 +136,7 @@ test.describe("connector do GO Sergipe", () => {
       },
       now: () => new Date("2026-10-09T12:00:00.000Z"),
     });
-    expect(requests[0].url).toMatch(/^https:\/\/gosergipe\\.se\\.gov\\.br\/api\/oportunidades/u);
+    expect(requests[0].url).toMatch(/^https:\/\/gosergipe\.se\.gov\.br\/api\/oportunidades(?:\?|$)/u);
     expect(requests[0].headers.has("cookie")).toBe(false);
     expect(requests[0].headers.has("authorization")).toBe(false);
   });
