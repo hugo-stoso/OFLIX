@@ -37,6 +37,18 @@ const teaserCopy: Record<MarketAudience, TeaserCopy> = {
 
 const shortcuts: MarketShortcut[] = [
   {
+    href: "/market/salaries",
+    title: "Pesquisa salarial",
+    actionLabel: "Ver pesquisa salarial",
+    icon: TrendingUp,
+    description: {
+      person: "Veja mediana e cobertura dos salários publicados.",
+      company: "Compare faixas salariais efetivamente divulgadas.",
+      nonprofit: "Consulte valores publicados sem falsa precisão.",
+      publicInstitution: "Leia a metodologia dos salários observados.",
+    },
+  },
+  {
     href: "/market?tab=salary",
     title: "Salários e mercado",
     actionLabel: "Ver Salários e mercado",
@@ -87,7 +99,7 @@ export function MarketKnowledgeTeaser({ audience }: { audience: MarketAudience }
         </div>
         <Link href="/market" className="subtle-link shrink-0">Explorar <ArrowRight size={16} /></Link>
       </div>
-      <nav className="mt-5 grid gap-0 sm:grid-cols-3 sm:divide-x sm:divide-line" aria-label="Atalhos de Mercado e Conhecimento">
+      <nav className="mt-5 grid gap-0 sm:grid-cols-4 sm:divide-x sm:divide-line" aria-label="Atalhos de Mercado e Conhecimento">
         {shortcuts.map(({ href, title, actionLabel, icon: Icon, description }) => (
           <Link key={href} href={href} aria-label={actionLabel} className="group flex items-start gap-3 border-t border-line py-4 transition-colors hover:text-blue sm:border-t-0 sm:px-4 sm:first:pl-0 sm:last:pr-0">
             <span className="mt-0.5 rounded-lg bg-[#edf6fb] p-2 text-blue"><Icon size={16} aria-hidden="true" /></span>
