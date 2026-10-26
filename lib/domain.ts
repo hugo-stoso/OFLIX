@@ -2,7 +2,7 @@ import type { Compensation } from "@/lib/compensation";
 
 export type OpportunityKind = "formal" | "service" | "volunteer";
 export type DiscoveryKind = OpportunityKind | "course" | "public_exam" | "public_selection" | "external_job" | "public_procurement";
-export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "AUTHORIZED_PARTNER" | "GO_SERGIPE" | "EMPREGAJU" | "IEL_SERGIPE";
+export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "SEAD_SERGIPE" | "AUTHORIZED_PARTNER" | "GO_SERGIPE" | "EMPREGAJU" | "IEL_SERGIPE";
 export type OpportunityOrigin = "all" | "oflix" | "external";
 export const EXTERNAL_DISCOVERY_SOURCES = ["GO_SERGIPE", "EMPREGAJU", "IEL_SERGIPE"] as const;
 export type ExternalDiscoverySource = (typeof EXTERNAL_DISCOVERY_SOURCES)[number];

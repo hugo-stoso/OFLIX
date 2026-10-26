@@ -22,7 +22,7 @@ export function parseSeadContests(html: string, collectedAt = new Date().toISOSt
     const kind = /processo seletivo/iu.test(title) ? "public_selection" : "public_exam";
     const sourceId = sourceUrl.replace(/\/$/u, "").split("/").pop() || title.toLocaleLowerCase("pt-BR").replace(/[^a-z0-9]+/giu, "-");
     if (items.some((item) => item.sourceId === sourceId)) return;
-    items.push({ id: `sead-${sourceId}`, kind, title, description: "Registro público listado pela SEAD Sergipe. Consulte o edital oficial para situação, requisitos e prazos.", category: "Administração pública", provider: "SEAD Sergipe", location: { state: "SE", municipality: "Sergipe" }, source: "AUTHORIZED_PARTNER", sourceLabel: "SEAD Sergipe · concursos públicos", sourceId, sourceUrl, collectedAt, status: "Em andamento", officialType: kind === "public_selection" ? "Processo seletivo" : "Concurso público", tags: [kind === "public_selection" ? "Processo seletivo" : "Concurso público", "SEAD Sergipe"] });
+    items.push({ id: `sead-${sourceId}`, kind, title, description: "Registro público listado pela SEAD Sergipe. Consulte o edital oficial para situação, requisitos e prazos.", category: "Administração pública", provider: "SEAD Sergipe", location: { state: "SE", municipality: "Sergipe" }, source: "SEAD_SERGIPE", sourceLabel: "SEAD Sergipe", sourceId, sourceUrl, collectedAt, status: "Em andamento", officialType: kind === "public_selection" ? "Processo seletivo" : "Concurso público", tags: [kind === "public_selection" ? "Processo seletivo" : "Concurso público", "SEAD Sergipe"] });
   });
   return items;
 }

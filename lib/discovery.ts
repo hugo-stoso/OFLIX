@@ -205,7 +205,7 @@ export function isExternal(item: DiscoveryItem) {
 
 export function sourceLabel(source: DiscoverySource) {
   if (source === "GO_SERGIPE") return "GO Sergipe";
-  return source === "PNCP" ? "PNCP" : source === "OFLIX" ? "OFLIX" : "DEMO DATA";
+  return source === "PNCP" ? "PNCP" : source === "SEAD_SERGIPE" ? "SEAD Sergipe" : source === "OFLIX" ? "OFLIX" : "DEMO DATA";
 }
 
 export function isWorkDiscoveryItem(item: DiscoveryItem) {
