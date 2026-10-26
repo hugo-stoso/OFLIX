@@ -9,5 +9,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const external = await fetchExternalJobs({ source: "all" });
   const internal = listOpportunities().formal.map(internalToDiscoveryItem);
-  return NextResponse.json(calculateSalaryResearch([...internal, ...external.items], { occupation: url.searchParams.get("occupation") ?? undefined, municipality: url.searchParams.get("municipality") ?? undefined, source: url.searchParams.get("source") ?? undefined }));
+  const query = { occupation: url.searchParams.get("occupation") ?? undefined, municipality: url.searchParams.get("municipality") ?? undefined, source: url.searchParams.get("source") ?? undefined };
+  const health = external.sources.map((source) => ({ source: source.source, provider: source.provider, count: source.count, stale: source.stale, partial: source.partial, status: source.stale ? "STALE" as const : source.error ? "UNAVAILABLE" as const : source.partial ? "PARTIAL" as const : "FULL" as const }));
+  const result = calculateSalaryResearch([...internal, ...external.items], query, health);
+  return NextResponse.json({ ...result, incomplete: external.partial || external.stale, incompleteMessage: external.partial || external.stale ? "Uma ou mais fontes não puderam ser atualizadas; este recorte está incompleto." : undefined });
 }
