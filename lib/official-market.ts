@@ -3,9 +3,11 @@ export type OfficialSalaryQuery = { occupationCode?: string; occupationLabel?: s
 export type OfficialSalaryStatus = {
   status: "unavailable";
   source: "MTE_PDET";
-  sourceLabel: "Ministério do Trabalho e Emprego · PDET/CAGED";
+  sourceLabel: "Ministério do Trabalho e Emprego · PDET · RAIS/Novo CAGED";
   sourceUrl: string;
   competence: null;
+  geography: string;
+  observations: null;
   query: OfficialSalaryQuery;
   message: string;
 };
@@ -16,10 +18,12 @@ export function getOfficialSalaryStatus(query: OfficialSalaryQuery = {}): Offici
   return {
     status: "unavailable",
     source: "MTE_PDET",
-    sourceLabel: "Ministério do Trabalho e Emprego · PDET/CAGED",
+    sourceLabel: "Ministério do Trabalho e Emprego · PDET · RAIS/Novo CAGED",
     sourceUrl: MTE_PDET_URL,
     competence: null,
+    geography: query.state === "BR" ? "Brasil" : query.state === "SE" ? "Sergipe" : query.state ?? "Não informado",
+    observations: null,
     query,
-    message: "A OFLIX ainda não carregou uma base salarial oficial nesta execução. Consulte o Perfil do Município e o PDET na fonte do MTE; nenhum valor fictício é exibido como estatística oficial.",
+    message: "A consulta oficial do MTE/PDET está identificada, mas não há um endpoint público documentado e seguro disponível para retornar um valor nesta execução. Nenhum salário oficial é inferido a partir de vagas observadas.",
   };
 }

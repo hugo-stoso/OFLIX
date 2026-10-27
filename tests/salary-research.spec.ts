@@ -32,3 +32,13 @@ test("specific occupation does not silently resolve a family or unknown query", 
   expect(calculateSalaryResearch(items, { occupation: "Assistente administrativo" }).occupationResolution).toBe("resolved");
   expect(calculateSalaryResearch(items, { occupation: "Pessoa inexistente" }).occupationResolution).toBe("not_found");
 });
+
+test("CBO, estado e município são filtros independentes", () => {
+  const items = [
+    item("se", { occupationCode: "411010", salaryMin: 2200, salaryPeriod: "MONTHLY" }),
+    item("br", { occupationCode: "411010", salaryMin: 3000, salaryPeriod: "MONTHLY", location: { state: "SP", municipality: "São Paulo" } }),
+  ];
+  const result = calculateSalaryResearch(items, { occupationCode: "411010", state: "SE", municipality: "Aracaju" });
+  expect(result.publications).toBe(1);
+  expect(result.medianMonthly).toBe(2200);
+});

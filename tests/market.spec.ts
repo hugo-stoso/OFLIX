@@ -27,7 +27,9 @@ test("Mercado & Conhecimento diferencia média anunciada e fonte oficial", async
   await expect(page.getByRole("heading", { name: "Mercado & Conhecimento" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Remuneração média anunciada" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Salário médio de admissão" })).toBeVisible();
-  await expect(page.getByText(/não carregou uma base salarial oficial/i)).toBeVisible();
+  await expect(page.getByText(/não há um endpoint público documentado/i)).toBeVisible();
+  await expect(page.getByLabel("Código CBO")).toBeVisible();
+  await expect(page.getByLabel("Estado da pesquisa salarial")).toHaveValue("SE");
   await page.getByRole("button", { name: "Legislação para trabalho e negócios" }).click();
   await expect(page.getByRole("heading", { name: "Legislação para trabalho e negócios" })).toBeVisible();
   await expect(page.getByText("Lei do Voluntariado", { exact: true })).toBeVisible();
@@ -35,6 +37,45 @@ test("Mercado & Conhecimento diferencia média anunciada e fonte oficial", async
   await expect(page.getByRole("heading", { name: "Artigos & evidências" })).toBeVisible();
   await expect(page.getByText(/citações na base OpenAlex|Carregando metadata/).first()).toBeVisible({ timeout: 20_000 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
+test("pesquisa salarial consolidada envia profissão, CBO e localização", async ({ page }) => {
+  let requestUrl = "";
+  await page.route("**/api/market/salaries?*", async (route) => {
+    requestUrl = route.request().url();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        publications: 1,
+        withPublishedRemuneration: 1,
+        publishedCoverageRate: 1,
+        monthlyComparable: 1,
+        monthlyComparableCoverageRate: 1,
+        medianMonthly: 2200,
+        minimumMonthly: 2200,
+        maximumMonthly: 2200,
+        sampleSize: 1,
+        hasSmallSample: true,
+        municipalities: ["Aracaju"],
+        sourceHealth: [],
+        occupationResolution: "resolved",
+        methodology: [],
+        query: {},
+        official: { status: "unavailable", source: "MTE_PDET", sourceLabel: "MTE/PDET", sourceUrl: "https://www.gov.br", competence: null, geography: "Sergipe", observations: null, query: {}, message: "Fonte oficial indisponível nesta execução." },
+      }),
+    });
+  });
+  await page.goto("/market?tab=salary");
+  await page.getByLabel("Buscar profissão").fill("Assistente administrativo");
+  await page.getByLabel("Código CBO").fill("411010");
+  await page.getByRole("button", { name: "Pesquisar salários" }).click();
+  await expect(page.getByText("Publicações:").first()).toBeVisible();
+  const query = new URL(requestUrl).searchParams;
+  expect(query.get("occupation")).toBe("Assistente administrativo");
+  expect(query.get("occupationCode")).toBe("411010");
+  expect(query.get("state")).toBe("SE");
+  expect(query.get("municipality")).toBe("Aracaju");
 });
 
 test("comparar com o mercado preserva município e categoria OFLIX", async ({ page }) => {
