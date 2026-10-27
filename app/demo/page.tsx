@@ -177,9 +177,9 @@ export default function DemoPage() {
   }, [activeFilter, publicInterestEnabled, publicLoaded, selectedProfile]);
 
   useEffect(() => {
-    if (!selectedProfile || selectedProfile.type !== "PERSON" || !["all", "public_exam"].includes(activeFilter) || contestLoaded) return;
+    if (!selectedProfile || selectedProfile.type !== "PERSON" || !["all", "public_exam", "course"].includes(activeFilter) || contestLoaded) return;
     let cancelled = false;
-    fetch("/api/public-contests")
+    fetch("/api/public-development")
       .then(async (response) => { if (!response.ok) throw new Error("request"); return response.json(); })
       .then((data) => { if (!cancelled && Array.isArray(data.items)) setContestItems(data.items); })
       .catch(() => { if (!cancelled) setContestItems([]); })
@@ -307,7 +307,7 @@ export default function DemoPage() {
       if (selectedProfile.type === "ORGANIZATION") return opportunity.ownerType !== "PERSON" && opportunity.owner.id === selectedProfile.id;
       return opportunity.ownerType !== "PERSON";
     });
-    const personDemoItems = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => item.kind !== "public_procurement" && item.kind !== "external_job" && (!isMarketFilter(activeFilter) || publicationMode === "demands")) : [];
+    const personDemoItems = selectedProfile?.type === "PERSON" ? demoDiscoveryItems.filter((item) => !["course", "public_exam", "public_selection", "public_procurement"].includes(item.kind) && item.kind !== "external_job" && (!isMarketFilter(activeFilter) || publicationMode === "demands")) : [];
     return [...internal, ...personDemoItems, ...(selectedProfile?.type === "PERSON" ? externalJobs : []), ...(selectedProfile?.type === "PERSON" ? contestItems : []), ...(publicAccess ? publicItems : [])];
   }, [activeFilter, allInternalDiscovery, contestItems, externalJobs, opportunities, publicationMode, publicAccess, publicItems, selectedProfile]);
   const filterTabs = useMemo(() => {
