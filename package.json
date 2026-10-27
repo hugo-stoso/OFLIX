@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
     "check:go-sergipe": "node scripts/check-go-sergipe.mjs",
+    "audit:real-contests": "node scripts/audit-real-contests.mjs",
+    "audit:training-sources": "node scripts/audit-training-sources.mjs",
     "audit:occupations": "node scripts/audit-occupations.mjs",
     "audit:job-freshness": "node scripts/audit-job-freshness.mjs",
     "audit:job-details": "node scripts/audit-job-details.mjs",

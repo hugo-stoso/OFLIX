@@ -1,5 +1,13 @@
-const candidates = [
-  { source: "GO_SERGIPE_QUALIFICA", url: "https://gosergipe.se.gov.br/oportunidades", decision: "NEEDS_MORE_VALIDATION", reason: "no stable public course listing distinct from the job API was proven" },
-  { source: "FUNDAT_ARACAJU", url: "https://www.aracaju.se.gov.br/fundat", decision: "NEEDS_MORE_VALIDATION", reason: "public page did not expose a stable structured course listing" },
+const sources = [
+  { source: "SENAI_SE", url: "https://www.se.senai.br/cursos" },
+  { source: "FUNDACAO_BRADESCO_EV", url: "https://www.ev.org.br/Cursos" },
+  { source: "EVG", url: "https://www.escolavirtual.gov.br/catalogo" },
 ];
-console.log(JSON.stringify({ candidates, integration: "not added; no source met the reproducible listing gate" }, null, 2));
+const results = await Promise.all(sources.map(async ({ source, url }) => {
+  try {
+    const response = await fetch(url, { headers: { accept: "text/html" }, signal: AbortSignal.timeout(10000) });
+    const html = await response.text();
+    return { source, url, status: response.status, publicHtmlBytes: html.length, publicCatalogReachable: response.ok, demoCourseInSource: false };
+  } catch (error) { return { source, url, status: "ERROR", error: error instanceof Error ? error.message : String(error) }; }
+}));
+console.log(JSON.stringify({ sources: results, policy: "catálogos públicos; sem credenciais, APIs privadas ou dados DEMO" }, null, 2));
