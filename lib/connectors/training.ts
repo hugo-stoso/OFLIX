@@ -21,6 +21,28 @@ function courseBase(options: { id: string; title: string; description: string; p
 
 export function parseSenaiCourses(html: string, collectedAt = new Date().toISOString()): DiscoveryItem[] {
   const $ = cheerio.load(html); const items: DiscoveryItem[] = [];
+  const officialCards = $(".itemCurso");
+  if (officialCards.length > 0) {
+    officialCards.each((_, element) => {
+      const card = $(element);
+      const title = text(card.find(".descricao h5").first().text());
+      const detailUrl = card.find(".descricao a[href], .saibaMais a[href]").first().attr("href");
+      const sourceUrl = detailUrl && /^https:\/\/app\.fies\.org\.br\/MatriculaWebSENAI\//iu.test(detailUrl) ? detailUrl : undefined;
+      if (!sourceUrl || !title) return;
+      const context = text(card.text());
+      const category = text(card.find(".descricao > span").first().text()) || "Formação profissional";
+      const modality = text(card.find(".modalidade").first().text()) || undefined;
+      const applicationUrl = card.find(".btMatricule-se a[href]").first().attr("href");
+      const item = courseBase({ id: `senai-${slug(sourceUrl)}`, title, description: context, provider: "SENAI Sergipe", source: "SENAI_SE", sourceLabel: "SENAI Sergipe", sourceUrl, collectedAt, category, tags: ["SENAI Sergipe", ...(modality ? [modality] : [])] });
+      item.location = { state: "SE", municipality: "Sergipe" };
+      item.modality = modality || item.modality;
+      item.duration = field(context, /(?:carga hor[aá]ria|dura[cç][aã]o)\s*[:：]\s*([^|.;]+)/iu);
+      if (applicationUrl && /^https:\/\/app\.fies\.org\.br\/MatriculaWebSENAI\//iu.test(applicationUrl)) item.applicationUrl = applicationUrl;
+      if (/gratuit[oa]/iu.test(context)) item.cost = "Gratuito";
+      if (!items.some((current) => current.sourceUrl === item.sourceUrl)) items.push(item);
+    });
+    return items;
+  }
   $("a").each((_, element) => {
     const title = text($(element).text()); const href = $(element).attr("href");
     const sourceUrl = href ? absolute(href, SENAI_SE_COURSES_URL, "https://www.se.senai.br") : undefined;
