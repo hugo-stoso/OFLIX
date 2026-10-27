@@ -128,6 +128,7 @@ function LegislationList({ cards }: { cards: LegislationCard[] }) {
 }
 
 export default function MarketKnowledgePage() {
+  const [hydrated, setHydrated] = useState(false);
   const [activeTab, setActiveTab] = useState<MarketTab>("salary");
   const [profession, setProfession] = useState("");
   const [occupationCode, setOccupationCode] = useState("");
@@ -225,6 +226,7 @@ export default function MarketKnowledgePage() {
   }
 
   useEffect(() => {
+    setHydrated(true);
     const params = new URLSearchParams(window.location.search);
     const context = params.get("context");
     const nextTab = params.get("tab") as MarketTab | null;
@@ -376,10 +378,14 @@ export default function MarketKnowledgePage() {
                       type="button"
                       className="button-secondary"
                       onClick={() => void loadAnnounced()}
-                      disabled={announcedLoading}
+                      disabled={announcedLoading || !hydrated}
                     >
                       <Search size={16} />{" "}
-                      {announcedLoading ? "Calculando…" : "Atualizar recorte"}
+                      {!hydrated
+                        ? "Preparando pesquisa…"
+                        : announcedLoading
+                          ? "Calculando…"
+                          : "Atualizar recorte"}
                     </button>
                     <span className="self-center text-xs font-semibold text-[#718291]">
                       Categoria OFLIX: {category || "Todas as categorias"}
@@ -432,9 +438,12 @@ export default function MarketKnowledgePage() {
                 <p className="mt-3 text-sm leading-6 text-[#6f5b32]">
                   {official.message}
                 </p>
-                    <p className="mt-3 text-xs leading-5 text-[#6f5b32]">
-                      Fonte: {official.sourceLabel} · Abrangência: {official.geography} · Competência: {official.competence ?? "indisponível"} · Observações: {official.observations ?? "indisponível"}
-                    </p>
+                <p className="mt-3 text-xs leading-5 text-[#6f5b32]">
+                  Fonte: {official.sourceLabel} · Abrangência:{" "}
+                  {official.geography} · Competência:{" "}
+                  {official.competence ?? "indisponível"} · Observações:{" "}
+                  {official.observations ?? "indisponível"}
+                </p>
                 <label className="mt-5 block text-sm font-bold text-navy">
                   Buscar profissão
                   <input
@@ -485,10 +494,14 @@ export default function MarketKnowledgePage() {
                   type="button"
                   className="button-secondary mt-4 w-full justify-center"
                   onClick={() => void loadSalaryResearch()}
-                  disabled={salaryResearchLoading}
+                  disabled={salaryResearchLoading || !hydrated}
                 >
                   <Search size={16} />
-                  {salaryResearchLoading ? "Pesquisando…" : "Pesquisar salários"}
+                  {!hydrated
+                    ? "Preparando pesquisa…"
+                    : salaryResearchLoading
+                      ? "Pesquisando…"
+                      : "Pesquisar salários"}
                 </button>
                 <p className="mt-4 text-xs leading-5 text-[#6f5b32]">
                   A consulta oficial exige ocupação determinística ou CBO,
@@ -504,27 +517,60 @@ export default function MarketKnowledgePage() {
                   Consultar MTE/PDET <ExternalLink size={14} />
                 </a>
                 {salaryResearchError && (
-                  <p role="alert" className="mt-4 text-sm font-semibold text-[#9c3131]">
+                  <p
+                    role="alert"
+                    className="mt-4 text-sm font-semibold text-[#9c3131]"
+                  >
                     Não foi possível consultar o recorte salarial agora.
                   </p>
                 )}
                 {salaryResearch && (
                   <div className="mt-5 border-t border-[#e5d5ac] pt-5">
-                    <p className="eyebrow text-[#8a5a00]">Vagas observadas · leitura separada</p>
+                    <p className="eyebrow text-[#8a5a00]">
+                      Vagas observadas · leitura separada
+                    </p>
                     <p className="mt-2 text-sm leading-6 text-[#6f5b32]">
-                      Esta leitura usa apenas remunerações publicadas em vagas e não substitui estatísticas RAIS/Novo CAGED.
+                      Esta leitura usa apenas remunerações publicadas em vagas e
+                      não substitui estatísticas RAIS/Novo CAGED.
                     </p>
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                      <span>Publicações: <strong>{salaryResearch.publications}</strong></span>
-                      <span>Observações mensais: <strong>{salaryResearch.sampleSize}</strong></span>
-                      <span>Mediana mensal: <strong>{salaryResearch.medianMonthly === null ? "—" : formatCurrency(salaryResearch.medianMonthly)}</strong></span>
-                      <span>Estado: <strong>{state}</strong></span>
+                      <span>
+                        Publicações:{" "}
+                        <strong>{salaryResearch.publications}</strong>
+                      </span>
+                      <span>
+                        Observações mensais:{" "}
+                        <strong>{salaryResearch.sampleSize}</strong>
+                      </span>
+                      <span>
+                        Mediana mensal:{" "}
+                        <strong>
+                          {salaryResearch.medianMonthly === null
+                            ? "—"
+                            : formatCurrency(salaryResearch.medianMonthly)}
+                        </strong>
+                      </span>
+                      <span>
+                        Estado: <strong>{state}</strong>
+                      </span>
                     </div>
                     {salaryResearch.occupationResolution === "not_found" && (
-                      <p role="status" className="mt-4 text-sm font-semibold text-[#76531c]">Nenhuma ocupação determinística correspondente foi encontrada neste recorte.</p>
+                      <p
+                        role="status"
+                        className="mt-4 text-sm font-semibold text-[#76531c]"
+                      >
+                        Nenhuma ocupação determinística correspondente foi
+                        encontrada neste recorte.
+                      </p>
                     )}
                     {salaryResearch.hasSmallSample && (
-                      <p role="status" className="mt-4 text-sm font-semibold text-[#76531c]">Amostra pequena: não trate este resultado como benchmark robusto.</p>
+                      <p
+                        role="status"
+                        className="mt-4 text-sm font-semibold text-[#76531c]"
+                      >
+                        Amostra pequena: não trate este resultado como benchmark
+                        robusto.
+                      </p>
                     )}
                   </div>
                 )}
