@@ -4,6 +4,10 @@ import {
   resolveOccupationQuery,
 } from "@/lib/occupations";
 import type { DiscoveryItem } from "@/lib/domain";
+import {
+  findOccupationReference,
+  normalizeCbo,
+} from "@/lib/occupation-catalog";
 
 export type SalaryResearchQuery = {
   occupation?: string;
@@ -164,24 +168,38 @@ export function calculateSalaryResearch(
   );
   const aggregates = buildOccupationAggregates(eligible);
   const requestedOccupation = query.occupation?.trim() ?? "";
-  const resolution = requestedOccupation
-    ? resolveOccupationQuery(aggregates.occupations, requestedOccupation)
-    : undefined;
-  const occupationResolution = !requestedOccupation
-    ? "not_requested"
-    : (resolution?.status ?? "not_found");
+  const reference = findOccupationReference(
+    requestedOccupation,
+    query.occupationCode,
+  );
+  const resolution = reference
+    ? {
+        status: "resolved" as const,
+        occupation: { key: `cbo:${reference.cbo}`, label: reference.label },
+      }
+    : requestedOccupation
+      ? resolveOccupationQuery(aggregates.occupations, requestedOccupation)
+      : undefined;
+  const occupationResolution =
+    !requestedOccupation && !query.occupationCode
+      ? "not_requested"
+      : (resolution?.status ?? "not_found");
   const filtered = eligible.filter((item) => {
     const codeMatch =
       !query.occupationCode ||
-      normalize(item.occupationCode ?? "") === normalize(query.occupationCode);
+      normalizeCbo(item.occupationCode ?? "") ===
+        normalizeCbo(query.occupationCode);
     const occupationMatch =
       !requestedOccupation ||
       (resolution?.status === "resolved" &&
         (item.occupationCode
-          ? `cbo:${normalize(item.occupationCode)}` ===
+          ? `cbo:${normalizeCbo(item.occupationCode)}` ===
             resolution.occupation.key
-          : resolution.occupation.key ===
-            normalize(item.occupationLabel ?? item.title)));
+          : reference
+            ? normalize(item.occupationLabel ?? item.title) ===
+              normalize(reference.label)
+            : resolution.occupation.key ===
+              normalize(item.occupationLabel ?? item.title)));
     return (
       Boolean(codeMatch && occupationMatch) &&
       (!query.state ||

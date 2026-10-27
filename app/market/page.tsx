@@ -18,6 +18,8 @@ import {
   type LegislationCard,
 } from "@/lib/legislation";
 import type { AcademicArticle } from "@/lib/connectors/openalex";
+import { CBO_OCCUPATION_LABELS } from "@/lib/occupation-catalog";
+import { SERGIPE_MUNICIPALITIES } from "@/lib/sergipe-municipalities";
 import type { SalaryResearchSummary } from "@/lib/salary-research";
 
 type SalaryResearchResponse = SalaryResearchSummary & {
@@ -134,7 +136,6 @@ export default function MarketKnowledgePage() {
   const [occupationCode, setOccupationCode] = useState("");
   const [state, setState] = useState("SE");
   const [municipality, setMunicipality] = useState("Aracaju");
-  const [category, setCategory] = useState("");
   const [announced, setAnnounced] = useState<AnnouncedMarketSummary | null>(
     null,
   );
@@ -157,18 +158,14 @@ export default function MarketKnowledgePage() {
   const [articlesLoading, setArticlesLoading] = useState(true);
   const [articlesError, setArticlesError] = useState(false);
 
-  async function loadAnnounced(
-    scope: { municipality?: string; category?: string } = {},
-  ) {
+  async function loadAnnounced(scope: { municipality?: string } = {}) {
     const selectedMunicipality = scope.municipality ?? municipality;
-    const selectedCategory = scope.category ?? category;
     setAnnouncedLoading(true);
     setAnnouncedError(false);
     try {
       const params = new URLSearchParams();
       if (selectedMunicipality)
         params.set("municipality", selectedMunicipality);
-      if (selectedCategory) params.set("category", selectedCategory);
       const response = await fetch(
         `/api/market/announced?${params.toString()}`,
       );
@@ -231,19 +228,16 @@ export default function MarketKnowledgePage() {
     const context = params.get("context");
     const nextTab = params.get("tab") as MarketTab | null;
     const nextMunicipality = params.get("municipality") ?? "Aracaju";
-    const nextCategory = params.get("category") ?? "";
     const nextProfession = params.get("profession") ?? "";
     const nextQuery = params.get("q") ?? "";
     if (nextTab && tabs.some((tab) => tab.id === nextTab))
       setActiveTab(nextTab);
     setProfession(nextProfession);
     setMunicipality(nextMunicipality);
-    setCategory(nextCategory);
     setArticleQuery(nextQuery);
     if (context) setActiveTab("legislation");
     void loadAnnounced({
       municipality: nextMunicipality,
-      category: nextCategory,
     });
     void loadArticles("Mercado de trabalho", nextQuery);
     // The initial URL is the source of truth for the first requests.
@@ -340,36 +334,22 @@ export default function MarketKnowledgePage() {
                     </div>
                     <Info size={18} className="text-blue" />
                   </div>
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-5">
                     <label className="text-sm font-bold text-navy">
-                      Município
+                      Município dos anúncios
                       <select
-                        aria-label="Município da média anunciada"
+                        aria-label="Município dos anúncios salariais"
                         value={municipality}
                         onChange={(event) =>
                           setMunicipality(event.target.value)
                         }
                         className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-3 font-normal"
                       >
-                        <option>Aracaju</option>
-                        <option>Lagarto</option>
-                        <option>Nossa Senhora do Socorro</option>
-                      </select>
-                    </label>
-                    <label className="text-sm font-bold text-navy">
-                      Categoria OFLIX
-                      <select
-                        aria-label="Categoria da média anunciada"
-                        value={category}
-                        onChange={(event) => setCategory(event.target.value)}
-                        className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-3 font-normal"
-                      >
-                        <option value="">Todas as categorias</option>
-                        <option>Operações</option>
-                        <option>Atendimento</option>
-                        <option>Logística</option>
-                        <option>Comunicação</option>
-                        <option>Educação</option>
+                        {SERGIPE_MUNICIPALITIES.map((item) => (
+                          <option key={item.ibgeCode} value={item.name}>
+                            {item.name}
+                          </option>
+                        ))}
                       </select>
                     </label>
                   </div>
@@ -388,7 +368,7 @@ export default function MarketKnowledgePage() {
                           : "Atualizar recorte"}
                     </button>
                     <span className="self-center text-xs font-semibold text-[#718291]">
-                      Categoria OFLIX: {category || "Todas as categorias"}
+                      Base pública de anúncios · profissão não inferida
                     </span>
                   </div>
                   {announcedError && (
@@ -410,9 +390,8 @@ export default function MarketKnowledgePage() {
                         {announcedSummaryLabel(announced)}
                       </p>
                       <p className="mt-3 text-sm leading-6 text-[#637688]">
-                        Base OFLIX · Município: {municipality} · Categoria
-                        OFLIX: {category || "Todas as categorias"}. Não
-                        representa o salário médio da profissão no mercado.
+                        Base OFLIX · Município: {municipality}. Não representa o
+                        salário médio da profissão no mercado.
                       </p>
                       <details className="mt-4 text-sm text-[#637688]">
                         <summary className="cursor-pointer font-bold text-blue">
@@ -460,8 +439,17 @@ export default function MarketKnowledgePage() {
                       );
                     }}
                     placeholder="Ex.: Eletricista"
+                    list="cbo-occupation-options"
                     className="mt-2 w-full rounded-lg border border-[#e5d5ac] bg-white px-3 py-3 font-normal"
                   />
+                  <datalist id="cbo-occupation-options">
+                    {CBO_OCCUPATION_LABELS.map((label) => (
+                      <option key={label} value={label} />
+                    ))}
+                  </datalist>
+                  <span className="mt-1 block text-xs font-normal text-[#718291]">
+                    Aceita nome oficial ou sinônimo da CBO.
+                  </span>
                 </label>
                 <label className="mt-4 block text-sm font-bold text-navy">
                   Código CBO
@@ -489,6 +477,24 @@ export default function MarketKnowledgePage() {
                     <option value="SE">Sergipe</option>
                     <option value="BR">Brasil</option>
                   </select>
+                </label>
+                <label className="mt-4 block text-sm font-bold text-navy">
+                  Município da pesquisa salarial
+                  <select
+                    aria-label="Município da pesquisa salarial"
+                    value={municipality}
+                    onChange={(event) => setMunicipality(event.target.value)}
+                    className="mt-2 w-full rounded-lg border border-[#e5d5ac] bg-white px-3 py-3 font-normal"
+                  >
+                    {SERGIPE_MUNICIPALITIES.map((item) => (
+                      <option key={item.ibgeCode} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-xs font-normal text-[#718291]">
+                    Cadastro oficial IBGE · 75 municípios de Sergipe.
+                  </span>
                 </label>
                 <button
                   type="button"
@@ -570,6 +576,16 @@ export default function MarketKnowledgePage() {
                       >
                         Amostra pequena: não trate este resultado como benchmark
                         robusto.
+                      </p>
+                    )}
+                    {salaryResearch.incomplete && (
+                      <p
+                        role="status"
+                        className="mt-4 text-sm font-semibold text-[#76531c]"
+                      >
+                        O resultado é provisório: uma ou mais fontes externas
+                        excederam o prazo de coleta. Os dados exibidos não
+                        representam uma média oficial.
                       </p>
                     )}
                   </div>

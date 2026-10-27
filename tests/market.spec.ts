@@ -81,6 +81,12 @@ test("Mercado & Conhecimento diferencia média anunciada e fonte oficial", async
   await expect(page.getByLabel("Estado da pesquisa salarial")).toHaveValue(
     "SE",
   );
+  await expect(page.getByLabel("Município da pesquisa salarial")).toHaveValue(
+    "Aracaju",
+  );
+  await expect(
+    page.getByLabel("Município da pesquisa salarial").locator("option"),
+  ).toHaveCount(75);
   await page
     .getByRole("button", { name: "Legislação para trabalho e negócios" })
     .click();
@@ -179,17 +185,13 @@ test("comparar com o mercado preserva município e categoria OFLIX", async ({
   await expect(page).toHaveURL(
     /tab=salary.*category=Opera%C3%A7%C3%B5es.*municipality=Aracaju/,
   );
-  await expect(page.getByLabel("Categoria da média anunciada")).toHaveValue(
-    "Operações",
+  await expect(page.getByLabel("Município da pesquisa salarial")).toHaveValue(
+    "Aracaju",
   );
   await expect(
-    page.getByText("Categoria OFLIX: Operações", { exact: true }),
+    page.getByText(/Base pública de anúncios · profissão não inferida/),
   ).toBeVisible();
-  await expect(
-    page.getByText(
-      /Base OFLIX · Município: Aracaju · Categoria OFLIX: Operações/,
-    ),
-  ).toBeVisible();
+  await expect(page.getByLabel("Categoria da média anunciada")).toHaveCount(0);
 });
 
 test("detalhes conectam estágio, licitação e voluntariado à legislação contextual", async ({

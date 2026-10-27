@@ -1,11 +1,33 @@
 import { expect, test } from "@playwright/test";
 import { calculateSalaryResearch } from "../lib/salary-research";
 import type { DiscoveryItem } from "../lib/domain";
+import { findOccupationReference } from "../lib/occupation-catalog";
+import { SERGIPE_MUNICIPALITIES } from "../lib/sergipe-municipalities";
 
-const item = (id: string, overrides: Partial<DiscoveryItem> = {}): DiscoveryItem => ({ id, kind: "external_job", title: "Eletricista", description: "", category: "Manutenção", provider: "Fonte", location: { state: "SE", municipality: "Aracaju" }, source: "GO_SERGIPE", sourceLabel: "GO Sergipe", tags: [], ...overrides });
+const item = (
+  id: string,
+  overrides: Partial<DiscoveryItem> = {},
+): DiscoveryItem => ({
+  id,
+  kind: "external_job",
+  title: "Eletricista",
+  description: "",
+  category: "Manutenção",
+  provider: "Fonte",
+  location: { state: "SE", municipality: "Aracaju" },
+  source: "GO_SERGIPE",
+  sourceLabel: "GO Sergipe",
+  tags: [],
+  ...overrides,
+});
 
 test("salários ausentes não viram zero e a mediana usa somente mensal", () => {
-  const result = calculateSalaryResearch([item("1", { salaryMin: 1000, salaryPeriod: "MONTHLY" }), item("2", { salaryMin: 3000, salaryPeriod: "MONTHLY" }), item("3"), item("4", { salaryMin: 20, salaryPeriod: "HOURLY" })]);
+  const result = calculateSalaryResearch([
+    item("1", { salaryMin: 1000, salaryPeriod: "MONTHLY" }),
+    item("2", { salaryMin: 3000, salaryPeriod: "MONTHLY" }),
+    item("3"),
+    item("4", { salaryMin: 20, salaryPeriod: "HOURLY" }),
+  ]);
   expect(result.publications).toBe(4);
   expect(result.withPublishedRemuneration).toBe(3);
   expect(result.monthlyComparable).toBe(2);
@@ -14,31 +36,111 @@ test("salários ausentes não viram zero e a mediana usa somente mensal", () => 
 });
 
 test("ocupação e município filtram o recorte", () => {
-  const result = calculateSalaryResearch([item("1", { title: "Assistente administrativo", occupationLabel: "Assistente administrativo", salaryMin: 2000, salaryPeriod: "MONTHLY" }), item("2", { title: "Eletricista", salaryMin: 2500, location: { state: "SE", municipality: "Lagarto" } })], { occupation: "Assistente administrativo", municipality: "Aracaju" });
+  const result = calculateSalaryResearch(
+    [
+      item("1", {
+        title: "Assistente administrativo",
+        occupationLabel: "Assistente administrativo",
+        salaryMin: 2000,
+        salaryPeriod: "MONTHLY",
+      }),
+      item("2", {
+        title: "Eletricista",
+        salaryMin: 2500,
+        location: { state: "SE", municipality: "Lagarto" },
+      }),
+    ],
+    { occupation: "Assistente administrativo", municipality: "Aracaju" },
+  );
   expect(result.publications).toBe(1);
   expect(result.medianMonthly).toBe(2000);
 });
 
 test("GO raw salary is published but unknown period stays out of monthly statistics", () => {
-  const result = calculateSalaryResearch([item("1", { salary: "R$ 1.600,00" })]);
+  const result = calculateSalaryResearch([
+    item("1", { salary: "R$ 1.600,00" }),
+  ]);
   expect(result.withPublishedRemuneration).toBe(1);
   expect(result.monthlyComparable).toBe(0);
   expect(result.medianMonthly).toBeNull();
 });
 
 test("specific occupation does not silently resolve a family or unknown query", () => {
-  const items = [item("1", { title: "Assistente administrativo", occupationLabel: "Assistente administrativo" }), item("2", { title: "Auxiliar administrativo", occupationLabel: "Auxiliar administrativo" })];
-  expect(calculateSalaryResearch(items, { occupation: "Administração" }).occupationResolution).toBe("not_found");
-  expect(calculateSalaryResearch(items, { occupation: "Assistente administrativo" }).occupationResolution).toBe("resolved");
-  expect(calculateSalaryResearch(items, { occupation: "Pessoa inexistente" }).occupationResolution).toBe("not_found");
+  const items = [
+    item("1", {
+      title: "Assistente administrativo",
+      occupationLabel: "Assistente administrativo",
+    }),
+    item("2", {
+      title: "Auxiliar administrativo",
+      occupationLabel: "Auxiliar administrativo",
+    }),
+  ];
+  expect(
+    calculateSalaryResearch(items, { occupation: "Administração" })
+      .occupationResolution,
+  ).toBe("not_found");
+  expect(
+    calculateSalaryResearch(items, { occupation: "Assistente administrativo" })
+      .occupationResolution,
+  ).toBe("resolved");
+  expect(
+    calculateSalaryResearch(items, { occupation: "Pessoa inexistente" })
+      .occupationResolution,
+  ).toBe("not_found");
 });
 
 test("CBO, estado e município são filtros independentes", () => {
   const items = [
-    item("se", { occupationCode: "411010", salaryMin: 2200, salaryPeriod: "MONTHLY" }),
-    item("br", { occupationCode: "411010", salaryMin: 3000, salaryPeriod: "MONTHLY", location: { state: "SP", municipality: "São Paulo" } }),
+    item("se", {
+      occupationCode: "411010",
+      salaryMin: 2200,
+      salaryPeriod: "MONTHLY",
+    }),
+    item("br", {
+      occupationCode: "411010",
+      salaryMin: 3000,
+      salaryPeriod: "MONTHLY",
+      location: { state: "SP", municipality: "São Paulo" },
+    }),
   ];
-  const result = calculateSalaryResearch(items, { occupationCode: "411010", state: "SE", municipality: "Aracaju" });
+  const result = calculateSalaryResearch(items, {
+    occupationCode: "411010",
+    state: "SE",
+    municipality: "Aracaju",
+  });
   expect(result.publications).toBe(1);
   expect(result.medianMonthly).toBe(2200);
+});
+
+test("catálogo CBO resolve nome, sinônimo e código sem depender de vagas", () => {
+  expect(findOccupationReference("assistente de escritório")?.cbo).toBe(
+    "411010",
+  );
+  expect(findOccupationReference(undefined, "4110-10")?.label).toBe(
+    "Assistente administrativo",
+  );
+  expect(
+    calculateSalaryResearch([], {
+      occupation: "Eletricista",
+      municipality: "Canindé de São Francisco",
+    }),
+  ).toMatchObject({
+    publications: 0,
+    occupationResolution: "resolved",
+    query: {
+      occupation: "Eletricista",
+      municipality: "Canindé de São Francisco",
+    },
+  });
+});
+
+test("catálogo IBGE mantém os 75 municípios de Sergipe selecionáveis sem vagas", () => {
+  expect(SERGIPE_MUNICIPALITIES).toHaveLength(75);
+  expect(SERGIPE_MUNICIPALITIES).toEqual(
+    expect.arrayContaining([
+      { ibgeCode: "2800100", name: "Amparo do São Francisco" },
+      { ibgeCode: "2807600", name: "Umbaúba" },
+    ]),
+  );
 });

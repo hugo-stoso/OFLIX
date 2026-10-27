@@ -1,14 +1,64 @@
 import { NextResponse } from "next/server";
 import { listOpportunities } from "@/lib/db";
-import { fetchExternalJobs } from "@/lib/connectors/external-jobs";
+import {
+  fetchExternalJobs,
+  type ExternalJobsResult,
+} from "@/lib/connectors/external-jobs";
 import { internalToDiscoveryItem } from "@/lib/discovery";
 import { calculateSalaryResearch } from "@/lib/salary-research";
 import { getOfficialSalaryStatus } from "@/lib/official-market";
 
 export const runtime = "nodejs";
+
+const EXTERNAL_RESEARCH_DEADLINE_MS = 10_000;
+
+function timedOutExternalJobs(): ExternalJobsResult {
+  const collectedAt = new Date().toISOString();
+  return {
+    items: [],
+    source: "ALL",
+    provider: "Fontes externas",
+    collectedAt,
+    stale: true,
+    partial: true,
+    pages: 0,
+    error: "A coleta externa excedeu o prazo desta pesquisa.",
+    sources: [
+      ["GO_SERGIPE", "GO Sergipe"],
+      ["EMPREGAJU", "EmpregAju"],
+      ["IEL_SERGIPE", "IEL Sergipe"],
+    ].map(([source, provider]) => ({
+      source: source as "GO_SERGIPE" | "EMPREGAJU" | "IEL_SERGIPE",
+      provider,
+      enabled: true,
+      count: 0,
+      stale: true,
+      partial: true,
+      pages: 0,
+      error: "Tempo limite da coleta externa.",
+    })),
+  };
+}
+
+async function fetchExternalForResearch(): Promise<ExternalJobsResult> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const external = fetchExternalJobs({ source: "all" });
+  const deadline = new Promise<ExternalJobsResult>((resolve) => {
+    timeout = setTimeout(
+      () => resolve(timedOutExternalJobs()),
+      EXTERNAL_RESEARCH_DEADLINE_MS,
+    );
+  });
+  try {
+    return await Promise.race([external, deadline]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const external = await fetchExternalJobs({ source: "all" });
+  const external = await fetchExternalForResearch();
   const internal = listOpportunities().formal.map(internalToDiscoveryItem);
   const query = {
     occupation: url.searchParams.get("occupation") ?? undefined,
