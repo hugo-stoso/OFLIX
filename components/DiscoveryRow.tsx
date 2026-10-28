@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, ExternalLink, MapPin } from "lucide-react";
 import { formatCompensation } from "@/lib/compensation";
 import { DISCOVERY_KIND_LABELS, type DiscoveryItem } from "@/lib/domain";
+import type { OpportunityCompatibility } from "@/lib/ai/opportunities";
 
 function formatDate(value?: string) {
   if (!value) return "";
@@ -30,7 +31,7 @@ function externalDetailPath(item: DiscoveryItem) {
   return source ? `/external-job/${source}/${encodeURIComponent(item.sourceId)}` : undefined;
 }
 
-export function DiscoveryRow({ item, reason, returnTo }: { item: DiscoveryItem; reason?: string[]; returnTo?: string }) {
+export function DiscoveryRow({ item, reason, returnTo, compatibility }: { item: DiscoveryItem; reason?: string[]; returnTo?: string; compatibility?: OpportunityCompatibility }) {
   const isInternal = item.source === "OFLIX";
   const detailPath = externalDetailPath(item);
   const label = DISCOVERY_KIND_LABELS[item.kind];
@@ -60,6 +61,7 @@ export function DiscoveryRow({ item, reason, returnTo }: { item: DiscoveryItem; 
       {item.updatedAt && <span>Atualizada em {formatDate(item.updatedAt)}</span>}
       {item.lastVerifiedAt && <span>Verificada em {formatDate(item.lastVerifiedAt)}</span>}
     </div>
+    {compatibility ? <div className="mt-4 rounded-lg border border-[#c9dce8] bg-[#f5fafc] p-3 text-xs leading-5 text-[#52687a]" data-testid="compatibility-result"><p className="font-bold text-navy">Compatibilidade indicativa: {compatibility.level}{compatibility.level !== "Indeterminada" ? ` · ${compatibility.score}%` : ""}</p>{compatibility.matchedSignals.length ? <p className="mt-1"><strong>Coincidências:</strong> {compatibility.matchedSignals.join(", ")}</p> : null}{compatibility.gaps.length ? <p className="mt-1"><strong>Pontos para conferir:</strong> {compatibility.gaps.join(" ")}</p> : null}{compatibility.unknowns.length ? <details className="mt-1"><summary className="cursor-pointer font-bold text-blue">Limitações da comparação</summary><ul className="mt-1 list-disc space-y-1 pl-4">{compatibility.unknowns.map((unknown) => <li key={unknown}>{unknown}</li>)}</ul></details> : null}</div> : null}
     {reason?.length ? <details className="mt-3 text-xs text-[#607286]"><summary className="cursor-pointer font-bold text-blue">Por que apareceu para você?</summary><ul className="mt-2 list-disc space-y-1 pl-5">{reason.map((line) => <li key={line}>{line}</li>)}</ul></details> : null}
   </>;
   return <article className="group grid gap-4 border-b border-line py-6 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">

@@ -3,6 +3,7 @@
 import { Filter, Search, X } from "lucide-react";
 import { useState } from "react";
 import type { DiscoveryFilterKind, OpportunityOrigin } from "@/lib/domain";
+import type { NaturalSearchInterpretation } from "@/lib/ai/opportunities";
 
 type Props = {
   filterKind: DiscoveryFilterKind;
@@ -44,9 +45,10 @@ type Props = {
   onPcdOnly: (value: boolean) => void;
   onFavoritesOnly: (value: boolean) => void;
   onClear: () => void;
+  interpretation?: NaturalSearchInterpretation;
 };
 
-export function OpportunityFilters({ filterKind, search, category, municipality, modality, education, status, officialType, origin, source, contractType, salaryMinimum, publishedSince, pcdOnly, favoritesOnly, categories, municipalities, modalities, educations, statuses, officialTypes, origins, sources, contractTypes, onSearch, onCategory, onMunicipality, onModality, onEducation, onStatus, onOfficialType, onOrigin, onSource, onContractType, onSalaryMinimum, onPublishedSince, onPcdOnly, onFavoritesOnly, onClear }: Props) {
+export function OpportunityFilters({ filterKind, search, category, municipality, modality, education, status, officialType, origin, source, contractType, salaryMinimum, publishedSince, pcdOnly, favoritesOnly, categories, municipalities, modalities, educations, statuses, officialTypes, origins, sources, contractTypes, onSearch, onCategory, onMunicipality, onModality, onEducation, onStatus, onOfficialType, onOrigin, onSource, onContractType, onSalaryMinimum, onPublishedSince, onPcdOnly, onFavoritesOnly, onClear, interpretation }: Props) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const hasFilters = Boolean(search || category || municipality || modality || education || status || officialType || origin !== "all" || source || contractType || salaryMinimum || publishedSince || pcdOnly || favoritesOnly);
   const showModality = filterKind === "employment" || filterKind === "course";
@@ -60,6 +62,7 @@ export function OpportunityFilters({ filterKind, search, category, municipality,
       <label className="relative block min-w-0 flex-1"><span className="sr-only">Pesquisar oportunidade</span><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#7a8b98]" /><input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Buscar profissão, atividade ou oportunidade" className="min-h-11 w-full rounded-lg border border-line bg-white py-3 pl-9 pr-3 text-sm text-navy placeholder:text-[#91a0aa]" /></label>
       <button type="button" className="button-secondary shrink-0 px-3 sm:hidden" aria-expanded={filtersOpen} onClick={() => setFiltersOpen((open) => !open)}><Filter size={16} /> <span className="sr-only sm:not-sr-only">Filtros</span></button>
     </div>
+    {interpretation?.summary ? <p className="mt-3 rounded-lg border border-[#d5e4ec] bg-[#f5fafc] p-3 text-xs leading-5 text-[#52687a]" role="status"><strong className="text-navy">Busca interpretada:</strong> {interpretation.summary}. A busca usa profissão/tema, município, habilidades e interesses informados no texto.</p> : null}
     <div className={`${filtersOpen ? "mt-4" : "hidden sm:grid sm:mt-4"} gap-3 md:grid-cols-2 lg:grid-cols-4`}>
       <label className="lg:col-span-2"><span className="sr-only">Filtrar por categoria</span><select aria-label="Filtrar por categoria" value={category} onChange={(event) => onCategory(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy"><option value="">Todas as categorias</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
       <label><span className="sr-only">Filtrar por município</span><select aria-label="Filtrar por município" value={municipality} onChange={(event) => onMunicipality(event.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-white px-3 py-3 text-sm text-navy"><option value="">Todos os municípios</option>{municipalities.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
