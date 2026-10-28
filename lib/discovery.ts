@@ -150,11 +150,32 @@ function classifyProcurement(text: string) {
   return "Serviços empresariais";
 }
 
-function pncpPortalUrl(record: Record<string, unknown>) {
-  const cnpj = textValue(record, "niFornecedor", "cnpj");
-  const ano = textValue(record, "anoCompra", "ano");
-  const sequencial = textValue(record, "sequencialCompra", "sequencial");
-  return cnpj && ano && sequencial ? `https://pncp.gov.br/app/editais/${cnpj}/${ano}/${sequencial}` : "https://pncp.gov.br/app/consultas/contratacoes";
+function integerValue(record: Record<string, unknown>, ...keys: string[]) {
+  const value = textValue(record, ...keys);
+  if (!/^\d+$/u.test(value)) return undefined;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
+}
+
+function normalizeCnpj(value: string) {
+  const digits = value.replace(/\D/gu, "");
+  return digits.length === 14 ? digits : undefined;
+}
+
+function httpsUrl(record: Record<string, unknown>, ...keys: string[]) {
+  const value = textValue(record, ...keys);
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function pncpProcurementUrl(cnpj?: string, year?: number, sequence?: number) {
+  if (!cnpj || !/^\d{14}$/u.test(cnpj) || !year || !/^\d{4}$/u.test(String(year)) || !sequence || sequence < 1) return undefined;
+  return `https://pncp.gov.br/app/editais/${cnpj}/${year}/${sequence}`;
 }
 
 export function normalizePncpRecord(record: Record<string, unknown>): DiscoveryItem | null {
@@ -165,7 +186,18 @@ export function normalizePncpRecord(record: Record<string, unknown>): DiscoveryI
   const state = textValue(record, "ufSigla") || nestedText(record, ["unidadeOrgao", "ufSigla"]) || "SE";
   const officialType = textValue(record, "modalidadeNome", "modalidadeContratacaoNome") || nestedText(record, ["modalidadeContratacao", "nome"]) || "Forma de contratação informada pelo PNCP";
   const sourceId = textValue(record, "numeroControlePNCP", "numeroControlePNCPCompra") || undefined;
-  const deadline = textValue(record, "dataFimRecebimentoPropostas", "dataEncerramentoPropostas", "dataFimPropostas") || undefined;
+  const publicBodyCnpj = normalizeCnpj(nestedText(record, ["orgaoEntidade", "cnpj"]) || textValue(record, "cnpjOrgao"));
+  const procurementYear = integerValue(record, "anoCompra", "ano");
+  const procurementSequence = integerValue(record, "sequencialCompra", "sequencial");
+  const procurementUrl = pncpProcurementUrl(publicBodyCnpj, procurementYear, procurementSequence);
+  const editalUrl = httpsUrl(record, "linkEdital", "urlEdital", "editalUrl");
+  const documentsUrl = httpsUrl(record, "linkDocumentos", "urlDocumentos", "documentosUrl");
+  const sourceSystemUrl = httpsUrl(record, "linkSistemaOrigem");
+  const electronicProcessUrl = httpsUrl(record, "linkProcessoEletronico");
+  const procurementLinks = procurementUrl || editalUrl || documentsUrl || sourceSystemUrl || electronicProcessUrl
+    ? { procurement: procurementUrl, edital: editalUrl, documents: documentsUrl, sourceSystem: sourceSystemUrl, electronicProcess: electronicProcessUrl }
+    : undefined;
+  const deadline = textValue(record, "dataEncerramentoProposta", "dataFimRecebimentoPropostas", "dataEncerramentoPropostas", "dataFimPropostas") || undefined;
   return {
     id: `pncp-${sourceId ?? `${state}-${municipality}-${title}`.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`,
     kind: "public_procurement",
@@ -177,7 +209,13 @@ export function normalizePncpRecord(record: Record<string, unknown>): DiscoveryI
     source: "PNCP",
     sourceLabel: "PNCP · consulta pública oficial",
     sourceId,
-    sourceUrl: pncpPortalUrl(record),
+    sourceUrl: procurementUrl,
+    publicBodyCnpj,
+    procurementYear,
+    procurementSequence,
+    processNumber: textValue(record, "processo", "numeroProcesso") || undefined,
+    pncpControlNumber: sourceId,
+    procurementLinks,
     publishedAt: textValue(record, "dataPublicacaoPncp", "dataPublicacao") || undefined,
     updatedAt: textValue(record, "dataAtualizacao") || undefined,
     collectedAt: new Date().toISOString(),

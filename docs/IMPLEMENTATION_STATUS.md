@@ -87,8 +87,8 @@
 
 ## PARCIAL
 
-- Concursos, processos seletivos, cursos e contratações públicas continuam DEMO DATA.
-- O adapter PNCP está implementado e isolado, mas a disponibilidade e o comportamento da API em cada ambiente de deploy ainda precisam de validação operacional contínua; o fallback DEMO DATA é o estado determinístico padrão.
+- Concursos, processos seletivos e cursos continuam DEMO DATA. Contratações públicas podem ser atualizadas explicitamente pela consulta oficial do PNCP.
+- O adapter PNCP está implementado e isolado; URLs específicas de licitação usam CNPJ do órgão + ano + sequencial, sem fallback genérico. A UI separa processo, edital, documentos, sistema de origem e processo eletrônico e informa quando edital/documentos não são fornecidos pelo registro. A disponibilidade da API em cada ambiente de deploy continua sujeita a validação operacional; DEMO DATA permanece o estado determinístico padrão.
 - A deduplicação existe na normalização em memória por fonte/identificador e sinais conservadores; ainda não há agrupamento persistido nem histórico de decisões.
 - Vagas Sergipe: `PENDENTE` após auditoria pública; falta feed estruturado e confirmação de escopo/licença para coleta automática.
 - Oficial News: `DESCARTADO` nesta rodada por acesso inconsistente/403 e ausência de canal estruturado estável.

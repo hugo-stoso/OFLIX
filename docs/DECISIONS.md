@@ -12,7 +12,7 @@ As três frentes permanecem como entidades semânticas separadas. `Interaction` 
 
 Foi escolhida uma camada `DiscoveryItem` somente para indexação e apresentação. Cursos, concursos/processos seletivos, vagas externas e contratações públicas não são forçados para as tabelas operacionais das três frentes. A proveniência é obrigatória: fonte, rótulo, identificador, URL oficial/canônica e datas são preservados quando disponíveis.
 
-O provider PNCP fica isolado em `lib/connectors/pncp.ts`, no servidor, com timeout, cache curto, normalização e fallback. A experiência usa DEMO DATA por padrão para ser determinística e não representar dados fictícios como oficiais; uma atualização explícita pode consultar a API pública oficial. ComprasNet.SE e outras fontes não foram integradas sem documentação ou autorização pública suficiente.
+O provider PNCP fica isolado em `lib/connectors/pncp.ts`, no servidor, com timeout, cache curto, normalização e fallback. A experiência usa DEMO DATA por padrão para ser determinística e não representar dados fictícios como oficiais; uma atualização explícita consulta a API pública oficial. Para cada contratação, a URL principal só é criada quando o CNPJ do órgão (`orgaoEntidade.cnpj`), `anoCompra` e `sequencialCompra` são válidos, usando a rota específica documentada do PNCP. `linkSistemaOrigem` e `linkProcessoEletronico` permanecem ações separadas; edital e documentos só aparecem quando a própria fonte entrega URLs específicas. Não há fallback para a consulta genérica do portal. ComprasNet.SE e outras fontes não foram integradas sem documentação ou autorização pública suficiente.
 
 ### GO Sergipe como fonte pública externa
 

@@ -77,6 +77,13 @@ export const PUBLIC_PROCUREMENT_CATEGORIES = [
 ] as const;
 
 export type DiscoveryLocation = { state: string; municipality: string; district?: string };
+export type ProcurementLinks = {
+  procurement?: string;
+  edital?: string;
+  documents?: string;
+  sourceSystem?: string;
+  electronicProcess?: string;
+};
 export type PcdAvailability = "exclusive" | "also_available" | "not_specified";
 export type JobDetailField =
   | "requirements"
@@ -124,6 +131,12 @@ export type DiscoveryItem = {
   sourceJobId?: string;
   sourceUrl?: string;
   applicationUrl?: string;
+  publicBodyCnpj?: string;
+  procurementYear?: number;
+  procurementSequence?: number;
+  processNumber?: string;
+  pncpControlNumber?: string;
+  procurementLinks?: ProcurementLinks;
   publishedAt?: string;
   updatedAt?: string;
   collectedAt?: string;
