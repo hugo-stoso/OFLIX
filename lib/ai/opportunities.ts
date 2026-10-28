@@ -60,8 +60,33 @@ const KIND_TERMS: Array<{ terms: string[]; kinds: DiscoveryKind[] }> = [
   { terms: ["emprego", "empregos", "vaga", "vagas", "clt", "estágio", "estagio", "trabalho formal"], kinds: ["formal", "external_job"] },
 ];
 
+const OCCUPATION_SEARCH_ALIASES: Array<{ queryTerms: string[]; itemTerms: string[] }> = [
+  { queryTerms: ["contador", "contabilidade", "contabil", "contabilista"], itemTerms: ["contador", "contabilidade", "contabil", "contabilista"] },
+  { queryTerms: ["assistente administrativo", "auxiliar administrativo", "assistente de escritorio", "auxiliar de escritorio", "escriturario"], itemTerms: ["assistente administrativo", "auxiliar administrativo", "assistente de escritorio", "auxiliar de escritorio", "escriturario"] },
+  { queryTerms: ["motorista", "condutor", "motorista de entrega", "motorista carreteiro"], itemTerms: ["motorista", "condutor", "motorista de entrega", "motorista carreteiro", "entregador"] },
+  { queryTerms: ["enfermeiro", "enfermagem", "tecnico de enfermagem", "auxiliar de enfermagem"], itemTerms: ["enfermeiro", "enfermagem", "tecnico de enfermagem", "auxiliar de enfermagem"] },
+];
+
+const GENERIC_PROFILE_SIGNALS = new Set(["candidato", "formal", "voluntario", "voluntariado", "pessoa", "profissional", "servico", "servicos", "autonomo", "autonomos"]);
+
 function normalized(value: string) {
   return value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function phraseInText(text: string, phrase: string) {
+  const normalizePhrase = (value: string) => normalized(value).replace(/[^a-z0-9]+/giu, " ").replace(/\s+/g, " ").trim();
+  const normalizedText = ` ${normalizePhrase(text)} `;
+  const normalizedPhrase = ` ${normalizePhrase(phrase)} `;
+  return normalizedPhrase.trim().length > 0 && normalizedText.includes(normalizedPhrase);
+}
+
+function occupationGroupsForQuery(query: string) {
+  return OCCUPATION_SEARCH_ALIASES.filter((group) => group.queryTerms.some((term) => phraseInText(query, term)));
+}
+
+function occupationGroupForSignal(signal: string) {
+  const normalizedSignal = normalized(signal).replace(/\s+/g, " ").trim();
+  return OCCUPATION_SEARCH_ALIASES.find((group) => group.queryTerms.some((term) => normalized(term) === normalizedSignal));
 }
 
 function tokens(value: string) {
@@ -77,7 +102,13 @@ function itemText(item: DiscoveryItem) {
     item.title, item.description, item.category, item.provider, item.location.municipality, item.location.state, item.sourceLabel,
     ...(item.tags ?? []), item.requirements, item.responsibilities, item.experience, item.education, item.workMode, item.workSchedule,
     item.contractType, item.occupationLabel, ...(item.skills ?? []),
+    item.occupationCode,
   ].filter(Boolean).join(" "));
+}
+
+function itemMatchesSignal(item: DiscoveryItem, signal: string) {
+  const group = occupationGroupForSignal(signal);
+  return group ? group.itemTerms.some((term) => phraseInText(itemText(item), term)) : phraseInText(itemText(item), signal);
 }
 
 export function isVerifiedDiscoveryItem(item: DiscoveryItem) {
@@ -106,7 +137,10 @@ export function matchesNaturalSearch(item: DiscoveryItem, interpretation: Natura
   if (interpretation.municipality && normalized(item.location.municipality) !== normalized(interpretation.municipality)) return false;
   if (interpretation.kinds.length && !interpretation.kinds.some((kind) => kind === item.kind || (kind === "formal" && item.kind === "external_job"))) return false;
   const text = itemText(item);
-  return interpretation.terms.every((term) => text.includes(normalized(term)));
+  const occupationGroups = occupationGroupsForQuery(interpretation.query);
+  const occupationTerms = new Set(occupationGroups.flatMap((group) => group.queryTerms.flatMap((term) => tokens(term))));
+  const nonOccupationTerms = interpretation.terms.filter((term) => !occupationTerms.has(term));
+  return occupationGroups.every((group) => group.itemTerms.some((term) => phraseInText(text, term))) && nonOccupationTerms.every((term) => phraseInText(text, term));
 }
 
 function meaningfulProfileSignals(profile: IntelligenceProfile) {
@@ -115,7 +149,7 @@ function meaningfulProfileSignals(profile: IntelligenceProfile) {
     ...tokens(profile.capabilities),
     ...tokens(profile.courseName ?? ""),
     ...tokens(profile.specialization ?? ""),
-  ]).filter((signal) => normalized(signal).length >= 3);
+  ]).filter((signal) => normalized(signal).length >= 3 && !GENERIC_PROFILE_SIGNALS.has(normalized(signal)));
 }
 
 function preferenceMatches(item: DiscoveryItem, preferences: string[]) {
@@ -140,8 +174,7 @@ function profileEducationMatches(item: DiscoveryItem, profile: IntelligenceProfi
 
 export function analyzeOpportunityCompatibility(item: DiscoveryItem, profile: IntelligenceProfile): OpportunityCompatibility {
   const signals = meaningfulProfileSignals(profile);
-  const text = itemText(item);
-  const matchedSignals = signals.filter((signal) => text.includes(normalized(signal))).slice(0, 5);
+  const matchedSignals = signals.filter((signal) => itemMatchesSignal(item, signal)).slice(0, 5);
   const preferenceSignals = preferenceMatches(item, profile.workPreferences);
   const locationMatches = normalized(item.location.municipality) === normalized(profile.municipality);
   const educationMatches = profileEducationMatches(item, profile);
@@ -191,10 +224,12 @@ export function recommendationReasons(item: DiscoveryItem, compatibility: Opport
 }
 
 export function rankVerifiedRecommendations(items: DiscoveryItem[], profile: IntelligenceProfile): VerifiedRecommendation[] {
+  const profileSignals = meaningfulProfileSignals(profile);
+  const hasSpecificProfileSignals = profile.activities.length > 0 || Boolean(profile.courseName || profile.specialization) || profileSignals.some((signal) => tokens(profile.capabilities).includes(signal));
   return items.filter(isVerifiedDiscoveryItem).map((item) => {
     const compatibility = analyzeOpportunityCompatibility(item, profile);
     return { item, compatibility, reasons: recommendationReasons(item, compatibility, profile) };
-  }).sort((left, right) => right.compatibility.score - left.compatibility.score || Number(Boolean(right.item.publishedAt)) - Number(Boolean(left.item.publishedAt)) || left.item.title.localeCompare(right.item.title, "pt-BR")).slice(0, 8);
+  }).filter((recommendation) => !hasSpecificProfileSignals || recommendation.compatibility.matchedSignals.some((signal) => profileSignals.includes(signal) && itemMatchesSignal(recommendation.item, signal))).sort((left, right) => right.compatibility.score - left.compatibility.score || Number(Boolean(right.item.publishedAt)) - Number(Boolean(left.item.publishedAt)) || left.item.title.localeCompare(right.item.title, "pt-BR")).slice(0, 8);
 }
 
 export function verifiedOpportunityLimitations(items: DiscoveryItem[]) {

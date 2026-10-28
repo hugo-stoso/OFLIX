@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { listProfiles } from "@/lib/db";
 import { fetchExternalJobs } from "@/lib/connectors/external-jobs";
-import { profileFromInput, rankVerifiedRecommendations, verifiedOpportunityLimitations, type IntelligenceProfile } from "@/lib/ai/opportunities";
+import { isVerifiedDiscoveryItem, profileFromInput, rankVerifiedRecommendations, verifiedOpportunityLimitations, type IntelligenceProfile } from "@/lib/ai/opportunities";
 
 export const runtime = "nodejs";
 
@@ -37,6 +37,9 @@ export async function GET(request: Request) {
   const collected = await fetchExternalJobs({ source: "all" });
   const recommendations = rankVerifiedRecommendations(collected.items, intelligence);
   const limitations = verifiedOpportunityLimitations(collected.items.filter((item) => item.demo !== true));
+  if (!recommendations.length && (intelligence.activities.length > 0 || intelligence.courseName || intelligence.specialization) && collected.items.some(isVerifiedDiscoveryItem)) {
+    limitations.push("Nenhuma oportunidade verificável correspondeu às profissões, áreas ou habilidades informadas neste perfil; o OFLIX não substitui a ausência por uma profissão diferente.");
+  }
   return NextResponse.json({
     recommendations,
     limitations,

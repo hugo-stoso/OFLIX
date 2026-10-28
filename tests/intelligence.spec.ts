@@ -64,3 +64,32 @@ test("compatibilidade informa quando os dados do perfil não bastam", async () =
   expect(answer.answer).toContain("oportunidade");
   expect(answer.matches).toHaveLength(1);
 });
+
+test("busca e recomendações mantêm a profissão específica, CBO, sinônimos e município", async () => {
+  const occupations: DiscoveryItem[] = [
+    { ...verifiedJob, id: "contador-aracaju", title: "Contador", occupationCode: "2522-10", occupationLabel: "Contador", category: "Contabilidade", tags: ["Contabilidade"] },
+    { ...verifiedJob, id: "assistente-aracaju", title: "Assistente administrativo", occupationLabel: "Assistente administrativo", category: "Administração", tags: ["Administrativo"] },
+    { ...verifiedJob, id: "motorista-aracaju", title: "Motorista", occupationLabel: "Motorista", category: "Logística", tags: ["Transporte"] },
+    { ...verifiedJob, id: "enfermeiro-aracaju", title: "Enfermeiro", occupationLabel: "Enfermeiro", category: "Saúde", tags: ["Enfermagem"] },
+    { ...verifiedJob, id: "consultor-vendas-aracaju", title: "Consultor de vendas", occupationLabel: "Consultor de vendas", category: "Atendimento e vendas", tags: ["Vendas"] },
+  ];
+
+  for (const occupation of [
+    ["contador", "contador-aracaju"],
+    ["assistente administrativo", "assistente-aracaju"],
+    ["motorista", "motorista-aracaju"],
+    ["enfermeiro", "enfermeiro-aracaju"],
+  ] as const) {
+    const [query, expectedId] = occupation;
+    const interpretation = interpretNaturalSearch(`${query} em Aracaju`, occupations);
+    expect(occupations.filter((item) => matchesNaturalSearch(item, interpretation)).map((item) => item.id)).toEqual([expectedId]);
+    const recommendations = rankVerifiedRecommendations(occupations, { ...profile, capabilities: query, activities: [query] });
+    expect(recommendations.map((item) => item.item.id)).toEqual([expectedId]);
+  }
+
+  const cbo = interpretNaturalSearch("2522-10 em Aracaju", occupations);
+  expect(occupations.filter((item) => matchesNaturalSearch(item, cbo)).map((item) => item.id)).toEqual(["contador-aracaju"]);
+  const noResults = buildDeterministicAssistantAnswer("há vagas de astrofísico nuclear em Aracaju?", occupations, { ...profile, capabilities: "astrofísico nuclear", activities: ["astrofísico nuclear"] });
+  expect(noResults.matches).toHaveLength(0);
+  expect(noResults.answer).toMatch(/Não encontrei/i);
+});

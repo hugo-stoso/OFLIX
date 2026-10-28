@@ -76,6 +76,20 @@ test("menu abre a área do Assistente IA e mantém o menu horizontal no mobile",
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
+test("consentimento mostra Gemini e identifica a redação usada", async ({ page }) => {
+  await page.route("**/api/intelligence/status", (route) => route.fulfill({ json: { deterministic: true, gemini: { available: true, consentRequired: true } } }));
+  await page.route("**/api/intelligence/assistant", (route) => route.fulfill({ json: { answer: "Resposta contextualizada com base nas oportunidades verificadas.", interpretedQuery: { query: "vagas de tecnologia em Aracaju", terms: ["tecnologia"], kinds: ["external_job"], summary: "tema/profissão: tecnologia · município: Aracaju" }, matches: [verifiedJob], facts: ["Analista de tecnologia · Aracaju · GO Sergipe."], limitations: ["Os fatos e cartões permanecem determinísticos."], mode: "gemini", gemini: { requested: true, available: true, used: true, reason: "used" }, sources: [], stale: false, partial: false } }));
+  await openPersonHome(page);
+  await page.getByRole("navigation", { name: "Navegação principal" }).locator('button:visible', { hasText: "Assistente IA" }).click();
+  const consent = page.getByRole("checkbox").first();
+  await expect(consent).toBeEnabled();
+  await consent.check();
+  await page.getByLabel("Pergunta para o Assistente OFLIX").fill("há vagas de tecnologia em Aracaju?");
+  await page.getByRole("button", { name: "Perguntar" }).click();
+  await expect(page.getByText("Redação com Gemini", { exact: true })).toBeVisible();
+  await expect(page.getByText("Resposta contextualizada com base nas oportunidades verificadas.", { exact: true })).toBeVisible();
+});
+
 test("busca natural mostra o recorte interpretado em desktop e mobile", async ({ page }) => {
   await openPersonHome(page);
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();

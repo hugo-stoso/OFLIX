@@ -104,7 +104,7 @@ export function filterExternalItems(items: DiscoveryItem[], query: { q?: string;
   const term = normalized(query.q?.trim() ?? "");
   const municipality = normalized(query.municipality?.trim() ?? "");
   return items.filter((item) => {
-    const haystack = normalized(`${item.title} ${item.description} ${item.provider} ${item.location.municipality} ${item.tags.join(" ")}`);
+    const haystack = normalized(`${item.title} ${item.description} ${item.provider} ${item.location.municipality} ${item.tags.join(" ")} ${item.occupationLabel ?? ""} ${item.occupationCode ?? ""}`);
     return (!term || haystack.includes(term)) && (!municipality || normalized(item.location.municipality) === municipality);
   });
 }
