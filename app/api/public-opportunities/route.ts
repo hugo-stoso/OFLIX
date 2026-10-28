@@ -10,8 +10,8 @@ export async function GET(request: Request) {
   if (!live) return NextResponse.json({ items: demoDiscoveryItems.filter((item) => item.kind === "public_procurement"), source: "DEMO_DATA", stale: false, provider: "PNCP", endpoint: pncpEndpoint() });
   try {
     const result = await fetchPncpOpportunities({ state: url.searchParams.get("state") ?? "SE", municipality: url.searchParams.get("municipality") ?? undefined, text: url.searchParams.get("text") ?? undefined });
-    return NextResponse.json({ ...result, provider: "PNCP", endpoint: pncpEndpoint() });
+    return NextResponse.json({ ...result, items: result.items.map((item) => ({ ...item, source: "PNCP" as const, demo: false })), provider: "PNCP", endpoint: pncpEndpoint(), fallback: false });
   } catch {
-    return NextResponse.json({ items: [], source: "PNCP", stale: true, error: "Não foi possível atualizar oportunidades públicas agora.", provider: "PNCP", endpoint: pncpEndpoint() }, { status: 502 });
+    return NextResponse.json({ items: demoDiscoveryItems.filter((item) => item.kind === "public_procurement").map((item) => ({ ...item, source: "DEMO_DATA" as const, demo: true })), source: "DEMO_DATA", stale: true, fallback: true, error: "Fonte PNCP indisponível; exibindo registros DEMO DATA identificados.", provider: "PNCP", endpoint: pncpEndpoint() });
   }
 }

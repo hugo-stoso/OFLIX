@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ArrowRight, BookOpen, Scale, TrendingUp } from "lucide-react";
 
 export type MarketAudience = "person" | "company" | "nonprofit" | "publicInstitution";
@@ -36,6 +35,18 @@ const teaserCopy: Record<MarketAudience, TeaserCopy> = {
 };
 
 const shortcuts: MarketShortcut[] = [
+  {
+    href: "/market/salaries",
+    title: "Pesquisa salarial",
+    actionLabel: "Ver pesquisa salarial",
+    icon: TrendingUp,
+    description: {
+      person: "Veja mediana e cobertura dos salários publicados.",
+      company: "Compare faixas salariais efetivamente divulgadas.",
+      nonprofit: "Consulte valores publicados sem falsa precisão.",
+      publicInstitution: "Leia a metodologia dos salários observados.",
+    },
+  },
   {
     href: "/market?tab=salary",
     title: "Salários e mercado",
@@ -85,18 +96,18 @@ export function MarketKnowledgeTeaser({ audience }: { audience: MarketAudience }
           <h2 id="market-knowledge-title" className="mt-2 max-w-[720px] text-xl font-bold tracking-[-.02em] text-navy sm:text-2xl">{copy.title}</h2>
           <p className="mt-2 max-w-[760px] text-sm leading-6 text-[#637688]">{copy.description}</p>
         </div>
-        <Link href="/market" className="subtle-link shrink-0">Explorar <ArrowRight size={16} /></Link>
+        <a href="/market" className="subtle-link shrink-0">Explorar <ArrowRight size={16} /></a>
       </div>
-      <nav className="mt-5 grid gap-0 sm:grid-cols-3 sm:divide-x sm:divide-line" aria-label="Atalhos de Mercado e Conhecimento">
+      <nav className="mt-5 grid gap-0 sm:grid-cols-4 sm:divide-x sm:divide-line" aria-label="Atalhos de Mercado e Conhecimento">
         {shortcuts.map(({ href, title, actionLabel, icon: Icon, description }) => (
-          <Link key={href} href={href} aria-label={actionLabel} className="group flex items-start gap-3 border-t border-line py-4 transition-colors hover:text-blue sm:border-t-0 sm:px-4 sm:first:pl-0 sm:last:pr-0">
+          <a key={href} href={href} aria-label={actionLabel} className="group flex items-start gap-3 border-t border-line py-4 transition-colors hover:text-blue sm:border-t-0 sm:px-4 sm:first:pl-0 sm:last:pr-0">
             <span className="mt-0.5 rounded-lg bg-[#edf6fb] p-2 text-blue"><Icon size={16} aria-hidden="true" /></span>
             <span className="min-w-0">
               <strong className="block text-sm font-bold text-navy group-hover:text-blue">{title}</strong>
               <span className="mt-1 block text-xs leading-5 text-[#637688]">{description[audience]}</span>
             </span>
             <ArrowRight size={16} className="mt-1 ml-auto shrink-0 text-blue transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-          </Link>
+          </a>
         ))}
       </nav>
     </section>

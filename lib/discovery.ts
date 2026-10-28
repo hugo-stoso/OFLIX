@@ -206,6 +206,11 @@ export function isExternal(item: DiscoveryItem) {
 
 export function sourceLabel(source: DiscoverySource) {
   if (source === "GO_SERGIPE") return "GO Sergipe";
+  if (source === "SEAD_SERGIPE") return "SEAD Sergipe";
+  if (source === "ARACAJU_EDITAIS") return "Prefeitura de Aracaju / Editais";
+  if (source === "SENAI_SE") return "SENAI Sergipe";
+  if (source === "FUNDACAO_BRADESCO_EV") return "Fundação Bradesco — Escola Virtual";
+  if (source === "EVG") return "Escola Virtual.Gov";
   return source === "PNCP" ? "PNCP" : source === "OFLIX" ? "OFLIX" : "DEMO DATA";
 }
 

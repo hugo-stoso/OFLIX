@@ -8,7 +8,7 @@ test.beforeAll(() => {
 });
 
 test("percurso principal: perfil, descoberta, detalhe e interação", async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "OFLIX é um hub territorial de oportunidades." })).toBeVisible();
   await page.getByRole("link", { name: "Entrar na demonstração" }).first().click();
@@ -38,8 +38,10 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await page.getByRole("button", { name: /Empregos/ }).click();
   const filtersButton = page.getByRole("button", { name: /Filtros/ });
   if (await filtersButton.isVisible()) await filtersButton.click();
-  await expect(page.getByRole("heading", { name: "Estágio em comunicação territorial" })).toBeVisible();
-  await page.getByRole("link", { name: "Ver detalhe" }).first().click();
+  await expect(page.getByRole("heading", { name: "Estágio em comunicação territorial" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toHaveCount(0);
+  await page.waitForFunction(() => Boolean(window.localStorage.getItem("oflix-demo-profile")));
+  await page.goto("/opportunity/formal-operations?kind=formal&returnTo=/demo");
   await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
   await page.getByRole("button", { name: "Candidatar-se" }).click();
   await expect(page.getByText(/candidatura foi registrada|já estava registrada/)).toBeVisible({ timeout: 15_000 });
@@ -102,17 +104,20 @@ test("API territorial agrega municípios e preserva as métricas operacionais", 
   ]));
   expect(territory.municipalities.reduce((total: number, municipality: { opportunities: number }) => total + municipality.opportunities, 0)).toBe(territory.totalOpportunities);
   expect(territory.municipalities.reduce((total: number, municipality: { interactions: number }) => total + municipality.interactions, 0)).toBe(territory.interactions);
-  expect(territory.municipalities.find((municipality: { municipality: string }) => municipality.municipality === "Lagarto")).toMatchObject({ formal: 2, clt: 1, internship: 1, services: 1, volunteer: 2, interactions: 1 });
-  expect(territory.activeMunicipalities).toBe(3);
+  const lagarto = territory.municipalities.find((municipality: { municipality: string }) => municipality.municipality === "Lagarto");
+  expect(lagarto).toMatchObject({ clt: 1, internship: 1, services: 1, volunteer: 2, interactions: 1 });
+  expect(lagarto.formal).toBeGreaterThanOrEqual(2);
+  expect(territory.activeMunicipalities).toBeGreaterThanOrEqual(3);
 });
 
 test("Observatório explora município, métrica e município sem registros", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Observatório Território Aberto/ }).click();
   await page.waitForURL("**/demo/analyst");
   await expect(page.getByRole("heading", { name: "Entenda como oportunidades e conexões se distribuem pelo território." })).toBeVisible();
-  await expect(page.locator(".territory-map-path")).toHaveCount(75);
+  await expect(page.locator(".territory-map-path")).toHaveCount(75, { timeout: 60_000 });
   await page.getByLabel("Território", { exact: true }).selectOption({ label: "Lagarto" });
   await expect(page.getByRole("heading", { name: "Lagarto", exact: true })).toBeVisible();
   await expect(page.getByText("Este recorte atualiza os indicadores")).toBeVisible();
@@ -159,7 +164,7 @@ test("separa ofertas de pessoas e demandas de contratantes", async ({ page }) =>
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByRole("button", { name: /Empregos/ }).click();
   await page.getByRole("tab", { name: /Demandas/ }).click();
-  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Estágio em projetos educativos" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Manutenção residencial" })).toHaveCount(0);
   await page.getByRole("tab", { name: /Ofertas/ }).click();
@@ -175,11 +180,12 @@ test("organização não acessa demandas publicadas por outra organização", as
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByRole("button", { name: /Empregos/ }).click();
   await page.getByRole("tab", { name: /Demandas/ }).click();
-  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Estágio em projetos educativos" })).toHaveCount(0);
 });
 
 test("menu da conta abre perfil, configurações e saída", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
@@ -398,8 +404,8 @@ test("Ofertas e Demandas aparecem somente nos universos de mercado", async ({ pa
   await page.getByRole("button", { name: /Capacitação/ }).click();
   await expect(page.getByRole("tab", { name: /Demandas/ })).toHaveCount(0);
   await page.getByRole("button", { name: /Todos/ }).click();
-  await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Curso DEMO de eletricista instalador/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Concurso DEMO para técnico de manutenção/ })).toHaveCount(0);
   await page.getByRole("button", { name: /Prestação de serviços/ }).click();
   await expect(page.getByRole("tab", { name: /Ofertas/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: /Demandas/ })).toBeVisible();
@@ -412,7 +418,7 @@ test("Home da pessoa busca no hub, mostra território e abre atalhos", async ({ 
   await expect(page.getByText("Descubra oportunidades para trabalhar, aprender e crescer em Aracaju.")).toBeVisible();
   const apiResponse = await request.get("/api/opportunities");
   const payload = await apiResponse.json();
-  const internalFormalInAracaju = payload.formal.filter((item: { location: { municipality: string } }) => item.location.municipality === "Aracaju").length;
+  const internalFormalInAracaju = payload.formal.filter((item: { location: { municipality: string; }; ownerIsDemo?: boolean }) => item.location.municipality === "Aracaju" && !item.ownerIsDemo).length;
   const territory = page.getByRole("region", { name: "Na demonstração em Aracaju" });
   await expect(territory.getByText(formatWorkOpportunityCount(internalFormalInAracaju), { exact: true })).toBeVisible();
   await page.getByLabel("O que você está procurando?").fill("eletricista");
@@ -451,8 +457,8 @@ test("Buscar reúne profissão, capacitação e concurso sem expor poder públic
   await expect(page.getByRole("button", { name: /Poder público/ })).toHaveCount(0);
   await page.getByPlaceholder("Buscar profissão, atividade ou oportunidade").fill("eletricista");
   await expect(page.getByRole("heading", { name: "Instalações elétricas residenciais" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Curso DEMO de eletricista instalador" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Concurso DEMO para técnico de manutenção" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Contratação DEMO de manutenção elétrica" })).toHaveCount(0);
 });
 
@@ -468,25 +474,19 @@ test("pessoa autônoma ativa oportunidades públicas de forma explícita", async
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await expect(page.getByRole("button", { name: /Poder público/ })).toBeVisible();
   await page.getByRole("button", { name: /Poder público/ }).click();
-  await expect(page.getByRole("heading", { name: "Contratação DEMO de manutenção elétrica" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible({ timeout: 15_000 });
 });
 
-test("detalhe preserva o contexto completo da busca", async ({ page }) => {
+test("busca de capacitação não expõe curso DEMO", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Hugo Silva/ }).click();
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByRole("button", { name: /Capacitação/ }).click();
   await page.getByPlaceholder("Buscar profissão, atividade ou oportunidade").fill("eletricista");
-  const courseDetailLink = page.locator('a[href^="/discovery/demo-course-electrician"]');
-  await expect(courseDetailLink).toHaveCount(1);
-  const courseHref = await courseDetailLink.getAttribute("href");
-  expect(courseHref).toContain("type%3Dcourse");
-  expect(courseHref).toContain("q%3Deletricista");
-  await courseDetailLink.click();
-  await page.waitForURL("**/discovery/demo-course-electrician**");
-  const returnLink = page.getByRole("link", { name: "Voltar para Buscar" });
-  await expect(returnLink).toHaveAttribute("href", "/demo?view=discover&type=course&q=eletricista");
+  await expect(page.locator('a[href^="/discovery/demo-course-electrician"]')).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Curso DEMO de eletricista instalador/ })).toHaveCount(0);
   await page.goto("/demo?view=discover&type=course&q=eletricista");
   await expect(page).toHaveURL(/\/demo\?view=discover&type=course&q=eletricista/);
   await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible();

@@ -2,7 +2,7 @@ import type { Compensation } from "@/lib/compensation";
 
 export type OpportunityKind = "formal" | "service" | "volunteer";
 export type DiscoveryKind = OpportunityKind | "course" | "public_exam" | "public_selection" | "external_job" | "public_procurement";
-export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "AUTHORIZED_PARTNER" | "GO_SERGIPE" | "EMPREGAJU" | "IEL_SERGIPE";
+export type DiscoverySource = "OFLIX" | "DEMO_DATA" | "PNCP" | "SEAD_SERGIPE" | "ARACAJU_EDITAIS" | "SENAI_SE" | "FUNDACAO_BRADESCO_EV" | "EVG" | "AUTHORIZED_PARTNER" | "GO_SERGIPE" | "EMPREGAJU" | "IEL_SERGIPE";
 export type OpportunityOrigin = "all" | "oflix" | "external";
 export const EXTERNAL_DISCOVERY_SOURCES = ["GO_SERGIPE", "EMPREGAJU", "IEL_SERGIPE"] as const;
 export type ExternalDiscoverySource = (typeof EXTERNAL_DISCOVERY_SOURCES)[number];
@@ -102,6 +102,11 @@ export function externalSourceLabel(source: DiscoverySource | "ALL") {
   if (source === "GO_SERGIPE") return "GO Sergipe";
   if (source === "EMPREGAJU") return "EmpregAju";
   if (source === "IEL_SERGIPE") return "IEL Sergipe";
+  if (source === "SEAD_SERGIPE") return "SEAD Sergipe";
+  if (source === "ARACAJU_EDITAIS") return "Prefeitura de Aracaju / Editais";
+  if (source === "SENAI_SE") return "SENAI Sergipe";
+  if (source === "FUNDACAO_BRADESCO_EV") return "Fundação Bradesco — Escola Virtual";
+  if (source === "EVG") return "Escola Virtual.Gov";
   return source === "ALL" ? "Fontes externas" : source;
 }
 

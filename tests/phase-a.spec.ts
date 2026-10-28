@@ -1,6 +1,7 @@
 import { expect, Page, test } from "@playwright/test";
 
 const openDemo = async (page: Page) => {
+  await page.addInitScript(() => window.localStorage.removeItem("oflix-demo-profile"));
   await page.goto("/demo", { waitUntil: "domcontentloaded", timeout: 60_000 });
   const picker = page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." });
   const personHome = page.getByRole("heading", { name: "Entenda melhor suas oportunidades." });
@@ -67,6 +68,7 @@ test("instituição pública abre a gestão de voluntários sem banco de talento
 });
 
 test("ONG diferencia voluntários e talentos e prioriza a ação voluntária", async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.removeItem("oflix-demo-profile"));
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Instituto Ponte Aberta/ }).click();
@@ -77,6 +79,7 @@ test("ONG diferencia voluntários e talentos e prioriza a ação voluntária", a
   await page.getByRole("button", { name: "Pessoas", exact: true }).first().click();
   await expect(page.getByRole("tab", { name: "Voluntários" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Talentos" })).toBeVisible();
+  await page.getByRole("tab", { name: "Voluntários" }).click();
   await expect(page.getByRole("heading", { name: "Gestão de voluntariado" })).toBeVisible();
   await page.getByRole("tab", { name: "Talentos" }).click();
   await expect(page.getByRole("heading", { name: "Base de talentos" })).toBeVisible();
@@ -105,10 +108,15 @@ test("Mercado & Conhecimento aparece cedo na Home de pessoa e oferece três atal
     const link = page.getByRole("link", { name: shortcut.label });
     await expect(link).toBeVisible();
     await expect(link).toHaveAttribute("href", shortcut.url);
+    await link.evaluate((element) => element.scrollIntoView({ block: "center", inline: "nearest" }));
+    await expect(link).toBeInViewport();
+    await page.waitForLoadState("networkidle");
     await link.click();
     await expect(page).toHaveURL(new RegExp(`${shortcut.url.replace("?", "\\?")}$`));
-    const nextLoad = await openDemo(page);
-    if (await nextLoad.picker.isVisible()) await page.getByRole("button", { name: /Hugo Silva/ }).click();
+    await page.goBack({ waitUntil: "domcontentloaded" });
+    const returned = page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." }).or(page.getByRole("heading", { name: "Entenda melhor suas oportunidades." }));
+    await expect(returned).toBeVisible({ timeout: 30_000 });
+    if (await page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." }).isVisible()) await page.getByRole("button", { name: /Hugo Silva/ }).click();
     await expect(page.getByRole("heading", { name: "Entenda melhor suas oportunidades." })).toBeVisible();
   }
 });
@@ -154,4 +162,14 @@ test("currículo livre aceita PDF e preserva o nome sem modelo obrigatório", as
   await page.getByRole("button", { name: /Banco de talentos/ }).click();
   await page.getByRole("checkbox", { name: "Permitir que organizações encontrem meu perfil" }).check();
   await expect(page.getByText("Perfil publicado no banco de talentos desta demonstração.", { exact: true })).toBeVisible();
+});
+
+test("demo torna as capacidades novas visíveis sem navegação profunda", async ({ page }) => {
+  const firstLoad = await openDemo(page);
+  if (await firstLoad.picker.isVisible()) await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await expect(page.getByRole("heading", { name: "Novidades da Demo 1.0" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Pesquisa salarial", exact: true })).toHaveAttribute("href", "/market/salaries");
+  await expect(page.getByRole("link", { name: "Concursos SEAD" })).toHaveAttribute("href", "/demo?view=discover&type=public_exam");
+  await expect(page.getByRole("link", { name: "Legislação atualizada" })).toHaveAttribute("href", "/market?tab=legislation");
+  await expect(page.getByRole("link", { name: "Artigos & evidências", exact: true })).toHaveAttribute("href", "/market?tab=articles");
 });
