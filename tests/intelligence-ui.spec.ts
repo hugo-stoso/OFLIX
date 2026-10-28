@@ -90,6 +90,30 @@ test("consentimento mostra Gemini e identifica a redação usada", async ({ page
   await expect(page.getByText("Resposta contextualizada com base nas oportunidades verificadas.", { exact: true })).toBeVisible();
 });
 
+test("mostra o motivo técnico do fallback e preserva o resultado salarial verificável", async ({ page }) => {
+  await page.route("**/api/intelligence/status", (route) => route.fulfill({ json: { deterministic: true, gemini: { available: true, consentRequired: true } } }));
+  await page.route("**/api/intelligence/assistant", (route) => route.fulfill({ json: {
+    answer: "A vaga com maior remuneração mensal comparável é “Contador”, com R$ 3.500,00 por mês, em Aracaju.",
+    interpretedQuery: { query: "Qual vaga possui maior salário?", terms: [], kinds: ["external_job"], summary: "universo: empregos" },
+    matches: [{ ...verifiedJob, id: "contador", title: "Contador", salary: "R$ 3.500,00 por mês", salaryMin: 3500, salaryCurrency: "BRL", salaryPeriod: "MONTHLY" }],
+    facts: ["Contador · Aracaju · remuneração mensal comparável: R$ 3.500,00 por mês · Fonte: GO Sergipe."],
+    limitations: ["Valores sem periodicidade mensal explícita não entram na comparação."],
+    mode: "fallback",
+    gemini: { requested: true, available: true, used: false, reason: "invalid_output", reasonLabel: "Gemini respondeu fora do formato seguro; fallback determinístico usado." },
+    sources: [], stale: false, partial: false,
+  } }));
+  await openPersonHome(page);
+  await page.getByRole("navigation", { name: "Navegação principal" }).locator('button:visible', { hasText: "Assistente IA" }).click();
+  await page.getByRole("checkbox").first().check();
+  await page.getByLabel("Pergunta para o Assistente OFLIX").fill("Qual vaga possui maior salário?");
+  await page.getByRole("button", { name: "Perguntar" }).click();
+  await expect(page.getByText("Fallback determinístico", { exact: true })).toBeVisible();
+  await expect(page.getByText("Gemini respondeu fora do formato seguro; fallback determinístico usado.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Contador", { exact: true })).toBeVisible();
+  await expect(page.getByText("Remuneração publicada: R$ 3.500,00 por mês", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Abrir fonte oficial/ })).toHaveAttribute("href", verifiedJob.sourceUrl);
+});
+
 test("busca natural mostra o recorte interpretado em desktop e mobile", async ({ page }) => {
   await openPersonHome(page);
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();

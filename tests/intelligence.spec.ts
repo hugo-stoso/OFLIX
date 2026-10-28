@@ -93,3 +93,49 @@ test("busca e recomendações mantêm a profissão específica, CBO, sinônimos 
   expect(noResults.matches).toHaveLength(0);
   expect(noResults.answer).toMatch(/Não encontrei/i);
 });
+
+test("responde maior salário somente com remunerações mensais comparáveis e sem exigir filtro", async () => {
+  const jobs: DiscoveryItem[] = [
+    { ...verifiedJob, id: "contador-aracaju", title: "Contador", occupationLabel: "Contador", salary: "R$ 3.500,00 por mês", salaryMin: 3500, salaryCurrency: "BRL", salaryPeriod: "MONTHLY" },
+    { ...verifiedJob, id: "assistente-aracaju", title: "Assistente administrativo", occupationLabel: "Assistente administrativo", salary: "R$ 1.800,00 por mês", salaryMin: 1800, salaryCurrency: "BRL", salaryPeriod: "MONTHLY" },
+    { ...verifiedJob, id: "unknown-period", title: "Consultor de vendas", occupationLabel: "Consultor de vendas", salary: "R$ 9.000,00", salaryMin: 9000, salaryCurrency: "BRL", salaryPeriod: "UNKNOWN" },
+  ];
+  const answer = buildDeterministicAssistantAnswer("Qual vaga possui maior salário?", jobs, profile);
+  expect(answer.analysis).toMatchObject({ intent: "highest_salary", scopeCount: 3, comparedCount: 2, excludedCount: 1 });
+  expect(answer.matches.map((item) => item.id)).toEqual(["contador-aracaju", "assistente-aracaju"]);
+  expect(answer.answer).toContain("Contador");
+  expect(answer.answer).toContain("R$ 3.500,00 por mês");
+  expect(answer.answer).toContain("Aracaju");
+  expect(answer.facts[0]).toContain("GO Sergipe");
+  expect(answer.limitations.some((limitation) => limitation.includes("periodicidade mensal"))).toBe(true);
+});
+
+test("responde data, contagem e comparações determinísticas por profissão e município", async () => {
+  const jobs: DiscoveryItem[] = [
+    { ...verifiedJob, id: "contador-aracaju", title: "Contador", occupationLabel: "Contador", publishedAt: "2026-10-20" },
+    { ...verifiedJob, id: "assistente-aracaju", title: "Assistente administrativo", occupationLabel: "Assistente administrativo", publishedAt: "2026-10-21" },
+    { ...verifiedJob, id: "motorista-lagarto", title: "Motorista", occupationLabel: "Motorista", location: { state: "SE", municipality: "Lagarto" }, publishedAt: "2026-10-19" },
+  ];
+  const latest = buildDeterministicAssistantAnswer("Quais são as vagas mais recentes?", jobs, profile);
+  expect(latest.analysis?.intent).toBe("latest");
+  expect(latest.matches[0]?.id).toBe("assistente-aracaju");
+  const count = buildDeterministicAssistantAnswer("Quantas vagas existem?", jobs, profile);
+  expect(count.analysis).toMatchObject({ intent: "count", scopeCount: 3, comparedCount: 3 });
+  expect(count.answer).toContain("3 vagas verificáveis");
+  const professions = buildDeterministicAssistantAnswer("Qual profissão possui mais vagas?", jobs, profile);
+  expect(professions.analysis?.intent).toBe("by_profession");
+  expect(professions.facts[0]).toContain("Contador (1)");
+  const municipalities = buildDeterministicAssistantAnswer("Compare Aracaju e Lagarto", jobs, profile);
+  expect(municipalities.analysis?.intent).toBe("compare_municipalities");
+  expect(municipalities.facts[0]).toContain("Aracaju (2)");
+  const topMunicipality = buildDeterministicAssistantAnswer("Qual município possui mais vagas?", jobs, profile);
+  expect(topMunicipality.analysis?.intent).toBe("by_municipality");
+  expect(topMunicipality.facts[0]).toContain("Aracaju (2)");
+});
+
+test("não inventa resultado quando salários não informam periodicidade", async () => {
+  const answer = buildDeterministicAssistantAnswer("Qual vaga possui maior salário?", [{ ...verifiedJob, salary: "R$ 4.000,00", salaryMin: 4000, salaryCurrency: "BRL", salaryPeriod: "UNKNOWN" }], profile);
+  expect(answer.analysis).toMatchObject({ intent: "highest_salary", comparedCount: 0, excludedCount: 1 });
+  expect(answer.matches).toHaveLength(0);
+  expect(answer.answer).toMatch(/periodicidade explícita/i);
+});

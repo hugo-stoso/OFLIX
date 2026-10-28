@@ -15,9 +15,12 @@ export class GeminiUnavailableError extends Error {
 }
 
 export class GeminiProviderError extends Error {
-  constructor(message = "Gemini provider failed") {
+  readonly status?: number;
+
+  constructor(message = "Gemini provider failed", status?: number) {
     super(message);
     this.name = "GeminiProviderError";
+    this.status = status;
   }
 }
 
@@ -57,6 +60,15 @@ export function geminiAvailable() {
   return Boolean(geminiConfig());
 }
 
+export function geminiDiagnostics() {
+  const config = geminiConfig();
+  const provider = (process.env.AI_PROVIDER ?? "").trim().toLowerCase() || "not_set";
+  const keySource = (process.env.GEMINI_API_KEY ?? "").trim() ? "GEMINI_API_KEY" : (process.env.AI_API_KEY ?? "").trim() ? "AI_API_KEY" : "not_set";
+  if (!config) return { available: false, provider, model: (process.env.GEMINI_MODEL ?? process.env.AI_MODEL ?? "").trim() || "not_set", transport: "unavailable" as const, endpoint: "not_configured", keySource };
+  const endpoint = config.transport === "openai-compatible" ? `${config.baseUrl}/chat/completions` : `${config.baseUrl}/models/${encodeURIComponent(config.model)}:generateContent`;
+  return { available: true, provider, model: config.model, transport: config.transport, endpoint, keySource };
+}
+
 export async function generateGeminiJson(request: { system: string; user: string }): Promise<GeminiJsonResponse> {
   const config = geminiConfig();
   if (!config) throw new GeminiUnavailableError();
@@ -85,7 +97,7 @@ export async function generateGeminiJson(request: { system: string; user: string
           }),
           signal: controller.signal,
         });
-    if (!response.ok) throw new GeminiProviderError(`Gemini returned ${response.status}`);
+    if (!response.ok) throw new GeminiProviderError(`Gemini returned ${response.status}`, response.status);
     const payload = await response.json() as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; finishReason?: string }>;
       usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
