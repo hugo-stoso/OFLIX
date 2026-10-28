@@ -35,6 +35,15 @@ test("salários ausentes não viram zero e a mediana usa somente mensal", () => 
   expect(result.publishedCoverageRate).toBe(0.75);
 });
 
+test("publicações DEMO não entram nas estatísticas salariais", () => {
+  const result = calculateSalaryResearch([
+    item("demo", { demo: true, salaryMin: 2400, salaryPeriod: "MONTHLY" }),
+    item("real", { salaryMin: 1800, salaryPeriod: "MONTHLY" }),
+  ]);
+  expect(result.publications).toBe(1);
+  expect(result.medianMonthly).toBe(1800);
+});
+
 test("ocupação e município filtram o recorte", () => {
   const result = calculateSalaryResearch(
     [

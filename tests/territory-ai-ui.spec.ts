@@ -29,14 +29,13 @@ test.describe("UI da inteligência territorial", () => {
     await expect(page.getByRole("heading", { name: "Leitura assistida por IA" })).toHaveCount(0);
   });
 
-  test("filtro ocupacional atualiza mapa, ranking e resumo no recorte de empregos", async ({ page }) => {
+  test("não oferece ocupações DEMO quando não há publicações reais observadas", async ({ page }) => {
     await page.route("**/api/territory/ai/status**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ enabled: false }) }));
     await page.goto("/demo/analyst");
     await page.getByRole("button", { name: "Empregos", exact: true }).click();
-    await page.getByLabel("Área ocupacional").selectOption("LOGISTICS_TRANSPORT");
-    await expect(page.getByText("Área ocupacional: Logística e transporte").first()).toBeVisible();
-    await expect(page.getByRole("button", { name: /Lagarto.*1.*Empregos/ })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Municípios com maior atividade observada" })).toBeVisible();
+    const occupation = page.getByLabel("Área ocupacional");
+    await expect(occupation.locator("option[value='LOGISTICS_TRANSPORT']")).toHaveCount(0);
+    await expect(page.getByText("Sem áreas ocupacionais classificadas neste recorte.")).toBeVisible();
   });
 
   test("exibe saúde agregada das fontes sem depender do painel de IA", async ({ page }) => {

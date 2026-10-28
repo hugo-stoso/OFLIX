@@ -144,7 +144,8 @@ test.describe("filtros multifonte na busca", () => {
       expect.stringMatching(/^Vagas externas \(\d+\)$/),
     ]));
     const optionCount = (label: string) => Number(optionTexts.find((text) => text.startsWith(label))?.match(/\((\d+)\)$/)?.[1] ?? -1);
-    expect(optionCount("Todas as vagas")).toBeGreaterThan(optionCount("Publicadas na OFLIX"));
+    expect(optionCount("Todas as vagas")).toBe(optionCount("Vagas externas"));
+    expect(optionCount("Publicadas na OFLIX")).toBe(0);
     expect(optionCount("Vagas externas")).toBe(3);
     await expect(page.locator("h3")).toHaveCount(optionCount("Todas as vagas"));
     expect(new URL(page.url()).searchParams.get("origin")).toBe("all");
@@ -152,7 +153,7 @@ test.describe("filtros multifonte na busca", () => {
     await expect(source.locator("option")).toContainText(["Todas as fontes", "GO Sergipe", "EmpregAju", "IEL"]);
     await origin.selectOption("oflix");
     await expect(source).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Assistente de operações locais", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Assistente de operações locais", exact: true })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Assistente administrativo", exact: true })).toHaveCount(0);
     expect(new URL(page.url()).searchParams.get("origin")).toBe("oflix");
     expect(new URL(page.url()).searchParams.has("source")).toBe(false);

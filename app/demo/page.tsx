@@ -300,6 +300,7 @@ export default function DemoPage() {
       if (!opportunity) return false;
       const isPersonProfile = selectedProfile.type === "PERSON";
       if (selectedProfile.organizationKind === "PUBLIC_INSTITUTION") return item.kind === "volunteer";
+      if (item.demo && (item.kind === "formal" || item.kind === "external_job")) return false;
       if (!isMarketFilter(activeFilter)) {
         return isPersonProfile || opportunity.ownerType === "PERSON" || opportunity.owner.id === selectedProfile.id;
       }

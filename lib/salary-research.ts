@@ -164,7 +164,7 @@ export function calculateSalaryResearch(
   health?: SalarySourceHealth[],
 ): SalaryResearchSummary {
   const eligible = items.filter(
-    (item) => item.kind === "formal" || item.kind === "external_job",
+    (item) => (item.kind === "formal" || item.kind === "external_job") && !item.demo,
   );
   const aggregates = buildOccupationAggregates(eligible);
   const requestedOccupation = query.occupation?.trim() ?? "";

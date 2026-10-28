@@ -9,7 +9,7 @@ export async function loadTerritoryDataForProfile(profileId: string, activities:
   if (!data || data.scope !== "general") return data as TerritoryData | null;
 
   const external = await fetchExternalJobs({ source: "all" });
-  const formalItems = listOpportunities().formal.map(internalToDiscoveryItem);
+  const formalItems = listOpportunities().formal.filter((opportunity) => !opportunity.ownerIsDemo).map(internalToDiscoveryItem);
   const employmentMarket = buildTerritoryEmploymentMarket(data.municipalities, external, formalItems);
   const observed = aggregateObservedTerritory(data.municipalities, employmentMarket);
   const baseByMunicipality = new Map(data.municipalities.map((municipality) => [municipality.municipality.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR"), municipality]));

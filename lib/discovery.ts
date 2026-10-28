@@ -104,7 +104,7 @@ export const demoDiscoveryItems: DiscoveryItem[] = [
   },
 ];
 
-export function internalToDiscoveryItem(opportunity: { id: string; title: string; description: string; category: string; kind: "formal" | "service" | "volunteer"; location: { state?: string; municipality: string; district?: string }; owner: { name: string }; employmentType?: "CLT" | "INTERNSHIP"; compensation?: Compensation; requiredActivities?: string[] }): DiscoveryItem {
+export function internalToDiscoveryItem(opportunity: { id: string; title: string; description: string; category: string; kind: "formal" | "service" | "volunteer"; location: { state?: string; municipality: string; district?: string }; owner: { name: string }; ownerIsDemo?: boolean; employmentType?: "CLT" | "INTERNSHIP"; compensation?: Compensation; requiredActivities?: string[] }): DiscoveryItem {
   const kind: DiscoveryKind = opportunity.kind;
   return {
     id: opportunity.id,
@@ -120,6 +120,7 @@ export function internalToDiscoveryItem(opportunity: { id: string; title: string
     modality: opportunity.kind === "formal" ? opportunity.employmentType === "INTERNSHIP" ? "Estágio" : "CLT" : undefined,
     compensation: opportunity.compensation,
     tags: [opportunity.category, ...(opportunity.requiredActivities ?? [])],
+    ...(opportunity.ownerIsDemo ? { demo: true } : {}),
   };
 }
 

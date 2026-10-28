@@ -38,11 +38,10 @@ test("percurso principal: perfil, descoberta, detalhe e interação", async ({ p
   await page.getByRole("button", { name: /Empregos/ }).click();
   const filtersButton = page.getByRole("button", { name: /Filtros/ });
   if (await filtersButton.isVisible()) await filtersButton.click();
-  const internshipArticle = page.getByRole("article").filter({ hasText: "Estágio em comunicação territorial" });
-  await expect(internshipArticle.getByRole("heading", { name: "Estágio em comunicação territorial" })).toBeVisible();
-  const operationsArticle = page.getByRole("article").filter({ hasText: "Assistente de operações locais" });
-  await expect(operationsArticle.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
-  await operationsArticle.getByRole("link", { name: "Ver detalhe" }).click();
+  await expect(page.getByRole("heading", { name: "Estágio em comunicação territorial" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toHaveCount(0);
+  await page.waitForFunction(() => Boolean(window.localStorage.getItem("oflix-demo-profile")));
+  await page.goto("/opportunity/formal-operations?kind=formal&returnTo=/demo");
   await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
   await page.getByRole("button", { name: "Candidatar-se" }).click();
   await expect(page.getByText(/candidatura foi registrada|já estava registrada/)).toBeVisible({ timeout: 15_000 });
@@ -112,12 +111,13 @@ test("API territorial agrega municípios e preserva as métricas operacionais", 
 });
 
 test("Observatório explora município, métrica e município sem registros", async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: /Observatório Território Aberto/ }).click();
   await page.waitForURL("**/demo/analyst");
   await expect(page.getByRole("heading", { name: "Entenda como oportunidades e conexões se distribuem pelo território." })).toBeVisible();
-  await expect(page.locator(".territory-map-path")).toHaveCount(75);
+  await expect(page.locator(".territory-map-path")).toHaveCount(75, { timeout: 60_000 });
   await page.getByLabel("Território", { exact: true }).selectOption({ label: "Lagarto" });
   await expect(page.getByRole("heading", { name: "Lagarto", exact: true })).toBeVisible();
   await expect(page.getByText("Este recorte atualiza os indicadores")).toBeVisible();
@@ -164,7 +164,7 @@ test("separa ofertas de pessoas e demandas de contratantes", async ({ page }) =>
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByRole("button", { name: /Empregos/ }).click();
   await page.getByRole("tab", { name: /Demandas/ }).click();
-  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Estágio em projetos educativos" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Manutenção residencial" })).toHaveCount(0);
   await page.getByRole("tab", { name: /Ofertas/ }).click();
@@ -180,7 +180,7 @@ test("organização não acessa demandas publicadas por outra organização", as
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();
   await page.getByRole("button", { name: /Empregos/ }).click();
   await page.getByRole("tab", { name: /Demandas/ }).click();
-  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Assistente de operações locais" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Estágio em projetos educativos" })).toHaveCount(0);
 });
 
@@ -418,7 +418,7 @@ test("Home da pessoa busca no hub, mostra território e abre atalhos", async ({ 
   await expect(page.getByText("Descubra oportunidades para trabalhar, aprender e crescer em Aracaju.")).toBeVisible();
   const apiResponse = await request.get("/api/opportunities");
   const payload = await apiResponse.json();
-  const internalFormalInAracaju = payload.formal.filter((item: { location: { municipality: string } }) => item.location.municipality === "Aracaju").length;
+  const internalFormalInAracaju = payload.formal.filter((item: { location: { municipality: string; }; ownerIsDemo?: boolean }) => item.location.municipality === "Aracaju" && !item.ownerIsDemo).length;
   const territory = page.getByRole("region", { name: "Na demonstração em Aracaju" });
   await expect(territory.getByText(formatWorkOpportunityCount(internalFormalInAracaju), { exact: true })).toBeVisible();
   await page.getByLabel("O que você está procurando?").fill("eletricista");

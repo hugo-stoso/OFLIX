@@ -59,7 +59,7 @@ async function fetchExternalForResearch(): Promise<ExternalJobsResult> {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const external = await fetchExternalForResearch();
-  const internal = listOpportunities().formal.map(internalToDiscoveryItem);
+  const internal = listOpportunities().formal.filter((opportunity) => !opportunity.ownerIsDemo).map(internalToDiscoveryItem);
   const query = {
     occupation: url.searchParams.get("occupation") ?? undefined,
     occupationCode: url.searchParams.get("occupationCode") ?? undefined,

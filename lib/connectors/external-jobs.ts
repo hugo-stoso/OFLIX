@@ -42,6 +42,10 @@ export type ExternalJobsResult = {
 
 export const EXTERNAL_SOURCE_PARAMS: ExternalJobSourceParam[] = ["go-sergipe", "empregaju", "iel-sergipe"];
 
+const PROCESS_CACHE_TTL_MS = 30_000;
+const processCache = new Map<string, { expiresAt: number; result: ExternalJobsResult }>();
+const processInFlight = new Map<string, Promise<ExternalJobsResult>>();
+
 function sourceConfigs(env: NodeJS.ProcessEnv): SourceConfig[] {
   return [
     { source: "GO_SERGIPE", param: "go-sergipe", provider: "GO Sergipe", isEnabled: () => isGoSergipeEnabled(env), fetch: fetchGoSergipeOpportunities },
@@ -59,7 +63,7 @@ function disabledResult(config: SourceConfig, collectedAt: string): ExternalJobC
   return { items: [], source: config.source, provider: config.provider, collectedAt, stale: true, partial: false, pages: 0, collection: { startedAt: collectedAt, finishedAt: collectedAt, durationMs: 0, sourceFetched: false, servedFromCache: false, servedFromStale: false, success: false } } as ExternalJobConnectorResult;
 }
 
-export async function fetchExternalJobs(options: { source?: ExternalJobSourceParam | "all"; q?: string; municipality?: string; env?: NodeJS.ProcessEnv } = {}): Promise<ExternalJobsResult> {
+async function fetchExternalJobsUncached(options: { source?: ExternalJobSourceParam | "all"; q?: string; municipality?: string; env?: NodeJS.ProcessEnv } = {}): Promise<ExternalJobsResult> {
   const env = options.env ?? process.env;
   const allConfigs = sourceConfigs(env);
   const configs = options.source && options.source !== "all" ? allConfigs.filter((config) => config.param === options.source) : allConfigs;
@@ -89,4 +93,20 @@ export async function fetchExternalJobs(options: { source?: ExternalJobSourcePar
     sources: summaries,
     ...(errors.length ? { error: "Uma ou mais fontes externas não puderam ser atualizadas agora." } : {}),
   };
+}
+
+export async function fetchExternalJobs(options: { source?: ExternalJobSourceParam | "all"; q?: string; municipality?: string; env?: NodeJS.ProcessEnv } = {}): Promise<ExternalJobsResult> {
+  const cacheable = !options.q && !options.municipality;
+  if (!cacheable) return fetchExternalJobsUncached(options);
+  const key = options.source ?? "all";
+  const cached = processCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+  const active = processInFlight.get(key);
+  if (active) return active;
+  const request = fetchExternalJobsUncached(options).then((result) => {
+    processCache.set(key, { expiresAt: Date.now() + PROCESS_CACHE_TTL_MS, result });
+    return result;
+  }).finally(() => processInFlight.delete(key));
+  processInFlight.set(key, request);
+  return request;
 }
