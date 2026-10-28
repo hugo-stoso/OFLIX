@@ -92,8 +92,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .shell { @apply px-4; }
   .demo-nav { @apply fixed inset-x-0 bottom-0 z-30 mb-0 border-t border-line bg-white/95 shadow-[0_-8px_24px_rgba(16,47,80,.08)]; padding-bottom: env(safe-area-inset-bottom); backdrop-filter: blur(12px); }
   .demo-nav-desktop { display: none; }
-  .demo-nav-mobile { @apply grid grid-cols-5 gap-1 px-2 pt-2; display: grid; }
-  .demo-nav-mobile-item { @apply flex min-h-[54px] flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-bold text-[#718291] transition; }
+  .demo-nav-mobile { @apply flex gap-1 overflow-x-auto px-2 pt-2; }
+  .demo-nav-mobile-item { @apply flex min-h-[54px] min-w-[70px] shrink-0 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-bold text-[#718291] transition; }
   .demo-nav-mobile-item.is-active { @apply bg-[#edf6fb] text-blue; }
   .demo-nav-mobile-item:focus-visible { outline-offset: -2px; }
   .demo-hero-note { @apply text-[11px]; }

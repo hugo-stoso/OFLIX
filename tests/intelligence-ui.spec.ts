@@ -51,6 +51,7 @@ test("pessoa recebe recomendação verificável, compatibilidade e assistente se
   await expect(page.getByRole("heading", { name: "Recomendado com fonte verificável" })).toBeVisible();
   await expect(page.getByTestId("compatibility-result")).toContainText("Compatibilidade indicativa: Alta");
   await expect(page.getByText("DEMO DATA excluído", { exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "Navegação principal" }).locator('button:visible', { hasText: "Assistente IA" }).click();
   await expect(page.getByRole("heading", { name: "Pergunte sobre oportunidades e carreira" })).toBeVisible();
   const geminiConsent = page.getByRole("checkbox").first();
   await expect(geminiConsent).toBeDisabled();
@@ -59,6 +60,20 @@ test("pessoa recebe recomendação verificável, compatibilidade e assistente se
   await page.getByRole("button", { name: "Perguntar" }).click();
   await expect(page.getByText("Resposta determinística", { exact: true })).toBeVisible();
   await expect(page.getByText("Encontrei uma oportunidade verificável.", { exact: true })).toBeVisible();
+});
+
+test("menu abre a área do Assistente IA e mantém o menu horizontal no mobile", async ({ page }) => {
+  await openPersonHome(page);
+  const navigation = page.getByRole("navigation", { name: "Navegação principal" });
+  const assistantButton = navigation.locator('button:visible', { hasText: "Assistente IA" });
+  await expect(assistantButton).toBeVisible();
+  await assistantButton.click();
+  await expect(page.getByRole("heading", { name: "O próximo passo começa com uma pergunta." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pergunte sobre oportunidades e carreira" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recomendado com fonte verificável" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(navigation.locator('button:visible', { hasText: "Assistente IA" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
 test("busca natural mostra o recorte interpretado em desktop e mobile", async ({ page }) => {
