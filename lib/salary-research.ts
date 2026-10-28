@@ -31,9 +31,24 @@ export type SalarySourceHealth = {
   source: string;
   provider: string;
   count: number;
+  withPublishedRemuneration: number;
+  monthlyComparable: number;
   stale: boolean;
   partial: boolean;
   status: "FULL" | "PARTIAL" | "STALE" | "UNAVAILABLE";
+};
+export type SalaryObservation = {
+  id: string;
+  title: string;
+  source: string;
+  sourceLabel: string;
+  sourceUrl?: string;
+  municipality: string;
+  raw?: string;
+  min?: number;
+  max?: number;
+  period: NormalizedRemuneration["period"];
+  comparableMonthly: boolean;
 };
 export type SalaryResearchSummary = {
   label: "Salários publicados nas vagas observadas";
@@ -46,6 +61,8 @@ export type SalaryResearchSummary = {
   minimumMonthly: number | null;
   maximumMonthly: number | null;
   sampleSize: number;
+  consultedPublications: number;
+  observations: SalaryObservation[];
   hasSmallSample: boolean;
   municipalities: string[];
   sourceHealth: SalarySourceHealth[];
@@ -73,7 +90,7 @@ const median = (values: number[]) => {
 };
 
 function parseRawSalary(raw: string) {
-  const match = raw.replace(/\s+/g, " ").match(/R\$\s*([\d.]+(?:,\d{1,2})?)/iu);
+  const match = raw.replace(/\s+/g, " ").match(/(?:R\$\s*)?([\d.]+,\d{1,2})/iu);
   if (!match) return undefined;
   const value = Number(match[1].replace(/\./g, "").replace(",", "."));
   return Number.isFinite(value) && value > 0 ? value : undefined;
@@ -154,6 +171,8 @@ function defaultSourceHealth(items: DiscoveryItem[]): SalarySourceHealth[] {
             ? "IEL Sergipe"
             : "OFLIX",
     ...value,
+    withPublishedRemuneration: 0,
+    monthlyComparable: 0,
     status: value.stale ? "STALE" : value.partial ? "PARTIAL" : "FULL",
   }));
 }
@@ -210,9 +229,13 @@ export function calculateSalaryResearch(
       (!query.source || item.source === query.source)
     );
   });
-  const remunerations = filtered
-    .map(normalizeRemuneration)
-    .filter((value): value is NormalizedRemuneration => Boolean(value));
+  const remunerationPairs = filtered
+    .map((item) => ({ item, remuneration: normalizeRemuneration(item) }))
+    .filter(
+      (value): value is { item: DiscoveryItem; remuneration: NormalizedRemuneration } =>
+        Boolean(value.remuneration),
+    );
+  const remunerations = remunerationPairs.map(({ remuneration }) => remuneration);
   const monthly = remunerations
     .map((value) =>
       value.comparableMonthly ? value.referenceValue : undefined,
@@ -220,6 +243,35 @@ export function calculateSalaryResearch(
     .filter((value): value is number => value !== undefined);
   const monthlyMedian = median(monthly);
   const withPublishedRemuneration = remunerations.length;
+  const observations = remunerationPairs.map(({ item, remuneration }) => ({
+    id: item.id,
+    title: item.title,
+    source: item.source,
+    sourceLabel: item.sourceLabel,
+    sourceUrl: item.sourceUrl,
+    municipality: item.location.municipality,
+    raw: remuneration.raw,
+    min: remuneration.min,
+    max: remuneration.max,
+    period: remuneration.period,
+    comparableMonthly: remuneration.comparableMonthly,
+  }));
+  const filteredBySource = new Map<string, { withPublishedRemuneration: number; monthlyComparable: number }>();
+  remunerationPairs.forEach(({ item, remuneration }) => {
+    const current = filteredBySource.get(item.source) ?? {
+      withPublishedRemuneration: 0,
+      monthlyComparable: 0,
+    };
+    current.withPublishedRemuneration += 1;
+    if (remuneration.comparableMonthly) current.monthlyComparable += 1;
+    filteredBySource.set(item.source, current);
+  });
+  const sourceHealth = (health ?? defaultSourceHealth(filtered)).map((source) => ({
+    ...source,
+    withPublishedRemuneration:
+      filteredBySource.get(source.source)?.withPublishedRemuneration ?? 0,
+    monthlyComparable: filteredBySource.get(source.source)?.monthlyComparable ?? 0,
+  }));
   return {
     label: "Salários publicados nas vagas observadas",
     publications: filtered.length,
@@ -235,11 +287,14 @@ export function calculateSalaryResearch(
     minimumMonthly: monthly.length ? Math.min(...monthly) : null,
     maximumMonthly: monthly.length ? Math.max(...monthly) : null,
     sampleSize: monthly.length,
+    consultedPublications:
+      health?.reduce((total, source) => total + source.count, 0) ?? eligible.length,
+    observations,
     hasSmallSample: monthly.length < 2,
     municipalities: [
       ...new Set(eligible.map((item) => item.location.municipality)),
     ].sort((a, b) => a.localeCompare(b, "pt-BR")),
-    sourceHealth: health ?? defaultSourceHealth(filtered),
+    sourceHealth,
     occupationResolution,
     methodology: [
       "Remuneração publicada conta mesmo quando a fonte não informa periodicidade.",

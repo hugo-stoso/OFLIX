@@ -65,13 +65,31 @@ test("ocupação e município filtram o recorte", () => {
   expect(result.medianMonthly).toBe(2000);
 });
 
-test("GO raw salary is published but unknown period stays out of monthly statistics", () => {
+test("salário GO sem prefixo monetário é publicado, mas periodicidade desconhecida fica fora da mediana mensal", () => {
   const result = calculateSalaryResearch([
-    item("1", { salary: "R$ 1.600,00" }),
+    item("1", { salary: "1.600,00" }),
   ]);
   expect(result.withPublishedRemuneration).toBe(1);
   expect(result.monthlyComparable).toBe(0);
   expect(result.medianMonthly).toBeNull();
+  expect(result.observations[0]).toMatchObject({ raw: "1.600,00", period: "UNKNOWN" });
+});
+
+test("observações preservam fonte e link oficial das vagas com remuneração", () => {
+  const result = calculateSalaryResearch([
+    item("go-1", {
+      title: "Ajudante de obras",
+      salary: "1.621,00",
+      salaryMin: 1621,
+      salaryCurrency: "BRL",
+      salaryPeriod: "UNKNOWN",
+      sourceUrl: "https://gosergipe.se.gov.br/detalheOportunidades/4909",
+    }),
+  ], {}, [{ source: "GO_SERGIPE", provider: "GO Sergipe", count: 188, withPublishedRemuneration: 0, monthlyComparable: 0, stale: false, partial: false, status: "FULL" }]);
+  expect(result.consultedPublications).toBe(188);
+  expect(result.withPublishedRemuneration).toBe(1);
+  expect(result.observations[0].sourceUrl).toContain("/4909");
+  expect(result.sourceHealth[0]).toMatchObject({ count: 188, withPublishedRemuneration: 1 });
 });
 
 test("specific occupation does not silently resolve a family or unknown query", () => {

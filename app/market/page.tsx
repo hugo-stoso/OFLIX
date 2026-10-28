@@ -545,6 +545,14 @@ export default function MarketKnowledgePage() {
                         <strong>{salaryResearch.publications}</strong>
                       </span>
                       <span>
+                        Vagas externas consultadas:{" "}
+                        <strong>{salaryResearch.consultedPublications}</strong>
+                      </span>
+                      <span>
+                        Com remuneração:{" "}
+                        <strong>{salaryResearch.withPublishedRemuneration}</strong>
+                      </span>
+                      <span>
                         Observações mensais:{" "}
                         <strong>{salaryResearch.sampleSize}</strong>
                       </span>
@@ -588,6 +596,29 @@ export default function MarketKnowledgePage() {
                         representam uma média oficial.
                       </p>
                     )}
+                    <div className="mt-4 rounded-lg bg-white/70 p-3 text-xs leading-5 text-[#6f5b32]">
+                      <p className="font-bold">Fontes e observações do recorte</p>
+                      <ul className="mt-2 space-y-1">
+                        {salaryResearch.sourceHealth.map((source) => (
+                          <li key={source.source}>
+                            {source.provider}: {source.count} publicações, {source.withPublishedRemuneration} com remuneração publicada ({source.monthlyComparable} mensais comparáveis).
+                          </li>
+                        ))}
+                      </ul>
+                      {salaryResearch.observations.length > 0 && (
+                        <details className="mt-3">
+                          <summary className="cursor-pointer font-bold text-blue">Ver vagas que compõem o recorte</summary>
+                          <ul className="mt-2 space-y-2">
+                            {salaryResearch.observations.map((observation) => (
+                              <li key={observation.id}>
+                                <span className="font-semibold">{observation.title}</span> · {observation.sourceLabel} · {observation.raw ?? "valor estruturado"} · {observation.period === "MONTHLY" ? "mensal" : observation.period === "DAILY" ? "diário" : observation.period === "HOURLY" ? "por hora" : "periodicidade não informada"}{" "}
+                                {observation.sourceUrl && <a className="font-bold text-blue hover:underline" href={observation.sourceUrl} target="_blank" rel="noreferrer">Fonte oficial</a>}
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      )}
+                    </div>
                   </div>
                 )}
               </aside>

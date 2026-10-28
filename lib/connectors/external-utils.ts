@@ -38,8 +38,8 @@ export function parseVacancies(value: string) {
 
 export function parseSalary(value: string) {
   const normalized = normalizeWhitespace(value);
-  if (!normalized || !/R\$\s*[\d.]+,\d{2}/u.test(normalized)) return {};
-  const match = normalized.match(/R\$\s*([\d.]+,\d{2})/u);
+  if (!normalized || !/(?:R\$\s*)?[\d.]+,\d{2}/u.test(normalized)) return {};
+  const match = normalized.match(/(?:R\$\s*)?([\d.]+,\d{2})/u);
   if (!match) return {};
   const numeric = Number(match[1].replace(/\./g, "").replace(",", "."));
   if (!Number.isFinite(numeric) || numeric <= 0) return {};

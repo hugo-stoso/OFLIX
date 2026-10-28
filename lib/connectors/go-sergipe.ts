@@ -3,6 +3,7 @@ import { load } from "cheerio";
 import type { DiscoveryItem, PcdAvailability } from "@/lib/domain";
 import type { SourceCollectionMetadata } from "@/lib/connectors/collection";
 import { createJobDetailProvenance, mergeJobDetailText, normalizeJobDetailText } from "@/lib/job-details";
+import { parseSalary } from "@/lib/connectors/external-utils";
 
 export const GO_SERGIPE_HOST = "gosergipe.se.gov.br";
 export const GO_SERGIPE_PATH = "/oportunidades";
@@ -225,6 +226,7 @@ export function parseGoSergipePage(html: string, options: { pageUrl?: string; co
     const vacancyText = $card.find(".card-o-info .local-vaga").toArray().map((node) => textFromHtml($(node).html() ?? "")).find((value) => /\b\d+\s+vagas?\b/i.test(value));
     const salaryText = read(".card-footer p").replace(/^salário\s*:\s*/iu, "").trim();
     const salary = salaryText && !/não informado/i.test(salaryText) ? salaryText : undefined;
+    const salaryData = parseSalary(salary ?? "");
     const pcd = parsePcd(read(".pcd-badge"));
     const publicId = sourceIdFromCard($card);
     const sourceId = publicId ?? `fingerprint-${stableFingerprint([title, provider, location.municipality, dateText, vacancyText ?? ""])}`;
@@ -247,6 +249,7 @@ export function parseGoSergipePage(html: string, options: { pageUrl?: string; co
       collectedAt,
       tags: ["GO Sergipe", "Vaga externa", ...(pcd ? ["PcD"] : [])],
       salary,
+      ...salaryData,
       pcd,
       vacancies: vacancyText,
     });
@@ -282,6 +285,7 @@ export function parseGoSergipeApiResponse(payload: unknown, options: { collected
     const { occupationCode, occupationLabel } = apiRecordCbo(record);
     const pcd = apiRecordPcd(record);
     const salary = apiRecordText(record, "salary") || undefined;
+    const salaryData = parseSalary(salary ?? "");
     const contractType = apiRecordText(record, "contract_type") || undefined;
     const education = apiRecordText(record, "schooling") || undefined;
     const item: DiscoveryItem = {
@@ -302,6 +306,7 @@ export function parseGoSergipeApiResponse(payload: unknown, options: { collected
       status: apiRecordText(record, "status") || undefined,
       tags: ["GO Sergipe", "Vaga externa", ...(pcd ? ["PcD"] : [])],
       salary,
+      ...salaryData,
       contractType,
       education,
       requirements: normalizeJobDetailText(record.requirements),

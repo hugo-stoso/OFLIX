@@ -71,6 +71,8 @@ export async function GET(request: Request) {
     source: source.source,
     provider: source.provider,
     count: source.count,
+    withPublishedRemuneration: 0,
+    monthlyComparable: 0,
     stale: source.stale,
     partial: source.partial,
     status: source.stale

@@ -131,6 +131,8 @@ test("pesquisa salarial consolidada envia profissão, CBO e localização", asyn
         minimumMonthly: 2200,
         maximumMonthly: 2200,
         sampleSize: 1,
+        consultedPublications: 1,
+        observations: [],
         hasSmallSample: true,
         municipalities: ["Aracaju"],
         sourceHealth: [],
