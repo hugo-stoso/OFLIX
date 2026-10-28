@@ -206,6 +206,7 @@ export function verifiedOpportunityLimitations(items: DiscoveryItem[]) {
 }
 
 export function buildDeterministicAssistantAnswer(question: string, items: DiscoveryItem[], profile: IntelligenceProfile): DeterministicAssistantAnswer {
+  void profile;
   const interpretedQuery = interpretNaturalSearch(question, items);
   const verified = items.filter(isVerifiedDiscoveryItem);
   const matches = verified.filter((item) => matchesNaturalSearch(item, interpretedQuery)).slice(0, 8);

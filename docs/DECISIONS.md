@@ -189,3 +189,13 @@ O GO Sergipe é a primeira fonte com cobertura estruturada confirmada. O conecto
 Gupy foi mantida fora do escopo por falta de autorização Bearer do tenant para a API estruturada (`NEEDS_AUTHORIZATION`). Sólides foi mantida fora do escopo até validação adicional de tenant, cobertura estadual, estabilidade e permissão de detalhe (`NEEDS_MORE_VALIDATION`). Não houve mudança em Gemini, flags ou variáveis de IA.
 
 Área ocupacional e ocupação específica são dimensões distintas. Uma consulta por ocupação específica não é ampliada automaticamente para toda a família ocupacional. O modelo extrai `occupationQuery`, mas não pode inventar `occupationKey`/CBO; a resolução exata, ambígua ou ausente ocorre deterministicamente no backend.
+
+## Inteligência de oportunidades no MVP
+
+Escolhemos uma pipeline determinística como fonte de verdade: primeiro coletar e normalizar fontes públicas existentes, depois filtrar registros verificáveis, interpretar a consulta, ranquear sinais e calcular compatibilidade. Isso reduz custo, torna o resultado auditável e permite operação completa quando nenhum modelo está disponível.
+
+O Gemini não é obrigatório nem automático. A pessoa precisa marcar o uso opcional e o ambiente precisa ter `GEMINI_ENABLED=true` e chave configurada; caso contrário, a resposta determinística continua disponível. O adapter usa REST oficial, timeout de 10 segundos, no máximo 350 tokens por resposta e rate limit de 8 perguntas/minuto por chave de cliente. Falhas ou respostas fora do contrato fazem fallback, sem bloquear a descoberta. Em produção, esses limites por instância devem ser substituídos por controle distribuído e métricas de custo antes de ampliar o tráfego.
+
+Não integramos um pacote adicional de AI SDK nesta etapa porque o repositório já tinha uma camada HTTP própria para IA territorial e o objetivo do MVP era manter o Gemini opt-in sem aumentar dependências. A chave nunca chega ao browser. O prompt instrui o modelo a reescrever somente fatos fornecidos, mas a validação final e os cartões permanecem no servidor.
+
+Cursos e concursos não recebem conteúdo dos registros `DEMO DATA`: sem conector oficial, licença ou autorização verificável, eles aparecem apenas como limitação. A mesma regra vale para salário, qualificação, prazo, link e resultado de compatibilidade: ausência de dado permanece ausência.

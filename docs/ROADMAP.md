@@ -53,6 +53,10 @@
 - [ ] Revalidar periodicamente o HTML do EmpregAju e do IEL; ampliar a paginação do IEL somente quando existir canal público permitido.
 - [ ] Integrar Vagas Sergipe, Oficial News, BNE ou Gupy apenas após confirmar canal público estruturado, escopo Sergipe e permissão compatível.
 - [ ] Integrar dados oficiais MTE/PDET com canal público documentado, competência, CBO, município e metodologia; sem inventar dados enquanto a fonte não estiver disponível.
+- [x] Recomendações, busca natural, compatibilidade e Assistente OFLIX determinísticos sobre fontes externas verificáveis, com fontes/limitações e fallback sem IA.
+- [x] Integração Gemini opcional, consentida e protegida por configuração, timeout, limite de tokens, rate limit e fallback; sem nova dependência de runtime.
+- [ ] Instrumentar custo, latência e taxa de fallback por conta em armazenamento compartilhado antes de habilitar Gemini por padrão.
+- [ ] Integrar cursos e concursos somente por fonte oficial/autorizada e criar seus testes de frescor, licença, ausência e encerramento.
 
 ## Pós-MVP
 

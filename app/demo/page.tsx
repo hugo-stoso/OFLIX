@@ -330,10 +330,7 @@ export default function DemoPage() {
   }, [publicAccess, selectedProfile]);
   const naturalSearch = useMemo<NaturalSearchInterpretation>(() => interpretNaturalSearch(search, discoveryItems), [discoveryItems, search]);
   const filterBaseDiscoveryItem = useCallback((item: DiscoveryItem) => {
-    const normalized = (value: string) => value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const term = normalized(search.trim());
-    const haystack = normalized(`${item.title} ${item.description} ${item.provider} ${item.location.municipality} ${item.category} ${item.tags.join(" ")}`);
-    const matchesTerm = !term || matchesNaturalSearch(item, naturalSearch) || haystack.includes(term);
+    const matchesTerm = !search.trim() || matchesNaturalSearch(item, naturalSearch);
     const matchesCategory = !category || [item.category, ...item.tags].includes(category);
     const matchesMunicipality = !municipality || item.location.municipality === municipality;
     const matchesModality = !modality || item.modality === modality;

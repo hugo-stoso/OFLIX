@@ -134,3 +134,15 @@
 ## DESCARTADO
 
 - Microsserviços, backend separado, filas, Kubernetes, geocodificação externa e autenticação externa nesta fase.
+
+## Inteligência de oportunidades — MVP
+
+- `IMPLEMENTADO`: recomendações personalizadas determinísticas para oportunidades externas verificáveis, com município, interesses, preferências, capacidades e requisitos públicos do perfil.
+- `IMPLEMENTADO`: Assistente OFLIX operacional com busca natural, fatos/correspondências, fontes, limitações, fallback determinístico e modo Gemini opcional.
+- `IMPLEMENTADO`: compatibilidade indicativa com coincidências, lacunas e desconhecidos explícitos; não representa probabilidade de contratação.
+- `IMPLEMENTADO`: exclusão server-side de `DEMO DATA`, itens sem fonte HTTPS verificável e perfis demo da lista de recomendações/Assistente.
+- `IMPLEMENTADO`: estados de fonte `stale`/`partial`, ausência de dados, erro e Gemini indisponível comunicados sem inventar resultados.
+- `IMPLEMENTADO`: Gemini sem nova dependência de runtime, condicionado a configuração, consentimento, timeout, limite de tokens e rate limit em memória (8 perguntas/minuto por chave de cliente).
+- `TESTADO`: testes determinísticos de interpretação, exclusão de demo e resposta de carreira; Playwright desktop/mobile para recomendação, compatibilidade, busca natural, Assistente sem Gemini, estado vazio e overflow horizontal.
+- `PENDENTE`: cursos e concursos reais continuam sem fonte autorizada integrada; a UI informa essa limitação e não recomenda os registros demonstrativos.
+- `PENDENTE`: autenticação real, consentimento persistente, rate limit distribuído, observabilidade de custo por conta e histórico compartilhado ainda exigem infraestrutura de produção.
