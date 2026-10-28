@@ -37,6 +37,14 @@ function reasonLabel(reason: string) {
   return labels[reason] ?? "Resposta determinística usada por uma limitação não especificada.";
 }
 
+function sourceLimitations(sources: Array<{ provider: string; stale: boolean; partial: boolean; error?: string }>) {
+  return sources.flatMap((source) => [
+    source.partial ? source.provider + ": a coleta foi parcial; o ranking representa somente as publicações recebidas." : "",
+    source.stale ? source.provider + ": os dados podem estar desatualizados no momento da consulta." : "",
+    source.error ? source.provider + ": a fonte não respondeu integralmente; consulte o portal oficial." : "",
+  ]).filter(Boolean);
+}
+
 function logAssistantEvent(durationMs: number, mode: "deterministic" | "gemini" | "fallback", requestedGemini: boolean, geminiReason: string, providerStatus?: number) {
   const diagnostics = geminiDiagnostics();
   console.info(JSON.stringify({ endpoint: "/api/intelligence/assistant", durationMs, mode, requestedGemini, geminiReason, providerStatus, geminiConfigured: diagnostics.available, geminiModel: diagnostics.model, geminiTransport: diagnostics.transport }));
@@ -51,7 +59,7 @@ export async function POST(request: Request) {
     if (profile.type !== "PERSON") return NextResponse.json({ error: "person_required" }, { status: 403 });
     const intelligenceProfile = profileFromInput({ id: profile.id, municipality: profile.location.municipality, capabilities: profile.capabilities, activities: body.activities, workPreferences: body.workPreferences });
     const collected = await fetchExternalJobs({ source: "all" });
-    const deterministic = buildDeterministicAssistantAnswer(body.question, collected.items, intelligenceProfile);
+    const deterministic = buildDeterministicAssistantAnswer(body.question, collected.items, intelligenceProfile, sourceLimitations(collected.sources));
     let answer = deterministic.answer;
     let mode: "deterministic" | "gemini" | "fallback" = "deterministic";
     let geminiReason = body.useGemini ? "not_configured" : "not_requested";

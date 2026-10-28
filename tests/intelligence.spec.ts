@@ -133,6 +133,53 @@ test("responde data, contagem e comparações determinísticas por profissão e 
   expect(topMunicipality.facts[0]).toContain("Aracaju (2)");
 });
 
+test("separa perguntas analíticas de recomendações e diferencia anúncios de postos", async () => {
+  const jobs: DiscoveryItem[] = [
+    { ...verifiedJob, id: "contador-aracaju-1", title: "Contador", occupationLabel: "Contador", vacanciesCount: 2, sourceLabel: "GO Sergipe" },
+    { ...verifiedJob, id: "contador-aracaju-2", title: "Contador sênior", occupationLabel: "Contador", vacancies: "1 vaga", source: "EMPREGAJU", sourceLabel: "EmpregAju" },
+    { ...verifiedJob, id: "motorista-lagarto", title: "Motorista", occupationLabel: "Motorista", vacanciesCount: 4, location: { state: "SE", municipality: "Lagarto" }, source: "IEL_SERGIPE", sourceLabel: "IEL Sergipe" },
+  ];
+  const byMunicipality = buildDeterministicAssistantAnswer("Onde há mais vagas de trabalho?", jobs, profile);
+  expect(byMunicipality.analysis).toMatchObject({ intent: "by_municipality", scopeCount: 3, comparedCount: 2 });
+  expect(byMunicipality.answer).toContain("Aracaju");
+  expect(byMunicipality.facts[0]).toContain("Lagarto (1)");
+  expect(byMunicipality.facts[0]).toContain("Aracaju (2)");
+  expect(byMunicipality.analysis?.groups?.[0]).toMatchObject({ label: "Aracaju", count: 2, positions: 3, positionsKnownCount: 2 });
+  expect(byMunicipality.analysis?.groups?.[1]).toMatchObject({ label: "Lagarto", count: 1, positions: 4, positionsKnownCount: 1 });
+
+  const namedMunicipality = buildDeterministicAssistantAnswer("Qual município tem mais empregos?", jobs, profile);
+  expect(namedMunicipality.analysis?.intent).toBe("by_municipality");
+  expect(namedMunicipality.matches.map((item) => item.id)).toEqual(["contador-aracaju-1", "contador-aracaju-2", "motorista-lagarto"]);
+
+  const count = buildDeterministicAssistantAnswer("Quantas vagas existem em Aracaju?", jobs, profile);
+  expect(count.analysis).toMatchObject({ intent: "count", scopeCount: 2, comparedCount: 2 });
+  expect(count.answer).toContain("2 vagas verificáveis");
+
+  const byProfession = buildDeterministicAssistantAnswer("Quais profissões têm mais oportunidades?", jobs, profile);
+  expect(byProfession.analysis?.intent).toBe("by_profession");
+  expect(byProfession.facts[0]).toContain("Contador (2)");
+  expect(byProfession.facts[0]).toContain("Motorista (1)");
+  expect(byProfession.matches).toHaveLength(3);
+});
+
+test("aplica filtro temporal apenas quando a data foi informada pela fonte", async () => {
+  const jobs: DiscoveryItem[] = [
+    { ...verifiedJob, id: "old", publishedAt: "2026-10-19T10:00:00Z" },
+    { ...verifiedJob, id: "new", publishedAt: "2026-10-21T10:00:00Z" },
+    { ...verifiedJob, id: "unknown-date" },
+  ];
+  const answer = buildDeterministicAssistantAnswer("Quantas vagas existem desde 2026-10-20?", jobs, profile);
+  expect(answer.analysis).toMatchObject({ intent: "count", scopeCount: 1, comparedCount: 1 });
+  expect(answer.matches.map((item) => item.id)).toEqual(["new"]);
+});
+
+test("não cria ranking quando o recorte analítico não tem oportunidades verificáveis", async () => {
+  const answer = buildDeterministicAssistantAnswer("Onde há mais vagas de trabalho?", [], profile);
+  expect(answer.analysis).toMatchObject({ intent: "by_municipality", scopeCount: 0, groups: [] });
+  expect(answer.answer).toMatch(/Não encontrei/i);
+  expect(answer.matches).toHaveLength(0);
+});
+
 test("não inventa resultado quando salários não informam periodicidade", async () => {
   const answer = buildDeterministicAssistantAnswer("Qual vaga possui maior salário?", [{ ...verifiedJob, salary: "R$ 4.000,00", salaryMin: 4000, salaryCurrency: "BRL", salaryPeriod: "UNKNOWN" }], profile);
   expect(answer.analysis).toMatchObject({ intent: "highest_salary", comparedCount: 0, excludedCount: 1 });
