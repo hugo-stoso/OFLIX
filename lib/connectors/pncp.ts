@@ -24,12 +24,16 @@ export async function fetchPncpOpportunities(query: PncpQuery = {}, options: { t
   const today = new Date();
   const finalDate = new Date(today);
   finalDate.setDate(finalDate.getDate() + 30);
-  const params = new URLSearchParams({ dataFinal: dateParam(finalDate), pagina: String(query.page ?? 1), tamanhoPagina: String(Math.min(query.pageSize ?? 12, 50)) });
+  const params = new URLSearchParams({ dataFinal: dateParam(finalDate), pagina: String(query.page ?? 1), tamanhoPagina: String(Math.max(10, Math.min(query.pageSize ?? 12, 50))) });
   if (query.state) params.set("uf", query.state);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 3500);
   try {
     const response = await fetch(`${PNCP_BASE_URL}/contratacoes/proposta?${params.toString()}`, { headers: { accept: "application/json" }, signal: controller.signal, cache: "no-store" });
+    if (response.status === 204) {
+      cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, items: [] });
+      return { items: [], source: "PNCP", collectedAt: new Date().toISOString(), stale: false };
+    }
     if (!response.ok) throw new Error(`PNCP ${response.status}`);
     const payload = await response.json() as unknown;
     const records = Array.isArray(payload) ? payload : payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown }).data) ? (payload as { data: unknown[] }).data : [];

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, MapPin } from "lucide-react";
 import { notFound } from "next/navigation";
 import { DemoHeader } from "@/components/DemoHeader";
+import { ProcurementLinks } from "@/components/ProcurementLinks";
 import { DISCOVERY_KIND_LABELS } from "@/lib/domain";
 import { demoDiscoveryItems } from "@/lib/discovery";
 
@@ -38,12 +39,15 @@ export default async function DiscoveryDetailPage({ params, searchParams }: Prop
           {item.vacancies && <div><dt className="eyebrow">Vagas</dt><dd className="mt-2 font-bold text-navy">{item.vacancies}</dd></div>}
           {item.board && <div><dt className="eyebrow">Banca</dt><dd className="mt-2 font-bold text-navy">{item.board}</dd></div>}
           {item.value && <div><dt className="eyebrow">Valor estimado</dt><dd className="mt-2 font-bold text-navy">{item.value}</dd></div>}
+          {item.publicBodyCnpj && <div><dt className="eyebrow">CNPJ do órgão</dt><dd className="mt-2 font-bold text-navy">{item.publicBodyCnpj}</dd></div>}
+          {item.procurementYear && item.procurementSequence && <div><dt className="eyebrow">Identificador PNCP</dt><dd className="mt-2 font-bold text-navy">{item.procurementYear}/{item.procurementSequence}</dd></div>}
+          {item.processNumber && <div><dt className="eyebrow">Processo de origem</dt><dd className="mt-2 font-bold text-navy">{item.processNumber}</dd></div>}
           <div><dt className="eyebrow">Fonte</dt><dd className="mt-2 font-bold text-navy">{item.sourceLabel}</dd></div>
         </dl>
         {item.kind === "public_exam" || item.kind === "public_selection" ? <p className="mt-6 rounded-xl border border-[#f1d9a5] bg-[#fff9ed] p-4 text-sm leading-6 text-[#76531c]">Consulte o edital oficial antes de realizar a inscrição. Este registro é DEMO DATA e não substitui o documento oficial.</p> : null}
         {item.kind === "public_procurement" ? <><p className="mt-6 rounded-xl border border-[#f1d9a5] bg-[#fff9ed] p-4 text-sm leading-6 text-[#76531c]">Consulte o edital e os requisitos oficiais antes de participar. A OFLIX descobre e organiza a oportunidade; o processo oficial acontece no sistema indicado pelo órgão.</p><Link href="/market?tab=legislation&context=contratação pública" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline">Conheça a legislação de contratações públicas <ArrowLeft className="rotate-180" size={15} /></Link></> : null}
       </article>
-      <aside className="panel h-fit p-6 sm:p-7 lg:sticky lg:top-24"><p className="eyebrow">Próximo passo</p><h2 className="mt-3 text-xl font-bold tracking-[-.02em] text-navy">Dados de demonstração</h2><p className="mt-3 text-sm leading-6 text-[#607286]">A origem aparece de forma explícita para não confundir registros externos com resultados operacionais do OFLIX.</p><div className="mt-6"><Link href={returnTo} className="button-primary w-full">Voltar à busca</Link></div><p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-[#788995]">DEMO DATA · nenhum edital, salário, parceria ou autorização real é afirmado.</p>{item.sourceUrl ? <a href={item.sourceUrl} className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline" target="_blank" rel="noreferrer">Abrir fonte <ExternalLink size={15} /></a> : null}</aside>
+      <aside className="panel h-fit p-6 sm:p-7 lg:sticky lg:top-24"><p className="eyebrow">Próximo passo</p><h2 className="mt-3 text-xl font-bold tracking-[-.02em] text-navy">Dados de demonstração</h2><p className="mt-3 text-sm leading-6 text-[#607286]">A origem aparece de forma explícita para não confundir registros externos com resultados operacionais do OFLIX.</p><div className="mt-6"><Link href={returnTo} className="button-primary w-full">Voltar à busca</Link></div><p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-[#788995]">DEMO DATA · nenhum edital, salário, parceria ou autorização real é afirmado.</p>{item.kind === "public_procurement" && item.source !== "DEMO_DATA" ? <ProcurementLinks links={item.procurementLinks} /> : item.sourceUrl ? <a href={item.sourceUrl} className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-blue hover:underline" target="_blank" rel="noreferrer">Abrir fonte <ExternalLink size={15} /></a> : null}</aside>
     </div>
   </div></main>;
 }
