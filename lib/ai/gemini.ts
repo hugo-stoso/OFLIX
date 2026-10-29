@@ -29,7 +29,7 @@ const configSchema = z.object({
   model: z.string().min(1),
   baseUrl: z.string().url(),
   timeoutMs: z.number().int().min(1_000).max(30_000),
-  maxOutputTokens: z.number().int().min(64).max(1_000),
+  maxOutputTokens: z.number().int().min(64).max(256),
 });
 
 function geminiConfig() {
@@ -39,7 +39,8 @@ function geminiConfig() {
   const explicitlyEnabled = geminiFlag === "true";
   const explicitlyDisabled = geminiFlag === "false";
   const inheritedEnabled = usesCompatibleGemini && (process.env.TERRITORY_AI_ENABLED ?? "false").toLowerCase() === "true";
-  if (explicitlyDisabled || (!explicitlyEnabled && !inheritedEnabled)) return null;
+  const freeTierConfirmed = (process.env.GEMINI_FREE_TIER_CONFIRMED ?? "false").trim().toLowerCase() === "true";
+  if (explicitlyDisabled || (!explicitlyEnabled && !inheritedEnabled) || !freeTierConfirmed) return null;
   const explicitBaseUrl = (process.env.GEMINI_BASE_URL ?? "").trim();
   const inheritedBaseUrl = usesCompatibleGemini ? (process.env.AI_BASE_URL ?? "").trim() : "";
   const baseUrl = (explicitBaseUrl || inheritedBaseUrl || "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/u, "");
@@ -48,7 +49,7 @@ function geminiConfig() {
     model: (process.env.GEMINI_MODEL ?? process.env.AI_MODEL ?? "").trim(),
     baseUrl,
     timeoutMs: Math.min(30_000, Math.max(1_000, Number(process.env.GEMINI_TIMEOUT_MS ?? 10_000))),
-    maxOutputTokens: Math.min(1_000, Math.max(64, Number(process.env.GEMINI_MAX_OUTPUT_TOKENS ?? 350))),
+    maxOutputTokens: Math.min(256, Math.max(64, Number(process.env.GEMINI_MAX_OUTPUT_TOKENS ?? 256))),
   });
   if (!parsed.success) return null;
   if (new URL(parsed.data.baseUrl).protocol !== "https:" && process.env.NODE_ENV === "production") return null;
@@ -64,9 +65,14 @@ export function geminiDiagnostics() {
   const config = geminiConfig();
   const provider = (process.env.AI_PROVIDER ?? "").trim().toLowerCase() || "not_set";
   const keySource = (process.env.GEMINI_API_KEY ?? "").trim() ? "GEMINI_API_KEY" : (process.env.AI_API_KEY ?? "").trim() ? "AI_API_KEY" : "not_set";
-  if (!config) return { available: false, provider, model: (process.env.GEMINI_MODEL ?? process.env.AI_MODEL ?? "").trim() || "not_set", transport: "unavailable" as const, endpoint: "not_configured", keySource };
+  const freeTierConfirmed = (process.env.GEMINI_FREE_TIER_CONFIRMED ?? "false").trim().toLowerCase() === "true";
+  const model = (process.env.GEMINI_MODEL ?? process.env.AI_MODEL ?? "").trim() || "not_set";
+  const compatibleProvider = provider === "gemini-openai-compatible" || provider === "gemini-openai";
+  const enabledByEnvironment = (process.env.GEMINI_ENABLED ?? "").trim().toLowerCase() === "true" || (compatibleProvider && (process.env.TERRITORY_AI_ENABLED ?? "false").trim().toLowerCase() === "true");
+  const hasCandidateConfig = keySource !== "not_set" && model !== "not_set" && enabledByEnvironment;
+  if (!config) return { available: false, provider, model, transport: "unavailable" as const, endpoint: "not_configured", keySource, freeTierConfirmed, blockedReason: !hasCandidateConfig ? "not_configured" : freeTierConfirmed ? "not_configured" : "free_tier_unconfirmed" };
   const endpoint = config.transport === "openai-compatible" ? `${config.baseUrl}/chat/completions` : `${config.baseUrl}/models/${encodeURIComponent(config.model)}:generateContent`;
-  return { available: true, provider, model: config.model, transport: config.transport, endpoint, keySource };
+  return { available: true, provider, model: config.model, transport: config.transport, endpoint, keySource, freeTierConfirmed, blockedReason: null };
 }
 
 export async function generateGeminiJson(request: { system: string; user: string }): Promise<GeminiJsonResponse> {
