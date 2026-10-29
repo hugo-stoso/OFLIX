@@ -114,6 +114,47 @@ test("mostra o motivo técnico do fallback e preserva o resultado salarial verif
   await expect(page.getByRole("link", { name: /Abrir fonte oficial/ })).toHaveAttribute("href", verifiedJob.sourceUrl);
 });
 
+test("pergunta analítica mostra ranking agregado de municípios sem recomendações individuais", async ({ page }) => {
+  await page.route("**/api/intelligence/assistant", (route) => route.fulfill({ json: {
+    answer: "No recorte, Aracaju concentra mais anúncios verificáveis: 2 publicações.",
+    interpretedQuery: { query: "Onde há mais vagas de trabalho?", terms: [], kinds: ["external_job"], summary: "universo: empregos" },
+    matches: [verifiedJob, { ...verifiedJob, id: "lagarto-ui", title: "Motorista", location: { state: "SE", municipality: "Lagarto" }, source: "IEL_SERGIPE", sourceLabel: "IEL Sergipe" }],
+    facts: ["Comparação por município: Aracaju (2) 2 publicações; 3 postos; fontes: GO Sergipe (2). Lagarto (1) 1 publicação; 4 postos; fontes: IEL Sergipe (1)."],
+    limitations: ["A quantidade de anúncios/publicações é diferente da quantidade de postos."],
+    analysis: {
+      intent: "by_municipality",
+      scopeCount: 3,
+      comparedCount: 2,
+      groups: [
+        { label: "Aracaju", count: 2, positions: 3, positionsKnownCount: 2, sourceCounts: [{ label: "GO Sergipe", count: 2 }] },
+        { label: "Lagarto", count: 1, positions: 4, positionsKnownCount: 1, sourceCounts: [{ label: "IEL Sergipe", count: 1 }] },
+      ],
+    },
+    mode: "deterministic",
+    gemini: { requested: false, available: false, used: false, reason: "not_requested" },
+    sources: [
+      { source: "GO_SERGIPE", provider: "GO Sergipe", count: 2, stale: false, partial: false },
+      { source: "IEL_SERGIPE", provider: "IEL Sergipe", count: 1, stale: false, partial: true },
+    ],
+    collectedAt: "2026-10-28T10:00:00Z",
+    stale: false,
+    partial: true,
+  } }));
+  await openPersonHome(page);
+  await page.getByRole("navigation", { name: "Navegação principal" }).locator('button:visible', { hasText: "Assistente IA" }).click();
+  await page.getByLabel("Pergunta para o Assistente OFLIX").fill("Onde há mais vagas de trabalho?");
+  await page.getByRole("button", { name: "Perguntar" }).click();
+  const ranking = page.getByTestId("assistant-analysis-ranking");
+  await expect(ranking).toBeVisible();
+  await expect(ranking).toContainText("Aracaju");
+  await expect(ranking).toContainText("2 publicações / anúncios");
+  await expect(ranking).toContainText("Postos oferecidos: 3");
+  await expect(ranking).toContainText("IEL Sergipe (1)");
+  await expect(ranking).toContainText("Dados coletados em:");
+  await expect(ranking.locator("article")).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
 test("busca natural mostra o recorte interpretado em desktop e mobile", async ({ page }) => {
   await openPersonHome(page);
   await page.getByRole("button", { name: "Buscar", exact: true }).first().click();

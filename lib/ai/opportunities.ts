@@ -15,6 +15,8 @@ export type NaturalSearchInterpretation = {
   query: string;
   terms: string[];
   municipality?: string;
+  publishedSince?: string;
+  publishedUntil?: string;
   kinds: DiscoveryKind[];
   summary: string;
 };
@@ -43,17 +45,28 @@ export type DeterministicAssistantAnswer = {
   analysis?: AssistantAnalysis;
 };
 
+export type AssistantAnalysisGroup = {
+  label: string;
+  /** Number of published opportunity records, not the number of positions. */
+  count: number;
+  /** Sum of positions explicitly reported by the source, when available. */
+  positions?: number;
+  /** Number of publications that supplied a parseable position count. */
+  positionsKnownCount: number;
+  sourceCounts: Array<{ label: string; count: number }>;
+};
+
 export type AssistantAnalysis = {
   intent: "highest_salary" | "lowest_salary" | "latest" | "count" | "by_profession" | "by_municipality" | "compare_professions" | "compare_municipalities";
   scopeCount: number;
   comparedCount?: number;
   excludedCount?: number;
-  groups?: Array<{ label: string; count: number }>;
+  groups?: AssistantAnalysisGroup[];
 };
 
 const VERIFIED_SOURCES = new Set<DiscoverySource>(["GO_SERGIPE", "EMPREGAJU", "IEL_SERGIPE", "PNCP", "AUTHORIZED_PARTNER"]);
 const STOP_WORDS = new Set([
-  "a", "ao", "aos", "as", "com", "como", "de", "do", "dos", "da", "das", "em", "e", "é", "para", "por", "que", "qual", "quais", "uma", "um", "umas", "uns", "me", "minha", "meu", "minhas", "meus", "tenho", "tem", "há", "existe", "existem", "procuro", "procurando", "buscar", "busco", "encontre", "encontrar", "quero", "gostaria", "interesse", "interesses", "oportunidade", "oportunidades", "vaga", "vagas", "trabalho", "trabalhar", "carreira", "profissão", "profissao", "profissional", "profissionais", "município", "municipio", "municípios", "municipios", "cidade", "cidades", "disponível", "disponiveis", "disponíveis", "agora", "hoje", "sobre", "na", "no", "nas", "nos", "onde", "temos", "pode", "podem", "ser", "são", "sao", "posso", "preparar", "preparação", "preparacao", "melhorar", "melhor", "habilidade", "habilidades", "qualificar", "qualificação", "qualificacao", "experiência", "experiencia", "possui", "possuem", "quantas", "quantos", "mais", "menos", "maior", "menor", "alto", "alta", "baixo", "baixa", "salário", "salario", "salários", "salarios", "remuneração", "remuneracao", "mensal", "mensais", "recente", "recentes", "nova", "novas", "novo", "novos", "última", "ultima", "últimas", "ultimas", "número", "numero", "quantidade", "total", "comparar", "compare", "comparação", "comparacao", "diferença", "diferenca", "entre",
+  "a", "ao", "aos", "as", "com", "como", "de", "do", "dos", "da", "das", "em", "e", "é", "para", "por", "que", "qual", "quais", "uma", "um", "umas", "uns", "me", "minha", "meu", "minhas", "meus", "tenho", "tem", "há", "existe", "existem", "procuro", "procurando", "buscar", "busco", "encontre", "encontrar", "quero", "gostaria", "interesse", "interesses", "oportunidade", "oportunidades", "vaga", "vagas", "trabalho", "trabalhar", "carreira", "profissão", "profissao", "profissões", "profissoes", "profissional", "profissionais", "ocupação", "ocupacao", "ocupações", "ocupacoes", "cargo", "cargos", "função", "funcao", "funções", "funcoes", "área", "area", "áreas", "areas", "emprego", "empregos", "município", "municipio", "municípios", "municipios", "cidade", "cidades", "disponível", "disponiveis", "disponíveis", "agora", "hoje", "sobre", "na", "no", "nas", "nos", "onde", "temos", "pode", "podem", "ser", "são", "sao", "posso", "preparar", "preparação", "preparacao", "melhorar", "melhor", "habilidade", "habilidades", "qualificar", "qualificação", "qualificacao", "experiência", "experiencia", "possui", "possuem", "quantas", "quantos", "mais", "menos", "maior", "menor", "alto", "alta", "baixo", "baixa", "salário", "salario", "salários", "salarios", "remuneração", "remuneracao", "mensal", "mensais", "recente", "recentes", "nova", "novas", "novo", "novos", "última", "ultima", "últimas", "ultimas", "número", "numero", "quantidade", "total", "comparar", "compare", "comparação", "comparacao", "diferença", "diferenca", "entre",
 ]);
 
 const SERGIPE_MUNICIPALITIES = [
@@ -120,6 +133,23 @@ function itemMatchesSignal(item: DiscoveryItem, signal: string) {
   return group ? group.itemTerms.some((term) => phraseInText(itemText(item), term)) : phraseInText(itemText(item), signal);
 }
 
+function dateFilterValue(value: string) {
+  const iso = value.match(/\b\d{4}-\d{2}-\d{2}\b/u)?.[0];
+  if (iso) return iso;
+  const brazilian = value.match(/\b(\d{2})\/(\d{2})\/(\d{4})\b/u);
+  return brazilian ? `${brazilian[3]}-${brazilian[2]}-${brazilian[1]}` : undefined;
+}
+
+function publishedPeriod(question: string) {
+  const value = normalized(question);
+  const sinceMatch = value.match(/(?:desde|a partir de|apos|depois de)\s+(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/u);
+  const untilMatch = value.match(/(?:ate|até)\s+(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/u);
+  return {
+    ...(sinceMatch?.[1] && dateFilterValue(sinceMatch[1]) ? { publishedSince: dateFilterValue(sinceMatch[1]) } : {}),
+    ...(untilMatch?.[1] && dateFilterValue(untilMatch[1]) ? { publishedUntil: dateFilterValue(untilMatch[1]) } : {}),
+  };
+}
+
 export function isVerifiedDiscoveryItem(item: DiscoveryItem) {
   return item.demo !== true && VERIFIED_SOURCES.has(item.source) && /^https:\/\//u.test(item.sourceUrl ?? "");
 }
@@ -130,26 +160,37 @@ export function interpretNaturalSearch(query: string, items: DiscoveryItem[] = [
   const normalizedQuery = normalized(raw);
   const candidateMunicipalities = unique([...items.map((item) => item.location.municipality), ...SERGIPE_MUNICIPALITIES]).sort((left, right) => normalized(right).length - normalized(left).length);
   const municipality = candidateMunicipalities.find((candidate) => normalizedQuery.includes(normalized(candidate)));
+  const period = publishedPeriod(raw);
   let remaining = municipality ? normalizedQuery.replace(normalized(municipality), " ") : normalizedQuery;
+  remaining = remaining.replace(/(?:desde|a partir de|apos|depois de|ate)\s+(?:\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4})/gu, " ");
   const kinds = unique(KIND_TERMS.flatMap(({ terms: values, kinds: candidateKinds }) => values.some((term) => remaining.includes(normalized(term))) ? candidateKinds : [])).filter((kind): kind is DiscoveryKind => Boolean(kind));
   for (const { terms: values } of KIND_TERMS) for (const term of values) remaining = remaining.replace(normalized(term), " ");
   const searchTerms = unique(tokens(remaining));
   const summary = [
     searchTerms.length ? `tema/profissão: ${searchTerms.join(" ")}` : "",
     municipality ? `município: ${municipality}` : "",
+    period.publishedSince || period.publishedUntil ? `período: ${period.publishedSince ? `desde ${period.publishedSince}` : ""}${period.publishedSince && period.publishedUntil ? " " : ""}${period.publishedUntil ? `até ${period.publishedUntil}` : ""}` : "",
     kinds.length ? `universo: ${kinds.map((kind) => kind === "external_job" || kind === "formal" ? "empregos" : kind === "course" ? "cursos" : kind === "public_exam" || kind === "public_selection" ? "concursos e seleções" : kind).join(" / ")}` : "",
   ].filter(Boolean).join(" · ");
-  return { query: raw, terms: searchTerms, ...(municipality ? { municipality } : {}), kinds, summary };
+  return { query: raw, terms: searchTerms, ...(municipality ? { municipality } : {}), ...period, kinds, summary };
 }
 
 export function matchesNaturalSearch(item: DiscoveryItem, interpretation: NaturalSearchInterpretation) {
   if (interpretation.municipality && normalized(item.location.municipality) !== normalized(interpretation.municipality)) return false;
+  if (!matchesPublishedPeriod(item, interpretation)) return false;
   if (interpretation.kinds.length && !interpretation.kinds.some((kind) => kind === item.kind || (kind === "formal" && item.kind === "external_job"))) return false;
   const text = itemText(item);
   const occupationGroups = occupationGroupsForQuery(interpretation.query);
   const occupationTerms = new Set(occupationGroups.flatMap((group) => group.queryTerms.flatMap((term) => tokens(term))));
   const nonOccupationTerms = interpretation.terms.filter((term) => !occupationTerms.has(term));
   return occupationGroups.every((group) => group.itemTerms.some((term) => phraseInText(text, term))) && nonOccupationTerms.every((term) => phraseInText(text, term));
+}
+
+function matchesPublishedPeriod(item: DiscoveryItem, interpretation: NaturalSearchInterpretation) {
+  const publishedDate = item.publishedAt?.slice(0, 10);
+  if (interpretation.publishedSince && (!publishedDate || publishedDate < interpretation.publishedSince)) return false;
+  if (interpretation.publishedUntil && (!publishedDate || publishedDate > interpretation.publishedUntil)) return false;
+  return true;
 }
 
 function meaningfulProfileSignals(profile: IntelligenceProfile) {
@@ -272,23 +313,31 @@ export function detectAnalyticalIntent(question: string): AssistantAnalysis["int
   const comparison = /\b(comparar|compare|comparacao|diferenca|entre)\b/u.test(value);
   if (comparison && occupationGroups.length >= 2) return "compare_professions";
   if (comparison && municipalities.length >= 2) return "compare_municipalities";
-  if (/\b(municipio|cidade)\b/u.test(value) && /\b(mais vagas|maior numero|mais oportunidades)\b/u.test(value)) return "by_municipality";
-  if (/\b(profissao|ocupacao)\b/u.test(value) && /\b(mais vagas|maior numero|mais oportunidades)\b/u.test(value)) return "by_profession";
+  const asksMost = /\b(mais vagas?|maior numero|maior quantidade|mais oportunidades?|mais empregos?|mais postos?)\b/u.test(value);
+  if (asksMost && /\b(municipio|municipios|cidade|cidades|onde|local|regiao)\b/u.test(value)) return "by_municipality";
+  if (asksMost && /\b(profissao|profissoes|ocupacao|ocupacoes|cargo|cargos|funcao|funcoes|area|areas)\b/u.test(value)) return "by_profession";
   if (/\b(quantas?|quantidade|numero|total)\b/u.test(value) && /\b(vagas?|oportunidades?|empregos?)\b/u.test(value)) return "count";
   return undefined;
 }
 
 function analyticalScope(question: string, interpretation: NaturalSearchInterpretation, verified: DiscoveryItem[], intent: AssistantAnalysis["intent"]) {
   const jobs = verified.filter(isEmploymentOpportunity);
+  const mentioned = mentionedMunicipalities(question, jobs);
+  const occupationGroups = occupationGroupsForQuery(question);
+  const temporal = jobs.filter((item) => matchesPublishedPeriod(item, interpretation));
+  const natural = temporal.filter((item) => matchesNaturalSearch(item, interpretation));
+  const byMunicipality = temporal.filter((item) => !mentioned.length || mentioned.some((municipality) => normalized(item.location.municipality) === normalized(municipality)));
   if (intent === "compare_professions") {
-    const groups = occupationGroupsForQuery(question);
-    return jobs.filter((item) => groups.some((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term))));
+    return byMunicipality.filter((item) => occupationGroups.some((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term))));
   }
   if (intent === "compare_municipalities") {
-    const municipalities = mentionedMunicipalities(question, jobs);
-    return jobs.filter((item) => municipalities.some((municipality) => normalized(item.location.municipality) === normalized(municipality)));
+    return byMunicipality;
   }
-  return jobs.filter((item) => matchesNaturalSearch(item, interpretation));
+  if ((intent === "by_municipality" || intent === "by_profession") && occupationGroups.length) {
+    return byMunicipality.filter((item) => occupationGroups.some((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term))));
+  }
+  if (intent === "by_municipality" || intent === "by_profession") return byMunicipality;
+  return natural;
 }
 
 function numericSalary(value: string | undefined) {
@@ -324,10 +373,52 @@ function analyticalItemFact(item: DiscoveryItem, extra = "") {
   return `${item.title} · ${item.location.municipality}${extra ? ` · ${extra}` : ""} · Fonte: ${item.sourceLabel}.`;
 }
 
+function positionsForItem(item: DiscoveryItem) {
+  if (Number.isFinite(item.vacanciesCount) && (item.vacanciesCount ?? 0) > 0) return item.vacanciesCount;
+  const vacancyMatch = item.vacancies?.match(/\b(\d+)\s+vagas?\b/iu);
+  if (vacancyMatch) return Number(vacancyMatch[1]);
+  const positionMatch = item.positions?.match(/\b(\d+)\b/u);
+  return positionMatch ? Number(positionMatch[1]) : undefined;
+}
+
+function occupationLabelForItem(item: DiscoveryItem) {
+  const matchedGroup = OCCUPATION_SEARCH_ALIASES.find((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term)));
+  const canonicalLabel = matchedGroup?.queryTerms[0];
+  return canonicalLabel ? canonicalLabel.charAt(0).toLocaleUpperCase("pt-BR") + canonicalLabel.slice(1) : item.occupationLabel ?? item.title;
+}
+
 function groupCounts(items: DiscoveryItem[], labelsForItem: (item: DiscoveryItem) => string[]) {
-  const counts = new Map<string, number>();
-  for (const item of items) for (const label of labelsForItem(item)) counts.set(label, (counts.get(label) ?? 0) + 1);
-  return Array.from(counts, ([label, count]) => ({ label, count })).sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, "pt-BR"));
+  const counts = new Map<string, { count: number; positions: number; positionsKnownCount: number; sourceCounts: Map<string, number> }>();
+  for (const item of items) {
+    const positions = positionsForItem(item);
+    for (const label of unique(labelsForItem(item))) {
+      if (!label) continue;
+      const current = counts.get(label) ?? { count: 0, positions: 0, positionsKnownCount: 0, sourceCounts: new Map<string, number>() };
+      current.count += 1;
+      if (positions !== undefined) {
+        current.positions += positions;
+        current.positionsKnownCount += 1;
+      }
+      current.sourceCounts.set(item.sourceLabel, (current.sourceCounts.get(item.sourceLabel) ?? 0) + 1);
+      counts.set(label, current);
+    }
+  }
+  return Array.from(counts, ([label, value]) => ({
+    label,
+    count: value.count,
+    ...(value.positionsKnownCount ? { positions: value.positions } : {}),
+    positionsKnownCount: value.positionsKnownCount,
+    sourceCounts: Array.from(value.sourceCounts, ([sourceLabel, count]) => ({ label: sourceLabel, count })).sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, "pt-BR")),
+  })).sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, "pt-BR"));
+}
+
+function groupFact(group: AssistantAnalysisGroup) {
+  const publicationLabel = group.count + " " + (group.count === 1 ? "publicação" : "publicações");
+  const positionLabel = group.positions === undefined
+    ? "postos não informados"
+    : `${group.positions} posto${group.positions === 1 ? "" : "s"} informado${group.positions === 1 ? "" : "s"}${group.positionsKnownCount < group.count ? ` em ${group.positionsKnownCount} de ${group.count} publicações` : ""}`;
+  const sources = group.sourceCounts.map((source) => `${source.label} (${source.count})`).join(", ");
+  return `${group.label} (${group.count}) ${publicationLabel}; ${positionLabel}; fontes: ${sources}.`;
 }
 
 function buildAnalyticalAnswer(question: string, interpretation: NaturalSearchInterpretation, verified: DiscoveryItem[], baseLimitations: string[]) {
@@ -375,22 +466,31 @@ function buildAnalyticalAnswer(question: string, interpretation: NaturalSearchIn
     ? groupCounts(scope, (item) => [item.location.municipality])
     : intent === "compare_professions"
       ? groupCounts(scope, (item) => occupationGroups.filter((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term))).map((group) => group.queryTerms[0]))
-      : groupCounts(scope, (item) => [item.occupationLabel || item.title]);
+      : groupCounts(scope, (item) => [occupationLabelForItem(item)]);
   const comparableGroups = groups.filter((group) => isMunicipalityAnalysis ? municipalities.length === 0 || municipalities.some((municipality) => normalized(municipality) === normalized(group.label)) : true);
   if (!comparableGroups.length) return { answer: "Não encontrei vagas verificáveis suficientes para fazer essa comparação.", matches: [], facts: ["Nenhum grupo comparável foi encontrado no recorte."], limitations, analysis: { intent, scopeCount: scope.length, groups: [] } satisfies AssistantAnalysis };
+  const knownPositionGroups = comparableGroups.filter((group) => group.positionsKnownCount > 0);
+  const partiallyKnownPositionGroups = comparableGroups.filter((group) => group.positionsKnownCount < group.count);
+  if (partiallyKnownPositionGroups.length) {
+    limitations.push("A quantidade de anúncios/publicações é diferente da quantidade de postos: a fonte informou postos em apenas parte dos registros do ranking.");
+  }
   const top = comparableGroups[0];
   const label = isMunicipalityAnalysis ? "município" : "profissão ou cargo";
-  return { answer: `No recorte, ${top.label} concentra mais vagas verificáveis (${top.count}). A comparação agrupa somente os títulos e municípios publicados pelas fontes oficiais.`, matches: scope.slice(0, 8), facts: [`Comparação por ${label}: ${comparableGroups.slice(0, 5).map((group) => `${group.label} (${group.count})`).join(", ")}.`], limitations, analysis: { intent, scopeCount: scope.length, groups: comparableGroups.slice(0, 10) } satisfies AssistantAnalysis };
+  const topPositionText = top.positions === undefined ? "A fonte não informou a quantidade de postos para esse grupo." : "As fontes informaram " + top.positions + " posto" + (top.positions === 1 ? "" : "s") + " em " + top.positionsKnownCount + " de " + top.count + " publicações.";
+  const answer = "No recorte, " + top.label + " concentra mais anúncios verificáveis: " + top.count + " " + (top.count === 1 ? "publicação" : "publicações") + ". " + topPositionText + " O ranking abaixo conta publicações, não presume que cada anúncio represente apenas um posto.";
+  const ranking = comparableGroups.slice(0, 5).map(groupFact).join(" ");
+  const knownPositionText = knownPositionGroups.length ? " A quantidade de postos foi somada somente onde a fonte informou esse campo." : "";
+  return { answer, matches: scope.slice(0, 8), facts: ["Comparação por " + label + ": " + ranking + knownPositionText], limitations, analysis: { intent, scopeCount: scope.length, comparedCount: comparableGroups.length, groups: comparableGroups.slice(0, 10) } satisfies AssistantAnalysis };
 }
 
-export function buildDeterministicAssistantAnswer(question: string, items: DiscoveryItem[], profile: IntelligenceProfile): DeterministicAssistantAnswer {
+export function buildDeterministicAssistantAnswer(question: string, items: DiscoveryItem[], profile: IntelligenceProfile, additionalLimitations: string[] = []): DeterministicAssistantAnswer {
   void profile;
   const interpretedQuery = interpretNaturalSearch(question, items);
   const verified = items.filter(isVerifiedDiscoveryItem);
-  const analytical = buildAnalyticalAnswer(question, interpretedQuery, verified, verifiedOpportunityLimitations(verified));
+  const limitations = [...verifiedOpportunityLimitations(verified), ...additionalLimitations];
+  const analytical = buildAnalyticalAnswer(question, interpretedQuery, verified, limitations);
   if (analytical) return { ...analytical, interpretedQuery };
   const matches = verified.filter((item) => matchesNaturalSearch(item, interpretedQuery)).slice(0, 8);
-  const limitations = verifiedOpportunityLimitations(verified);
   const careerQuestion = /carreira|prepar|habilidade|qualifica|requisito|experi[êe]ncia|melhorar/i.test(question);
   let answer: string;
   const facts: string[] = [];
