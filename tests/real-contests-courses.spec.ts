@@ -39,7 +39,7 @@ test("SENAI lê turma, local, gratuidade e não mantém inscrição vencida como
 test("SENAI prioriza cards oficiais e links de matrícula sobre links de navegação", () => {
   const items = parseSenaiCourses(`<a href="/cursos-tecnicos">Cursos Técnicos</a><div class="itemCurso"><div class="descricao"><a href="https://app.fies.org.br/MatriculaWebSENAI/Cursos/DetalheCurso/2635"><h5>Assistente de Recursos Humanos</h5></a><span>GERENCIAL</span><p>Carga Horária: 180</p></div><div class="modalidade">Presencial</div><div class="btMatricule-se"><a href="https://app.fies.org.br/MatriculaWebSENAI/TenhoInteresse/Novo?curso=assistente-de-recursos-humanos&amp;e=SENAI">Tenho Interesse</a></div></div>`);
   expect(items).toHaveLength(1);
-  expect(items[0]).toMatchObject({ title: "Assistente de Recursos Humanos", sourceUrl: "https://app.fies.org.br/MatriculaWebSENAI/Cursos/DetalheCurso/2635", applicationUrl: "https://app.fies.org.br/MatriculaWebSENAI/TenhoInteresse/Novo?curso=assistente-de-recursos-humanos&e=SENAI", modality: "Presencial" });
+  expect(items[0]).toMatchObject({ title: "Assistente de Recursos Humanos", sourceUrl: "https://app.fies.org.br/MatriculaWebSENAI/Cursos/DetalheCurso/2635", applicationUrl: "https://app.fies.org.br/MatriculaWebSENAI/TenhoInteresse/Novo?curso=assistente-de-recursos-humanos&e=SENAI", modality: "Presencial", duration: "180", status: "Disponível no catálogo", location: { municipality: "Não informado" } });
 });
 
 test("catálogos Bradesco e EV.G são online, sem prazo fictício e sem município falso", () => {

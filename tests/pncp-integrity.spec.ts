@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { fetchPncpOpportunities } from "../lib/connectors/pncp";
 import { GET } from "../app/api/public-opportunities/route";
 
 test.describe("integridade PNCP live/DEMO", () => {
@@ -31,5 +32,19 @@ test.describe("integridade PNCP live/DEMO", () => {
     expect(body.unavailable).toBe(true);
     expect(body.items).toEqual([]);
     expect(body.source).toBe("PNCP");
+  });
+
+  test("preserva paginação oficial e filtros sem fabricar registros", async () => {
+    globalThis.fetch = (async (input) => {
+      const requestUrl = new URL(String(input));
+      expect(requestUrl.searchParams.get("pagina")).toBe("2");
+      expect(requestUrl.searchParams.get("tamanhoPagina")).toBe("20");
+      expect(requestUrl.searchParams.get("uf")).toBe("SE");
+      return new Response(JSON.stringify({ totalRegistros: 21, totalPaginas: 2, data: [{ numeroControlePNCP: "123-2", objetoCompra: "Serviço de manutenção", municipioNome: "Aracaju", ufSigla: "SE" }] }), { status: 200, headers: { "content-type": "application/json" } });
+    }) as typeof fetch;
+
+    const result = await fetchPncpOpportunities({ state: "SE", page: 2, pageSize: 20, text: "manutenção" }, { timeoutMs: 50 });
+    expect(result).toMatchObject({ page: 2, pageSize: 20, total: 21, totalPages: 2, hasMore: false, stale: false });
+    expect(result.items).toHaveLength(1);
   });
 });

@@ -1,3 +1,5 @@
+import https from "node:https";
+import tls from "node:tls";
 import * as cheerio from "cheerio";
 import type { DiscoveryItem, DiscoverySource } from "@/lib/domain";
 
@@ -6,14 +8,76 @@ export const SENAI_SE_COURSES_URL = "https://www.se.senai.br/cursos";
 export const FUNDACAO_BRADESCO_URL = "https://www.ev.org.br/Cursos";
 export const EVG_CATALOG_URL = "https://www.escolavirtual.gov.br/catalogo";
 
-export type SourceHealth = { source: DiscoverySource; count: number; collectedAt: string; stale: boolean; partial?: boolean; error?: string };
-type CacheEntry = { expiresAt: number; items: DiscoveryItem[]; collectedAt: string };
+export type SourceHealth = { source: DiscoverySource; count: number; collectedAt: string; stale: boolean; partial?: boolean; error?: string; causeCode?: string; transport?: "fetch" | "system-ca" };
+type CacheEntry = { expiresAt: number; items: DiscoveryItem[]; collectedAt: string; transport: "fetch" | "system-ca" };
 const cache = new Map<string, CacheEntry>();
 
 function text(value: string) { return value.replace(/\s+/g, " ").trim(); }
 function absolute(href: string, base: string, origin: string) { try { const url = new URL(href, base); return url.origin === origin ? url.toString() : undefined; } catch { return undefined; } }
 function slug(value: string) { return value.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
 function field(textValue: string, pattern: RegExp) { return textValue.match(pattern)?.[1]?.trim(); }
+function errorCode(error: unknown) {
+  if (!error || typeof error !== "object") return undefined;
+  const candidate = error as { code?: unknown; cause?: { code?: unknown } };
+  return typeof candidate.cause?.code === "string" ? candidate.cause.code : typeof candidate.code === "string" ? candidate.code : undefined;
+}
+function isCertificateVerificationError(error: unknown) {
+  const code = errorCode(error);
+  if (["UNABLE_TO_VERIFY_LEAF_SIGNATURE", "CERT_HAS_EXPIRED", "DEPTH_ZERO_SELF_SIGNED_CERT", "SELF_SIGNED_CERT_IN_CHAIN"].includes(code ?? "")) return true;
+  return error instanceof Error && /certificate|ca|tls/iu.test(`${error.message} ${error.cause instanceof Error ? error.cause.message : ""}`);
+}
+function systemCaCertificates() {
+  try {
+    return typeof tls.getCACertificates === "function" ? tls.getCACertificates("system") : [];
+  } catch {
+    return [];
+  }
+}
+function requestWithSystemCa(url: string, options: { headers: Record<string, string>; timeoutMs: number }, redirects = 0): Promise<Response> {
+  const ca = systemCaCertificates();
+  if (!ca.length) return Promise.reject(new Error("Node system CA store unavailable"));
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, { headers: options.headers, ca, timeout: options.timeoutMs }, (response) => {
+      const location = response.headers.location;
+      if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && location && redirects < 3) {
+        response.resume();
+        const nextUrl = new URL(location, url);
+        if (nextUrl.protocol !== "https:") return reject(new Error("Catalog redirect is not HTTPS"));
+        requestWithSystemCa(nextUrl.toString(), options, redirects + 1).then(resolve, reject);
+        return;
+      }
+      const chunks: Buffer[] = [];
+      response.on("data", (chunk: Buffer | string) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      response.on("end", () => {
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(response.headers)) {
+          if (value !== undefined) headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+        }
+        resolve(new Response(Buffer.concat(chunks), { status: response.statusCode ?? 502, headers }));
+      });
+    });
+    request.on("timeout", () => request.destroy(new Error("Catalog request timed out")));
+    request.on("error", reject);
+  });
+}
+async function fetchCatalogPage(url: string, timeoutMs: number) {
+  const headers = { accept: "text/html" };
+  try {
+    return { response: await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs), cache: "no-store" }), transport: "fetch" as const };
+  } catch (error) {
+    if (!isCertificateVerificationError(error)) throw error;
+    return { response: await requestWithSystemCa(url, { headers, timeoutMs }), transport: "system-ca" as const };
+  }
+}
+function senaiDuration(value: string) { return value.match(/carga hor[aá]ria\s*[:：]\s*([0-9]+(?:[,.][0-9]+)?(?:\s*(?:h|horas?))?)/iu)?.[1]?.trim(); }
+function senaiMunicipality(value: string) { return field(value, /(?:munic[ií]pio|cidade)\s*[:：]\s*([^|.;·]+)/iu) ?? "Não informado"; }
+function senaiStatus(value: string, deadline?: string) {
+  if (deadline) {
+    const [day, month, year] = deadline.split(/[/.]/u).map(Number);
+    if (year && month && day && Date.UTC(year < 100 ? 2000 + year : year, month - 1, day) < Date.now()) return "Inscrições encerradas";
+  }
+  return /turma\s+(?:est[aá]\s+)?aberta|inscri(?:ções|coes)\s+(?:est[aã]o\s+)?abertas|matr[ií]culas\s+(?:est[aã]o\s+)?abertas/iu.test(value) ? "Inscrições abertas" : "Disponível no catálogo";
+}
 
 function courseBase(options: { id: string; title: string; description: string; provider: string; source: DiscoverySource; sourceLabel: string; sourceUrl: string; collectedAt: string; category: string; tags: string[] }): DiscoveryItem {
   return { id: options.id, kind: "course", title: options.title, description: options.description || `Curso público disponibilizado por ${options.provider}.`, category: options.category, provider: options.provider, location: { state: "SE", municipality: "Online" }, source: options.source, sourceLabel: options.sourceLabel, sourceId: options.id, sourceUrl: options.sourceUrl, collectedAt: options.collectedAt, status: "Disponível no catálogo", modality: "Online", tags: options.tags };
@@ -34,9 +98,12 @@ export function parseSenaiCourses(html: string, collectedAt = new Date().toISOSt
       const modality = text(card.find(".modalidade").first().text()) || undefined;
       const applicationUrl = card.find(".btMatricule-se a[href]").first().attr("href");
       const item = courseBase({ id: `senai-${slug(sourceUrl)}`, title, description: context, provider: "SENAI Sergipe", source: "SENAI_SE", sourceLabel: "SENAI Sergipe", sourceUrl, collectedAt, category, tags: ["SENAI Sergipe", ...(modality ? [modality] : [])] });
-      item.location = { state: "SE", municipality: "Sergipe" };
+      item.location = { state: "SE", municipality: senaiMunicipality(context) };
       item.modality = modality || item.modality;
-      item.duration = field(context, /(?:carga hor[aá]ria|dura[cç][aã]o)\s*[:：]\s*([^|.;]+)/iu);
+      item.duration = senaiDuration(context) ?? field(context, /dura[cç][aã]o\s*[:：]\s*([^|.;]+)/iu);
+      const deadline = context.match(/(?:inscri(?:ções|coes)|matr[ií]culas)\s+at[eé]\s+([0-9]{1,2}[/.-][0-9]{1,2}[/.-][0-9]{2,4})/iu)?.[1];
+      item.deadline = deadline;
+      item.status = senaiStatus(context, deadline);
       if (applicationUrl && /^https:\/\/app\.fies\.org\.br\/MatriculaWebSENAI\//iu.test(applicationUrl)) item.applicationUrl = applicationUrl;
       if (/gratuit[oa]/iu.test(context)) item.cost = "Gratuito";
       if (!items.some((current) => current.sourceUrl === item.sourceUrl)) items.push(item);
@@ -49,11 +116,10 @@ export function parseSenaiCourses(html: string, collectedAt = new Date().toISOSt
     if (!sourceUrl || !title || !/curso|qualifica|aperfei|capacita/iu.test(`${title} ${sourceUrl}`)) return;
     const context = text($(element).closest("li,article,section,div").first().text() || $(element).parent().text());
     const deadline = context.match(/[0-9]{1,2}[/.-][0-9]{1,2}[/.-][0-9]{2,4}/u)?.[0];
-    const isOpen = /turma\s+aberta|inscri(?:ções|coes)\s+abertas|matr[ií]culas\s+abertas/iu.test(context);
     const parsedDeadline = deadline ? deadline.replace(/[.-]/g, "/") : undefined;
     const id = `senai-${slug(sourceUrl)}`;
     if (items.some((item) => item.sourceUrl === sourceUrl)) return;
-    items.push({ ...courseBase({ id, title, description: context, provider: "SENAI Sergipe", source: "SENAI_SE", sourceLabel: "SENAI Sergipe", sourceUrl, collectedAt, category: field(context, /[aá]rea\s*[:：]\s*([^|.;·]+)/iu) ?? "Formação profissional", tags: ["SENAI Sergipe"] }), location: { state: "SE", municipality: field(context, /(?:local|unidade|munic[ií]pio)\s*[:：]\s*([^|.;·]+)/iu) ?? "Sergipe" }, deadline: parsedDeadline, status: parsedDeadline && new Date(parsedDeadline.split("/").reverse().join("-")) < new Date() ? "Inscrições encerradas" : isOpen ? "Inscrições abertas" : "Disponível no catálogo", cost: /gratuit[oa]/iu.test(context) ? "Gratuito" : undefined, duration: field(context, /(?:carga hor[aá]ria|dura[cç][aã]o)\s*[:：]\s*([^|.;·]+)/iu) });
+    items.push({ ...courseBase({ id, title, description: context, provider: "SENAI Sergipe", source: "SENAI_SE", sourceLabel: "SENAI Sergipe", sourceUrl, collectedAt, category: field(context, /[aá]rea\s*[:：]\s*([^|.;·]+)/iu) ?? "Formação profissional", tags: ["SENAI Sergipe"] }), location: { state: "SE", municipality: field(context, /(?:local|unidade|munic[ií]pio|cidade)\s*[:：]\s*([^|.;·]+)/iu) ?? "Não informado" }, deadline: parsedDeadline, status: senaiStatus(context, parsedDeadline), cost: /gratuit[oa]/iu.test(context) ? "Gratuito" : undefined, duration: senaiDuration(context) ?? field(context, /dura[cç][aã]o\s*[:：]\s*([^|.;·]+)/iu) });
   });
   return items;
 }
@@ -94,11 +160,9 @@ export function parseEvgCsv(csv: string, collectedAt = new Date().toISOString())
 }
 
 async function fetchCatalog(key: string, url: string, parser: (html: string, collectedAt: string) => DiscoveryItem[], source: DiscoverySource, options: { timeoutMs?: number } = {}) {
-  const cached = cache.get(key); if (cached && cached.expiresAt > Date.now()) return { source, items: cached.items, collectedAt: cached.collectedAt, stale: false };
-  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 8000);
-  try { const response = await fetch(url, { headers: { accept: "text/html" }, signal: controller.signal, cache: "no-store" }); if (!response.ok) throw new Error(`${source} ${response.status}`); const collectedAt = new Date().toISOString(); const items = parser(await response.text(), collectedAt); cache.set(key, { expiresAt: Date.now() + 15 * 60 * 1000, items, collectedAt }); return { source, items, collectedAt, stale: false }; }
-  catch (error) { if (cached) return { source, items: cached.items, collectedAt: cached.collectedAt, stale: true, error: error instanceof Error ? error.message : `${source} indisponível` }; return { source, items: [], collectedAt: new Date().toISOString(), stale: true, error: error instanceof Error ? error.message : `${source} indisponível` }; }
-  finally { clearTimeout(timer); }
+  const cached = cache.get(key); if (cached && cached.expiresAt > Date.now()) return { source, items: cached.items, collectedAt: cached.collectedAt, stale: false, transport: cached.transport };
+  try { const { response, transport } = await fetchCatalogPage(url, options.timeoutMs ?? 8000); if (!response.ok) throw new Error(`${source} ${response.status}`); const collectedAt = new Date().toISOString(); const items = parser(await response.text(), collectedAt); cache.set(key, { expiresAt: Date.now() + 15 * 60 * 1000, items, collectedAt, transport }); return { source, items, collectedAt, stale: false, transport }; }
+  catch (error) { const causeCode = errorCode(error); if (cached) return { source, items: cached.items, collectedAt: cached.collectedAt, stale: true, error: error instanceof Error ? error.message : `${source} indisponível`, causeCode }; return { source, items: [], collectedAt: new Date().toISOString(), stale: true, error: error instanceof Error ? error.message : `${source} indisponível`, causeCode }; }
 }
 
 export async function fetchTrainingSources(options: { timeoutMs?: number } = {}) {
