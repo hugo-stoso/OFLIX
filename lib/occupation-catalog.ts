@@ -23,7 +23,17 @@ export const CBO_OCCUPATIONS: readonly OccupationReference[] = [
   {
     cbo: "252105",
     label: "Administrador",
-    synonyms: ["administradora", "gestor administrativo"],
+    synonyms: ["administradora", "administradores", "gestor administrativo", "gestora administrativa"],
+  },
+  {
+    cbo: "251205",
+    label: "Economista",
+    synonyms: ["economistas", "economia", "ciências econômicas", "ciencias economicas"],
+  },
+  {
+    cbo: "252210",
+    label: "Contador",
+    synonyms: ["contadora", "contadores", "contabilidade", "contábil", "contabilista"],
   },
   {
     cbo: "252505",

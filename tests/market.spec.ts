@@ -127,6 +127,7 @@ test("pesquisa salarial consolidada envia profissão, CBO e localização", asyn
         publishedCoverageRate: 1,
         monthlyComparable: 1,
         monthlyComparableCoverageRate: 1,
+        averageMonthly: 2200,
         medianMonthly: 2200,
         minimumMonthly: 2200,
         maximumMonthly: 2200,
@@ -162,7 +163,7 @@ test("pesquisa salarial consolidada envia profissão, CBO e localização", asyn
     page.getByText("Observações mensais: 1", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Mediana mensal: R$ 2.200", { exact: true }),
+    page.getByText("Média mensal observada: R$ 2.200", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText(/não substitui estatísticas RAIS\/Novo CAGED/i),
@@ -172,6 +173,7 @@ test("pesquisa salarial consolidada envia profissão, CBO e localização", asyn
   expect(query.get("occupationCode")).toBe("411010");
   expect(query.get("state")).toBe("SE");
   expect(query.get("municipality")).toBe("Aracaju");
+  expect(query.get("municipalityIbgeCode")).toBe("2800308");
 });
 
 test("comparar com o mercado preserva município e categoria OFLIX", async ({

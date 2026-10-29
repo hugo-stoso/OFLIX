@@ -102,6 +102,35 @@ test("busca e recomendações mantêm a profissão específica, CBO, sinônimos 
   expect(contadorQuestion.answer).toContain("oportunidade verificável");
 });
 
+test("economista, contador e administrador usam equivalências ocupacionais sem associação superficial", () => {
+  const occupations: DiscoveryItem[] = [
+    { ...verifiedJob, id: "economista", title: "Analista econômico", occupationCode: "2512-05", occupationLabel: "Economista", category: "Economia", tags: ["Economia"] },
+    { ...verifiedJob, id: "contador", title: "Contador", occupationCode: "2522-10", occupationLabel: "Contador", category: "Contabilidade", tags: ["Contabilidade"] },
+    { ...verifiedJob, id: "administrador", title: "Administrador", occupationCode: "2521-05", occupationLabel: "Administrador", category: "Administração", tags: ["Administração"] },
+    { ...verifiedJob, id: "analista-financeiro", title: "Analista financeiro", occupationCode: "2525-05", occupationLabel: "Analista financeiro", category: "Finanças", tags: ["Finanças"] },
+  ];
+  for (const [query, expected] of [["economista", "economista"], ["economistas", "economista"], ["economia", "economista"], ["contador", "contador"], ["administradores", "administrador"]] as const) {
+    const interpretation = interpretNaturalSearch(`Quais vagas para ${query}?`, occupations);
+    expect(occupations.filter((item) => matchesNaturalSearch(item, interpretation)).map((item) => item.id)).toEqual([expected]);
+  }
+  const noSuperficialItems = [{ ...occupations[3], description: "Análise financeira" }];
+  const noSuperficialMatch = interpretNaturalSearch("Quais vagas para economistas?", noSuperficialItems);
+  expect(noSuperficialItems.filter((item) => matchesNaturalSearch(item, noSuperficialMatch))).toHaveLength(0);
+});
+
+test("resposta sem economistas informa a cobertura consultada e a data", () => {
+  const answer = buildDeterministicAssistantAnswer("Quais vagas para economistas?", [], profile, [], {
+    sources: [
+      { provider: "GO Sergipe", count: 187, stale: false, partial: false },
+      { provider: "EmpregAju", count: 23, stale: false, partial: false },
+    ],
+    collectedAt: "2026-10-29T15:26:25.120Z",
+  });
+  expect(answer.answer).toContain("Não encontrei vagas verificáveis para economista");
+  expect(answer.answer).toContain("GO Sergipe (187 publicações)");
+  expect(answer.answer).toContain("29 de outubro de 2026");
+});
+
 test("responde maior salário somente com remunerações mensais comparáveis e sem exigir filtro", async () => {
   const jobs: DiscoveryItem[] = [
     { ...verifiedJob, id: "contador-aracaju", title: "Contador", occupationLabel: "Contador", salary: "R$ 3.500,00 por mês", salaryMin: 3500, salaryCurrency: "BRL", salaryPeriod: "MONTHLY" },

@@ -210,6 +210,11 @@ export default function MarketKnowledgePage() {
       if (occupationCode.trim())
         params.set("occupationCode", occupationCode.trim());
       if (municipality) params.set("municipality", municipality);
+      const municipalityReference = SERGIPE_MUNICIPALITIES.find(
+        (item) => item.name === municipality,
+      );
+      if (municipalityReference)
+        params.set("municipalityIbgeCode", municipalityReference.ibgeCode);
       const response = await fetch(`/api/market/salaries?${params.toString()}`);
       if (!response.ok) throw new Error("request");
       const data = (await response.json()) as SalaryResearchResponse;
@@ -557,11 +562,11 @@ export default function MarketKnowledgePage() {
                         <strong>{salaryResearch.sampleSize}</strong>
                       </span>
                       <span>
-                        Mediana mensal:{" "}
+                        Média mensal observada:{" "}
                         <strong>
-                          {salaryResearch.medianMonthly === null
+                          {salaryResearch.averageMonthly === null || salaryResearch.averageMonthly === undefined
                             ? "—"
-                            : formatCurrency(salaryResearch.medianMonthly)}
+                            : formatCurrency(salaryResearch.averageMonthly)}
                         </strong>
                       </span>
                       <span>
@@ -582,8 +587,9 @@ export default function MarketKnowledgePage() {
                         role="status"
                         className="mt-4 text-sm font-semibold text-[#76531c]"
                       >
-                        Amostra pequena: não trate este resultado como benchmark
-                        robusto.
+                        Média não calculada: há menos de três remunerações
+                        mensais comparáveis. Os salários publicados abaixo são
+                        mantidos como observações reais, sem estimativa.
                       </p>
                     )}
                     {salaryResearch.incomplete && (
@@ -592,7 +598,7 @@ export default function MarketKnowledgePage() {
                         className="mt-4 text-sm font-semibold text-[#76531c]"
                       >
                         O resultado é provisório: uma ou mais fontes externas
-                        excederam o prazo de coleta. Os dados exibidos não
+                        não concluíram a atualização. Os dados exibidos não
                         representam uma média oficial.
                       </p>
                     )}

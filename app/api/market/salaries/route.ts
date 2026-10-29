@@ -7,10 +7,15 @@ import {
 import { internalToDiscoveryItem } from "@/lib/discovery";
 import { calculateSalaryResearch } from "@/lib/salary-research";
 import { getOfficialSalaryStatus } from "@/lib/official-market";
+import { SERGIPE_MUNICIPALITIES } from "@/lib/sergipe-municipalities";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
-const EXTERNAL_RESEARCH_DEADLINE_MS = 10_000;
+// GO Sergipe and EmpregAju paginate public pages. Ten seconds was shorter
+// than a normal complete collection and caused this endpoint to return an
+// empty recorte while the real request was still in flight.
+const EXTERNAL_RESEARCH_DEADLINE_MS = 90_000;
 
 function timedOutExternalJobs(): ExternalJobsResult {
   const collectedAt = new Date().toISOString();
@@ -60,10 +65,18 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const external = await fetchExternalForResearch();
   const internal = listOpportunities().formal.filter((opportunity) => !opportunity.ownerIsDemo).map(internalToDiscoveryItem);
+  const requestedIbgeCode = url.searchParams.get("municipalityIbgeCode") ?? url.searchParams.get("ibgeCode") ?? undefined;
+  const municipalityFromIbge = requestedIbgeCode
+    ? SERGIPE_MUNICIPALITIES.find((municipality) => municipality.ibgeCode === requestedIbgeCode)
+    : undefined;
+  if (requestedIbgeCode && !municipalityFromIbge) {
+    return NextResponse.json({ error: "municipality_ibge_not_found" }, { status: 400 });
+  }
   const query = {
     occupation: url.searchParams.get("occupation") ?? undefined,
     occupationCode: url.searchParams.get("occupationCode") ?? undefined,
-    municipality: url.searchParams.get("municipality") ?? undefined,
+    municipality: municipalityFromIbge?.name ?? url.searchParams.get("municipality") ?? undefined,
+    municipalityIbgeCode: requestedIbgeCode,
     state: url.searchParams.get("state") ?? undefined,
     source: url.searchParams.get("source") ?? undefined,
   };

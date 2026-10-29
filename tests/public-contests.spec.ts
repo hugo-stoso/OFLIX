@@ -13,3 +13,9 @@ test("identidade estável deduplica o mesmo edital e não inventa vagas", () => 
   expect(items[0].vacancies).toBeUndefined();
   expect(items[0].deadline).toBeUndefined();
 });
+
+test("SEAD ignora links de navegação e mantém somente certames reais", () => {
+  const items = parseSeadContests('<a href="/concursos/">CONCURSOS</a><a href="/concursos/concursos-em-andamento/">Concursos em andamento</a><a href="/legislacoes-concursos-publicos-sead/">Legislações dos concursos públicos SEAD</a><a href="/concurso-publico-edital-07-2025/">Concurso Público Edital nº 07/2025</a>');
+  expect(items).toHaveLength(1);
+  expect(items[0]?.sourceUrl).toContain("concurso-publico-edital-07-2025");
+});

@@ -13,6 +13,7 @@ export type SalaryResearchQuery = {
   occupation?: string;
   occupationCode?: string;
   municipality?: string;
+  municipalityIbgeCode?: string;
   state?: string;
   source?: string;
 };
@@ -57,6 +58,7 @@ export type SalaryResearchSummary = {
   publishedCoverageRate: number;
   monthlyComparable: number;
   monthlyComparableCoverageRate: number;
+  averageMonthly: number | null;
   medianMonthly: number | null;
   minimumMonthly: number | null;
   maximumMonthly: number | null;
@@ -75,6 +77,8 @@ export type SalaryResearchSummary = {
   methodology: string[];
   query: SalaryResearchQuery;
 };
+
+export const MIN_RELIABLE_SALARY_SAMPLE_SIZE = 3;
 const normalize = (value: string) =>
   value
     .toLocaleLowerCase("pt-BR")
@@ -88,6 +92,10 @@ const median = (values: number[]) => {
     ? sorted[middle]
     : (sorted[middle - 1] + sorted[middle]) / 2;
 };
+const average = (values: number[]) =>
+  values.length
+    ? Number((values.reduce((total, value) => total + value, 0) / values.length).toFixed(2))
+    : null;
 
 function parseRawSalary(raw: string) {
   const match = raw.replace(/\s+/g, " ").match(/(?:R\$\s*)?([\d.]+,\d{1,2})/iu);
@@ -241,7 +249,9 @@ export function calculateSalaryResearch(
       value.comparableMonthly ? value.referenceValue : undefined,
     )
     .filter((value): value is number => value !== undefined);
-  const monthlyMedian = median(monthly);
+  const hasReliableMonthlySample = monthly.length >= MIN_RELIABLE_SALARY_SAMPLE_SIZE;
+  const monthlyAverage = hasReliableMonthlySample ? average(monthly) : null;
+  const monthlyMedian = hasReliableMonthlySample ? median(monthly) : null;
   const withPublishedRemuneration = remunerations.length;
   const observations = remunerationPairs.map(({ item, remuneration }) => ({
     id: item.id,
@@ -283,6 +293,7 @@ export function calculateSalaryResearch(
     monthlyComparableCoverageRate: filtered.length
       ? Number((monthly.length / filtered.length).toFixed(4))
       : 0,
+    averageMonthly: monthlyAverage,
     medianMonthly: monthlyMedian,
     minimumMonthly: monthly.length ? Math.min(...monthly) : null,
     maximumMonthly: monthly.length ? Math.max(...monthly) : null,
@@ -290,7 +301,7 @@ export function calculateSalaryResearch(
     consultedPublications:
       health?.reduce((total, source) => total + source.count, 0) ?? eligible.length,
     observations,
-    hasSmallSample: monthly.length < 2,
+    hasSmallSample: !hasReliableMonthlySample,
     municipalities: [
       ...new Set(eligible.map((item) => item.location.municipality)),
     ].sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -298,7 +309,7 @@ export function calculateSalaryResearch(
     occupationResolution,
     methodology: [
       "Remuneração publicada conta mesmo quando a fonte não informa periodicidade.",
-      "Somente valores com semântica mensal explícita entram na mediana e na faixa mensal.",
+      `Somente valores com semântica mensal explícita entram nos agregados mensais; a média só é exibida com pelo menos ${MIN_RELIABLE_SALARY_SAMPLE_SIZE} observações comparáveis.`,
       "GO Sergipe, EmpregAju e IEL permanecem UNKNOWN quando o anúncio não define o período; não há inferência por plausibilidade.",
       "Faixas estruturadas usam o ponto médio; ausência de remuneração não vira zero.",
     ],

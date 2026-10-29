@@ -39,8 +39,12 @@ function statusFromText(text: string) {
 
 function parseContestLink(options: { title: string; sourceUrl: string; context: string; source: "SEAD_SERGIPE" | "ARACAJU_EDITAIS"; collectedAt: string; provider: string; municipality: string }) {
   const text = normalizeText(`${options.title} ${options.context}`);
+  const path = new URL(options.sourceUrl).pathname.replace(/\/+$/u, "").toLocaleLowerCase("pt-BR");
+  // The SEAD page links to its own category/navigation pages. Those links are
+  // not certames and used to produce a misleading empty/duplicate card.
+  if (/^concursos?(?: públicos?)?$/iu.test(options.title) || path === "/concursos" || path === "/concursos/concursos-em-andamento") return null;
   if (!/(concurso|processo seletivo|selec(?:ão|ao)\s+p(?:ú|u)blica|PSS)/iu.test(options.title)) return null;
-  if (/credenciamento|pr(?:ê|e)mio|premia(?:ção|cao)|aviso\s+sem\s+identidade|cultura|leil(?:ão|ao)|compras?|conselho|participa(?:ção|cao)/iu.test(text)) return null;
+  if (/credenciamento|pr(?:ê|e)mio|premia(?:ção|cao)|aviso\s+sem\s+identidade|cultura|leil(?:ão|ao)|compras?|conselho|participa(?:ção|cao)|legisla(?:ção|ções|cao|coes)|normas?/iu.test(text)) return null;
   const kind = /processo seletivo|selec(?:ão|ao)\s+p(?:ú|u)blica|PSS/iu.test(options.title) ? "public_selection" : "public_exam";
   const sourceId = options.source === "ARACAJU_EDITAIS" ? aracajuCertameId(options.title, options.sourceUrl) : sourceIdFromUrl(options.sourceUrl, options.title);
   const title = options.source === "ARACAJU_EDITAIS" && /^(?:EDITAL|ADITIVO)_/iu.test(options.title) ? `${kind === "public_selection" ? "Processo seletivo" : "Concurso público"} ${sourceId.replace(/_/g, " ")}` : options.title;

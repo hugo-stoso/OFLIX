@@ -173,3 +173,18 @@ test("demo torna as capacidades novas visíveis sem navegação profunda", async
   await expect(page.getByRole("link", { name: "Legislação atualizada" })).toHaveAttribute("href", "/market?tab=legislation");
   await expect(page.getByRole("link", { name: "Artigos & evidências", exact: true })).toHaveAttribute("href", "/market?tab=articles");
 });
+
+test("atalho Concurso SEAD abre a listagem real e preserva o edital oficial", async ({ page }) => {
+  await page.addInitScript(() => window.localStorage.removeItem("oflix-demo-profile"));
+  await page.route("**/api/public-development", (route) => route.fulfill({ json: {
+    items: [{ id: "sead-edital-07-2025", kind: "public_exam", title: "Concurso Público Edital nº 07/2025", description: "Registro oficial", category: "Administração pública", provider: "SEAD Sergipe", location: { state: "SE", municipality: "Sergipe" }, source: "SEAD_SERGIPE", sourceLabel: "SEAD Sergipe", sourceUrl: "https://sead.se.gov.br/concurso-publico-edital-07-2025/", status: "Em andamento", officialType: "Concurso público", tags: ["Concurso público"] }], sources: [{ source: "SEAD_SERGIPE", provider: "SEAD Sergipe", count: 1, stale: false, partial: false }], stale: false, partial: false,
+  } }));
+  await page.goto("/demo", { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /Hugo Silva/ }).click();
+  await page.getByRole("link", { name: "Concursos SEAD", exact: true }).click();
+  await expect(page).toHaveURL(/\/demo\?view=discover&type=public_exam$/);
+  await expect(page.getByRole("heading", { name: "Descubra oportunidades" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Concurso Público Edital nº 07\/2025" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ver edital oficial" })).toHaveAttribute("href", "https://sead.se.gov.br/concurso-publico-edital-07-2025/");
+});

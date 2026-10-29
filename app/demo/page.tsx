@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, BarChart3, BrainCircuit, BriefcaseBusiness, Building2, CircleAlert, GraduationCap, HandHeart, Loader2, MapPin, Network, RefreshCw, Search, Sparkles, Wrench } from "lucide-react";
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DemoHeader } from "@/components/DemoHeader";
 import { DemoIntelligenceStrip } from "@/components/DemoIntelligenceStrip";
 import { DemoNavigation, type DemoView } from "@/components/DemoNavigation";
@@ -58,7 +59,7 @@ const homeShortcutItems = [
   { filter: "public_procurement" as DiscoveryFilterKind, title: "Poder público", copy: "Oportunidades elegíveis", icon: Building2 },
 ];
 
-export default function DemoPage() {
+function DemoPageContent() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [opportunities, setOpportunities] = useState<Record<OpportunityKind, Opportunity[]>>({ formal: [], service: [], volunteer: [] });
@@ -106,6 +107,8 @@ export default function DemoPage() {
   const [savedActivities, setSavedActivities] = useState<string[]>([]);
   const [savedWorkPreferences, setSavedWorkPreferences] = useState<string[]>([]);
   const searchUrlHydrated = useRef(false);
+  const routeSearchParams = useSearchParams();
+  const routeQuery = routeSearchParams.toString();
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId) ?? null, [profiles, selectedId]);
   const publicAccess = Boolean(selectedProfile && canDiscoverPublicOpportunities(selectedProfile) && (selectedProfile.type === "ORGANIZATION" || publicInterestEnabled));
 
@@ -239,7 +242,7 @@ export default function DemoPage() {
   }, [savedActivities, savedWorkPreferences, selectedProfile]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(routeQuery);
     if (params.get("view") === "discover") setActiveView("discover");
     const requestedFilter = params.get("type") as DiscoveryFilterKind | null;
     if (requestedFilter && ["all", "employment", "service", "volunteer", "public_exam", "course", "public_procurement"].includes(requestedFilter)) setActiveFilter(requestedFilter);
@@ -263,7 +266,7 @@ export default function DemoPage() {
     setPcdOnly(params.get("pcd") === "1");
     setFavoritesOnly(params.get("favorites") === "1");
     searchUrlHydrated.current = true;
-  }, []);
+  }, [routeQuery]);
 
   useEffect(() => {
     if (activeFilter === "public_procurement" && !publicAccess) setActiveFilter("all");
@@ -348,7 +351,7 @@ export default function DemoPage() {
   const filterBaseDiscoveryItem = useCallback((item: DiscoveryItem) => {
     const matchesTerm = !search.trim() || matchesNaturalSearch(item, naturalSearch);
     const matchesCategory = !category || [item.category, ...item.tags].includes(category);
-    const matchesMunicipality = !municipality || item.location.municipality === municipality;
+    const matchesMunicipality = !municipality || (item.kind === "public_exam" || item.kind === "public_selection" ? item.location.state === "SE" : item.location.municipality === municipality);
     const matchesModality = !modality || item.modality === modality;
     const matchesEducation = !education || item.education === education;
     const matchesStatus = !status || item.status === status;
@@ -571,4 +574,12 @@ export default function DemoPage() {
     </div>
     <div className="shell"><button type="button" className="button-quiet sm:hidden" onClick={() => { window.localStorage.removeItem("oflix-demo-profile"); setSelectedId(null); window.dispatchEvent(new Event("oflix-profile-changed")); }}>Trocar perfil</button></div>
   </main>;
+}
+
+export default function DemoPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-[#f7fbfd]" aria-busy="true" />}>
+      <DemoPageContent />
+    </Suspense>
+  );
 }

@@ -5,6 +5,7 @@ import { fetchExternalJobs } from "@/lib/connectors/external-jobs";
 import { isVerifiedDiscoveryItem, profileFromInput, rankVerifiedRecommendations, verifiedOpportunityLimitations, type IntelligenceProfile } from "@/lib/ai/opportunities";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 const querySchema = z.object({
   profileId: z.string().trim().min(1).max(120),

@@ -7,6 +7,7 @@ import { generateGeminiJson, geminiAvailable, geminiDiagnostics, GeminiProviderE
 import { buildDeterministicAssistantAnswer, buildGeminiAssistantPrompt, isSafeGeminiAssistantAnswer, profileFromInput } from "@/lib/ai/opportunities";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 const requestSchema = z.object({
   profileId: z.string().trim().min(1).max(120),
@@ -59,7 +60,10 @@ export async function POST(request: Request) {
     if (profile.type !== "PERSON") return NextResponse.json({ error: "person_required" }, { status: 403 });
     const intelligenceProfile = profileFromInput({ id: profile.id, municipality: profile.location.municipality, capabilities: profile.capabilities, activities: body.activities, workPreferences: body.workPreferences });
     const collected = await fetchExternalJobs({ source: "all" });
-    const deterministic = buildDeterministicAssistantAnswer(body.question, collected.items, intelligenceProfile, sourceLimitations(collected.sources));
+    const deterministic = buildDeterministicAssistantAnswer(body.question, collected.items, intelligenceProfile, sourceLimitations(collected.sources), {
+      sources: collected.sources,
+      collectedAt: collected.collectedAt,
+    });
     let answer = deterministic.answer;
     let mode: "deterministic" | "gemini" | "fallback" = "deterministic";
     let geminiReason = body.useGemini ? "not_configured" : "not_requested";

@@ -21,18 +21,20 @@ const item = (
   ...overrides,
 });
 
-test("salários ausentes não viram zero e a mediana usa somente mensal", () => {
+test("salários ausentes não viram zero e a média usa somente mensal com amostra suficiente", () => {
   const result = calculateSalaryResearch([
     item("1", { salaryMin: 1000, salaryPeriod: "MONTHLY" }),
     item("2", { salaryMin: 3000, salaryPeriod: "MONTHLY" }),
     item("3"),
     item("4", { salaryMin: 20, salaryPeriod: "HOURLY" }),
+    item("5", { salaryMin: 2000, salaryPeriod: "MONTHLY" }),
   ]);
-  expect(result.publications).toBe(4);
-  expect(result.withPublishedRemuneration).toBe(3);
-  expect(result.monthlyComparable).toBe(2);
+  expect(result.publications).toBe(5);
+  expect(result.withPublishedRemuneration).toBe(4);
+  expect(result.monthlyComparable).toBe(3);
+  expect(result.averageMonthly).toBe(2000);
   expect(result.medianMonthly).toBe(2000);
-  expect(result.publishedCoverageRate).toBe(0.75);
+  expect(result.publishedCoverageRate).toBe(0.8);
 });
 
 test("publicações DEMO não entram nas estatísticas salariais", () => {
@@ -41,7 +43,8 @@ test("publicações DEMO não entram nas estatísticas salariais", () => {
     item("real", { salaryMin: 1800, salaryPeriod: "MONTHLY" }),
   ]);
   expect(result.publications).toBe(1);
-  expect(result.medianMonthly).toBe(1800);
+  expect(result.averageMonthly).toBeNull();
+  expect(result.medianMonthly).toBeNull();
 });
 
 test("ocupação e município filtram o recorte", () => {
@@ -62,7 +65,8 @@ test("ocupação e município filtram o recorte", () => {
     { occupation: "Assistente administrativo", municipality: "Aracaju" },
   );
   expect(result.publications).toBe(1);
-  expect(result.medianMonthly).toBe(2000);
+  expect(result.averageMonthly).toBeNull();
+  expect(result.medianMonthly).toBeNull();
 });
 
 test("salário GO sem prefixo monetário é publicado, mas periodicidade desconhecida fica fora da mediana mensal", () => {
@@ -72,6 +76,7 @@ test("salário GO sem prefixo monetário é publicado, mas periodicidade desconh
   expect(result.withPublishedRemuneration).toBe(1);
   expect(result.monthlyComparable).toBe(0);
   expect(result.medianMonthly).toBeNull();
+  expect(result.averageMonthly).toBeNull();
   expect(result.observations[0]).toMatchObject({ raw: "1.600,00", period: "UNKNOWN" });
 });
 
@@ -137,7 +142,41 @@ test("CBO, estado e município são filtros independentes", () => {
     municipality: "Aracaju",
   });
   expect(result.publications).toBe(1);
-  expect(result.medianMonthly).toBe(2200);
+  expect(result.averageMonthly).toBeNull();
+  expect(result.medianMonthly).toBeNull();
+});
+
+test("Aracaju preserva salários reais quando a periodicidade é desconhecida", () => {
+  const result = calculateSalaryResearch([
+    item("go-1", { title: "Balconista", salary: "1.750,00", salaryMin: 1750, salaryCurrency: "BRL", salaryPeriod: "UNKNOWN", sourceUrl: "https://gosergipe.se.gov.br/detalheOportunidades/4924" }),
+    item("go-2", { title: "Servente de limpeza", salary: "1.623,23", salaryMin: 1623.23, salaryCurrency: "BRL", salaryPeriod: "UNKNOWN", sourceUrl: "https://gosergipe.se.gov.br/detalheOportunidades/4922" }),
+  ], { state: "SE", municipality: "Aracaju" });
+  expect(result.publications).toBe(2);
+  expect(result.monthlyComparable).toBe(0);
+  expect(result.averageMonthly).toBeNull();
+  expect(result.observations).toEqual(expect.arrayContaining([
+    expect.objectContaining({ raw: "1.750,00", period: "UNKNOWN", sourceUrl: expect.stringContaining("4924") }),
+    expect.objectContaining({ raw: "1.623,23", period: "UNKNOWN", sourceUrl: expect.stringContaining("4922") }),
+  ]));
+});
+
+test("filtro municipal não mistura Aracaju com outro município de Sergipe", () => {
+  const result = calculateSalaryResearch([
+    item("aracaju", { title: "Balconista", salaryMin: 1750, salaryPeriod: "UNKNOWN" }),
+    item("lagarto", { title: "Balconista", salaryMin: 1800, salaryPeriod: "UNKNOWN", location: { state: "SE", municipality: "Lagarto" } }),
+  ], { state: "SE", municipality: "Lagarto" });
+  expect(result.publications).toBe(1);
+  expect(result.observations[0]?.municipality).toBe("Lagarto");
+});
+
+test("código IBGE de Sergipe identifica o município sem ampliar o recorte", () => {
+  const result = calculateSalaryResearch([
+    item("aracaju", { salaryMin: 1750, salaryPeriod: "UNKNOWN" }),
+    item("lagarto", { salaryMin: 1800, salaryPeriod: "UNKNOWN", location: { state: "SE", municipality: "Lagarto" } }),
+  ], { state: "SE", municipality: "Lagarto", municipalityIbgeCode: "2803500" });
+  expect(result.query.municipalityIbgeCode).toBe("2803500");
+  expect(result.observations).toHaveLength(1);
+  expect(result.observations[0]?.municipality).toBe("Lagarto");
 });
 
 test("catálogo CBO resolve nome, sinônimo e código sem depender de vagas", () => {

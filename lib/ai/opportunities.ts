@@ -45,6 +45,11 @@ export type DeterministicAssistantAnswer = {
   analysis?: AssistantAnalysis;
 };
 
+export type AssistantSourceContext = {
+  sources: Array<{ provider: string; count: number; stale: boolean; partial: boolean }>;
+  collectedAt?: string;
+};
+
 export type AssistantAnalysisGroup = {
   label: string;
   /** Number of published opportunity records, not the number of positions. */
@@ -84,6 +89,8 @@ const KIND_TERMS: Array<{ terms: string[]; kinds: DiscoveryKind[] }> = [
 
 const OCCUPATION_SEARCH_ALIASES: Array<{ queryTerms: string[]; itemTerms: string[] }> = [
   { queryTerms: ["contador", "contabilidade", "contabil", "contabilista"], itemTerms: ["contador", "contabilidade", "contabil", "contabilista"] },
+  { queryTerms: ["economista", "economistas", "economia", "ciencias economicas"], itemTerms: ["economista", "economistas", "economia", "ciencias economicas", "251205"] },
+  { queryTerms: ["administrador", "administradora", "administradores", "gestor administrativo", "gestora administrativa"], itemTerms: ["administrador", "administradora", "administradores", "gestor administrativo", "gestora administrativa", "252105"] },
   { queryTerms: ["assistente administrativo", "auxiliar administrativo", "assistente de escritorio", "auxiliar de escritorio", "escriturario"], itemTerms: ["assistente administrativo", "auxiliar administrativo", "assistente de escritorio", "auxiliar de escritorio", "escriturario"] },
   { queryTerms: ["motorista", "condutor", "motorista de entrega", "motorista carreteiro"], itemTerms: ["motorista", "condutor", "motorista de entrega", "motorista carreteiro", "entregador"] },
   { queryTerms: ["enfermeiro", "enfermagem", "tecnico de enfermagem", "auxiliar de enfermagem"], itemTerms: ["enfermeiro", "enfermagem", "tecnico de enfermagem", "auxiliar de enfermagem"] },
@@ -139,7 +146,9 @@ function occupationText(item: DiscoveryItem) {
 }
 
 function itemMatchesOccupationGroup(item: DiscoveryItem, group: { itemTerms: string[] }) {
-  return group.itemTerms.some((term) => phraseInText(occupationText(item), term));
+  const text = occupationText(item);
+  const compactCbo = text.replace(/\D/gu, "");
+  return group.itemTerms.some((term) => phraseInText(text, term) || (/^\d+$/u.test(term) && compactCbo.includes(term)));
 }
 
 function itemMatchesSignal(item: DiscoveryItem, signal: string) {
@@ -497,7 +506,14 @@ function buildAnalyticalAnswer(question: string, interpretation: NaturalSearchIn
   return { answer, matches: scope.slice(0, 8), facts: ["Comparação por " + label + ": " + ranking + knownPositionText], limitations, analysis: { intent, scopeCount: scope.length, comparedCount: comparableGroups.length, groups: comparableGroups.slice(0, 10) } satisfies AssistantAnalysis };
 }
 
-export function buildDeterministicAssistantAnswer(question: string, items: DiscoveryItem[], profile: IntelligenceProfile, additionalLimitations: string[] = []): DeterministicAssistantAnswer {
+function sourceCoverageFact(context?: AssistantSourceContext) {
+  if (!context) return undefined;
+  const sources = context.sources.map((source) => `${source.provider} (${source.count} publicações${source.partial ? ", coleta parcial" : ""}${source.stale ? ", dados possivelmente desatualizados" : ""})`).join(", ");
+  const collectedAt = context.collectedAt ? new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(context.collectedAt)) : "data não informada";
+  return `Fontes consultadas: ${sources || "nenhuma fonte habilitada"}. Consulta realizada em ${collectedAt}.`;
+}
+
+export function buildDeterministicAssistantAnswer(question: string, items: DiscoveryItem[], profile: IntelligenceProfile, additionalLimitations: string[] = [], sourceContext?: AssistantSourceContext): DeterministicAssistantAnswer {
   void profile;
   const interpretedQuery = interpretNaturalSearch(question, items);
   const verified = items.filter(isVerifiedDiscoveryItem);
@@ -518,8 +534,16 @@ export function buildDeterministicAssistantAnswer(question: string, items: Disco
     answer = "Não encontrei uma oportunidade verificável que responda a esse recorte. Posso comparar somente requisitos publicados pelas fontes integradas; não vou sugerir qualificações ou vagas sem evidência.";
     facts.push("Nenhum registro verificável correspondeu à pergunta.");
   } else {
-    answer = "Não encontrei uma oportunidade verificável para essa busca. Tente informar profissão, município, habilidade ou interesse; quando não houver fonte oficial, o OFLIX informa a limitação em vez de preencher com DEMO DATA.";
+    const groups = occupationGroupsForQuery(question);
+    const occupationLabel = groups.length ? groups[0].queryTerms[0] : undefined;
+    answer = occupationLabel
+      ? `Não encontrei vagas verificáveis para ${occupationLabel} no recorte consultado. `
+      : "Não encontrei uma oportunidade verificável para essa busca. ";
+    answer += "A ausência de resultado não prova que não existam oportunidades fora da cobertura integrada. ";
+    answer += sourceCoverageFact(sourceContext) ?? "Tente informar profissão, município, habilidade ou interesse; quando não houver fonte oficial, o OFLIX informa a limitação em vez de preencher com DEMO DATA.";
     facts.push("Nenhum registro verificável correspondeu à busca.");
+    const coverage = sourceCoverageFact(sourceContext);
+    if (coverage) facts.push(coverage);
   }
   return { answer, interpretedQuery, matches, facts, limitations };
 }
