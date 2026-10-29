@@ -87,6 +87,7 @@ export default function DemoPage() {
   const [publicLoading, setPublicLoading] = useState(false);
   const [publicError, setPublicError] = useState("");
   const [publicLoaded, setPublicLoaded] = useState(false);
+  const [publicLiveRequested, setPublicLiveRequested] = useState(false);
   const [publicInterestEnabled, setPublicInterestEnabled] = useState(false);
   const [externalJobs, setExternalJobs] = useState<DiscoveryItem[]>([]);
   const [externalJobsLoading, setExternalJobsLoading] = useState(false);
@@ -96,7 +97,7 @@ export default function DemoPage() {
   const [savedWorkPreferences, setSavedWorkPreferences] = useState<string[]>([]);
   const searchUrlHydrated = useRef(false);
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId) ?? null, [profiles, selectedId]);
-  const publicAccess = Boolean(selectedProfile && canDiscoverPublicOpportunities(selectedProfile) && (selectedProfile.type === "ORGANIZATION" || publicInterestEnabled));
+  const publicAccess = Boolean(selectedProfile && canDiscoverPublicOpportunities(selectedProfile) && (selectedProfile.type === "ORGANIZATION" || publicInterestEnabled || activeFilter === "public_procurement"));
 
   useEffect(() => {
     const stored = window.localStorage.getItem("oflix-demo-profile");
@@ -121,6 +122,7 @@ export default function DemoPage() {
   useEffect(() => {
     if (!selectedProfile) return;
     setPublicLoaded(false);
+    setPublicLiveRequested(false);
     setPublicError("");
     const eligible = canDiscoverPublicOpportunities(selectedProfile);
     const readPublicPreference = () => setPublicInterestEnabled(selectedProfile.type === "ORGANIZATION" ? eligible : eligible && window.localStorage.getItem(`oflix-public-opportunities-${selectedProfile.id}`) === "on");
@@ -157,11 +159,12 @@ export default function DemoPage() {
   }, [selectedProfile]);
 
   useEffect(() => {
-    if (!selectedProfile || !canDiscoverPublicOpportunities(selectedProfile) || !publicInterestEnabled || publicLoaded || (activeFilter !== "all" && activeFilter !== "public_procurement")) return;
+    if (!selectedProfile || !canDiscoverPublicOpportunities(selectedProfile) || (!publicInterestEnabled && activeFilter !== "public_procurement") || publicLoaded || (activeFilter !== "all" && activeFilter !== "public_procurement")) return;
     let cancelled = false;
     setPublicLoading(true);
     setPublicError("");
-    fetch("/api/public-opportunities")
+    const endpoint = publicLiveRequested && activeFilter === "public_procurement" ? "/api/public-opportunities?live=1&state=SE" : "/api/public-opportunities";
+    fetch(endpoint)
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Não foi possível atualizar as oportunidades agora.");
@@ -170,7 +173,7 @@ export default function DemoPage() {
       .catch((loadError) => { if (!cancelled) setPublicError(loadError instanceof Error ? loadError.message : "Não foi possível atualizar as oportunidades agora."); })
       .finally(() => { if (!cancelled) { setPublicLoaded(true); setPublicLoading(false); } });
     return () => { cancelled = true; };
-  }, [activeFilter, publicInterestEnabled, publicLoaded, selectedProfile]);
+  }, [activeFilter, publicInterestEnabled, publicLiveRequested, publicLoaded, selectedProfile]);
 
   useEffect(() => {
     const shouldLoad = activeView === "discover" && selectedProfile?.type === "PERSON" && (activeFilter === "all" || activeFilter === "employment") && !externalJobsLoaded;
@@ -418,6 +421,12 @@ export default function DemoPage() {
     window.scrollTo({ top: 0, behavior: "auto" });
   }
 
+  function goToPublicProcurement() {
+    setPublicLiveRequested(true);
+    setPublicLoaded(false);
+    goToDiscovery("public_procurement");
+  }
+
   function goTo(view: DemoView) {
     setActiveView(view);
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -487,7 +496,7 @@ export default function DemoPage() {
     <DemoHeader />
     <div className="shell py-6 sm:py-10">
       <div className="mb-6 flex items-center justify-between gap-4"><div><p className="eyebrow">{displayType(selectedProfile)} · Sergipe</p><p className="mt-1 text-sm font-semibold text-[#607286]"><MapPin size={14} className="mr-1 inline text-blue" />{selectedProfile.location.municipality} · {selectedProfile.location.district}</p></div><button type="button" className="button-quiet hidden sm:inline-flex" onClick={() => { window.localStorage.removeItem("oflix-demo-profile"); setSelectedId(null); window.dispatchEvent(new Event("oflix-profile-changed")); }}>Trocar perfil</button></div>
-      <DemoNavigation profileType={selectedProfile.type} organizationKind={selectedProfile.organizationKind} activeView={activeView} onNavigate={goTo} />
+      <DemoNavigation profileType={selectedProfile.type} organizationKind={selectedProfile.organizationKind} canAccessPublicProcurement={canDiscoverPublicOpportunities(selectedProfile)} activeView={activeView} onNavigate={goTo} onNavigateToProcurement={goToPublicProcurement} />
 
       {activeView === "home" && <section aria-labelledby="home-title">
         <div className="demo-hero"><div><p className="eyebrow">Início</p><h1 id="home-title" className="mt-2 max-w-[720px] text-3xl font-black leading-tight tracking-[-.045em] text-navy sm:text-5xl">{isPerson ? `Olá, ${selectedProfile.name.split(" ")[0]}.` : `Olá, ${selectedProfile.name}.`}</h1><p className="body-copy mt-3 max-w-[700px]">{isPerson ? `Descubra oportunidades para trabalhar, aprender e crescer em ${selectedProfile.location.municipality}.` : isPublicInstitution ? "Organize ações voluntárias e acompanhe as pessoas que participam." : isNonprofit ? "Mobilize pessoas para sua causa e acompanhe suas ações no território." : "Veja o que sua organização pode fazer agora no território."}</p></div><div className="demo-hero-note"><Sparkles size={18} className="text-blue" /><span>{isPerson ? "Oportunidades no seu território" : isPublicInstitution ? "Ações do território" : isNonprofit ? "Ações, voluntariado e pessoas" : "Conexões do território"}</span></div></div>

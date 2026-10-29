@@ -471,6 +471,57 @@ test("pessoa autônoma ativa oportunidades públicas de forma explícita", async
   await expect(page.getByRole("heading", { name: "Contratação DEMO de manutenção elétrica" })).toBeVisible();
 });
 
+test("autônomo acessa licitações reais pelo menu em desktop e mobile", async ({ page }) => {
+  await page.route("**/api/public-opportunities*", async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.searchParams.get("live") !== "1") return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        source: "PNCP",
+        stale: false,
+        items: [{
+          id: "pncp-2026-service",
+          kind: "public_procurement",
+          title: "Serviço de manutenção predial",
+          description: "Contratação de serviços de manutenção para unidades públicas.",
+          category: "Serviços profissionais",
+          provider: "Prefeitura Municipal de Lagarto",
+          location: { state: "SE", municipality: "Lagarto", district: "Centro" },
+          source: "PNCP",
+          sourceLabel: "PNCP",
+          publicBodyCnpj: "12345678000199",
+          procurementYear: 2026,
+          procurementSequence: 42,
+          processNumber: "42/2026",
+          procurementLinks: { procurement: "https://pncp.gov.br/app/editais/12345678000199/2026/42" },
+          tags: ["manutenção", "serviços"],
+          demo: false,
+          status: "Recebendo propostas",
+        }],
+      }),
+    });
+  });
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: /Amanda Figueiredo/ }).click();
+  const navigation = page.getByRole("navigation", { name: "Navegação principal" });
+  await expect(navigation.getByRole("button", { name: "Licitações", exact: true })).toBeVisible();
+  await navigation.getByRole("button", { name: "Licitações", exact: true }).click();
+  await expect(page).toHaveURL(/view=discover&type=public_procurement/);
+  await expect(page.getByRole("heading", { name: "Serviço de manutenção predial" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("link", { name: "Ver licitação" })).toHaveAttribute("href", "https://pncp.gov.br/app/editais/12345678000199/2026/42");
+  await expect(page.getByText(/Não.*inscri|candidatura/i)).toHaveCount(0);
+  await page.getByPlaceholder("Buscar profissão, atividade ou oportunidade").fill("manutenção");
+  await expect(page.getByRole("heading", { name: "Serviço de manutenção predial" })).toBeVisible();
+  const filtersButton = page.getByRole("button", { name: "Filtros", exact: true });
+  if (await filtersButton.isVisible()) await filtersButton.click();
+  await page.getByLabel("Filtrar por categoria").selectOption({ label: "Serviços profissionais" });
+  await page.getByLabel("Filtrar por município").selectOption({ label: "Lagarto" });
+  await expect(page.getByRole("link", { name: "Ver licitação" })).toBeVisible();
+});
+
 test("detalhe preserva o contexto completo da busca", async ({ page }) => {
   await page.goto("/demo");
   await expect(page.getByRole("heading", { name: "Escolha uma perspectiva para entrar." })).toBeVisible({ timeout: 15_000 });
