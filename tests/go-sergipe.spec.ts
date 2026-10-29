@@ -140,6 +140,55 @@ test.describe("connector do GO Sergipe", () => {
     expect(requests[0].headers.has("cookie")).toBe(false);
     expect(requests[0].headers.has("authorization")).toBe(false);
   });
+
+  test("entrega a primeira página rapidamente sem armazená-la como snapshot completo", async () => {
+    clearGoSergipeCache();
+    let calls = 0;
+    const result = await fetchGoSergipeOpportunities({
+      maxPages: 1,
+      bypassCache: true,
+      fetcher: async () => {
+        calls += 1;
+        const payload = jsonFixture("go-sergipe-api-page-1.json") as Record<string, unknown>;
+        return new Response(JSON.stringify({ ...payload, count: 24 }), { status: 200 });
+      },
+      now: () => new Date("2026-10-10T12:00:00.000Z"),
+    });
+
+    expect(calls).toBe(1);
+    expect(result).toMatchObject({ pages: 1, partial: true, stale: false });
+    expect(result.collection?.paginationComplete).toBe(false);
+  });
+
+  test("baixa páginas conhecidas em lotes com concorrência limitada", async () => {
+    clearGoSergipeCache();
+    let active = 0;
+    let peak = 0;
+    let calls = 0;
+    const template = (jsonFixture("go-sergipe-api-page-1.json") as { results: Array<Record<string, unknown>> }).results[0];
+    const result = await fetchGoSergipeOpportunities({
+      bypassCache: true,
+      fetcher: async (input) => {
+        const page = Number(new URL(String(input)).searchParams.get("page") ?? "1");
+        active += 1;
+        peak = Math.max(peak, active);
+        calls += 1;
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        active -= 1;
+        return new Response(JSON.stringify({
+          count: 50,
+          next: page < 5 ? `https://gosergipe.se.gov.br/api/oportunidades?code_uf=SE&page=${page + 1}` : null,
+          results: Array.from({ length: 10 }, (_, index) => ({ ...template, id: page * 100 + index, short_description: `Vaga ${page}-${index}` })),
+        }), { status: 200 });
+      },
+      now: () => new Date("2026-10-11T12:00:00.000Z"),
+    });
+
+    expect(calls).toBe(5);
+    expect(peak).toBeLessThanOrEqual(4);
+    expect(result).toMatchObject({ pages: 5, partial: false, stale: false });
+    expect(result.items).toHaveLength(50);
+  });
 });
 const mockedExternalJobs = {
   source: "GO_SERGIPE",

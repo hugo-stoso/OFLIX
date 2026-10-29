@@ -27,7 +27,7 @@ export type EmpregAjuResult = {
   error?: string;
 };
 
-type FetchEmpregAjuOptions = { fetcher?: typeof fetch; timeoutMs?: number; now?: () => Date; maxPages?: number };
+type FetchEmpregAjuOptions = { fetcher?: typeof fetch; timeoutMs?: number; now?: () => Date; maxPages?: number; bypassCache?: boolean };
 type CacheEntry = { expiresAt: number; result: EmpregAjuResult };
 
 let cacheEntry: CacheEntry | undefined;
@@ -174,13 +174,14 @@ export function isEmpregAjuEnabled(env: NodeJS.ProcessEnv = process.env) {
 export async function fetchEmpregAjuOpportunities(options: FetchEmpregAjuOptions = {}): Promise<EmpregAjuResult> {
   const now = options.now ?? (() => new Date());
   const nowMs = now().getTime();
-  if (cacheEntry && cacheEntry.expiresAt > nowMs) return {
+  const maxPages = options.maxPages ?? EMPREGAJU_MAX_PAGES;
+  const canUseFullCache = !options.bypassCache && maxPages >= EMPREGAJU_MAX_PAGES;
+  if (canUseFullCache && cacheEntry && cacheEntry.expiresAt > nowMs) return {
     ...cacheEntry.result,
     collection: { ...cacheEntry.result.collection, servedFromCache: true, sourceFetched: false, durationMs: 0 },
   };
   const fetcher = options.fetcher ?? fetch;
   const timeoutMs = options.timeoutMs ?? EMPREGAJU_TIMEOUT_MS;
-  const maxPages = options.maxPages ?? EMPREGAJU_MAX_PAGES;
   const collectedAt = now().toISOString();
   let pageUrl = EMPREGAJU_LIST_URL;
   let pages = 0;
@@ -225,11 +226,15 @@ export async function fetchEmpregAjuOpportunities(options: FetchEmpregAjuOptions
     }
   }
 
+  if (!paginationComplete && !error && pages >= maxPages) partial = true;
+
   if (receivedValidResponse) {
     const collection: SourceCollectionMetadata = { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - Date.parse(collectedAt), requestCount, pagesRequested: pages, pagesSucceeded, paginationComplete, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: true };
     const result = resultFrom(items, collectedAt, false, partial, pages, collection, error);
-    lastSuccessfulResult = result;
-    cacheEntry = { expiresAt: nowMs + EMPREGAJU_CACHE_TTL_MS, result };
+    if (canUseFullCache && !partial && paginationComplete) {
+      lastSuccessfulResult = result;
+      cacheEntry = { expiresAt: nowMs + EMPREGAJU_CACHE_TTL_MS, result };
+    }
     return result;
   }
   const fallbackError = "As vagas do EmpregAju não puderam ser atualizadas agora.";

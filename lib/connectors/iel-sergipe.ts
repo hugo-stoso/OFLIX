@@ -25,7 +25,7 @@ export type IelSergipeResult = {
   error?: string;
 };
 
-type FetchIelOptions = { fetcher?: typeof fetch; timeoutMs?: number; now?: () => Date };
+type FetchIelOptions = { fetcher?: typeof fetch; timeoutMs?: number; now?: () => Date; bypassCache?: boolean };
 type CacheEntry = { expiresAt: number; result: IelSergipeResult };
 
 let cacheEntry: CacheEntry | undefined;
@@ -139,7 +139,7 @@ export function isIelSergipeEnabled(env: NodeJS.ProcessEnv = process.env) {
 export async function fetchIelSergipeOpportunities(options: FetchIelOptions = {}): Promise<IelSergipeResult> {
   const now = options.now ?? (() => new Date());
   const nowMs = now().getTime();
-  if (cacheEntry && cacheEntry.expiresAt > nowMs) return {
+  if (!options.bypassCache && cacheEntry && cacheEntry.expiresAt > nowMs) return {
     ...cacheEntry.result,
     collection: { ...cacheEntry.result.collection, servedFromCache: true, sourceFetched: false, durationMs: 0 },
   };
@@ -161,8 +161,10 @@ export async function fetchIelSergipeOpportunities(options: FetchIelOptions = {}
     const page = parseIelSergipePage(await response.text(), { collectedAt });
     if (!page.sawOpportunityMarkup) throw new Error("HTML público sem cards estruturados do IEL Sergipe");
     const result = resultFrom(page.items.map((item) => markExternalLifecycle(item, collectedAt)), collectedAt, false, true, 1, { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs: Date.now() - startedAtMs, requestCount, pagesRequested: 1, pagesSucceeded: 1, paginationComplete: false, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: true });
-    lastSuccessfulResult = result;
-    cacheEntry = { expiresAt: nowMs + IEL_SERGIPE_CACHE_TTL_MS, result };
+    if (!options.bypassCache) {
+      lastSuccessfulResult = result;
+      cacheEntry = { expiresAt: nowMs + IEL_SERGIPE_CACHE_TTL_MS, result };
+    }
     return result;
   } catch (collectionError) {
     const error = collectionError instanceof Error ? collectionError.message : "Falha desconhecida na coleta";

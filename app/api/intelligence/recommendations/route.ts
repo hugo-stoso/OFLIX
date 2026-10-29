@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { listProfiles } from "@/lib/db";
-import { fetchExternalJobs } from "@/lib/connectors/external-jobs";
+import { fetchExternalJobs, refreshExternalJobs } from "@/lib/connectors/external-jobs";
 import { isVerifiedDiscoveryItem, profileFromInput, rankVerifiedRecommendations, verifiedOpportunityLimitations, type IntelligenceProfile } from "@/lib/ai/opportunities";
 
 export const runtime = "nodejs";
@@ -36,6 +36,7 @@ export async function GET(request: Request) {
 
   const intelligence = intelligenceProfile(profile, listParam(query.data.activities), listParam(query.data.workPreferences));
   const collected = await fetchExternalJobs({ source: "all" });
+  if (collected.refreshSuggested) after(() => refreshExternalJobs({ source: "all" }));
   const recommendations = rankVerifiedRecommendations(collected.items, intelligence);
   const limitations = verifiedOpportunityLimitations(collected.items.filter((item) => item.demo !== true));
   if (!recommendations.length && (intelligence.activities.length > 0 || intelligence.courseName || intelligence.specialization) && collected.items.some(isVerifiedDiscoveryItem)) {
@@ -46,6 +47,7 @@ export async function GET(request: Request) {
     limitations,
     sources: collected.sources,
     collectedAt: collected.collectedAt,
+    cacheState: collected.cacheState,
     stale: collected.stale,
     partial: collected.partial,
     ...(collected.error ? { error: collected.error } : {}),

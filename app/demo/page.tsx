@@ -107,6 +107,7 @@ function DemoPageContent() {
   const [savedActivities, setSavedActivities] = useState<string[]>([]);
   const [savedWorkPreferences, setSavedWorkPreferences] = useState<string[]>([]);
   const searchUrlHydrated = useRef(false);
+  const externalRefreshAttempts = useRef(0);
   const routeSearchParams = useSearchParams();
   const routeQuery = routeSearchParams.toString();
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedId) ?? null, [profiles, selectedId]);
@@ -148,6 +149,7 @@ function DemoPageContent() {
     setExternalJobsLoading(false);
     setExternalJobsError("");
     setExternalJobsLoaded(false);
+    externalRefreshAttempts.current = 0;
     setRecommendations(null);
     setRecommendationsLoading(false);
     setRecommendationsError("");
@@ -206,6 +208,7 @@ function DemoPageContent() {
     let cancelled = false;
     setExternalJobsLoading(true);
     setExternalJobsError("");
+    let refreshTimer: number | undefined;
     fetch("/api/external-jobs?source=all")
       .then(async (response) => {
         const data = await response.json();
@@ -217,11 +220,19 @@ function DemoPageContent() {
         } else {
           setExternalJobs(Array.isArray(data.items) ? data.items : []);
           setExternalJobsError(data.error ? "Não foi possível atualizar as vagas do GO Sergipe agora; outras fontes externas também podem estar indisponíveis." : "");
+          if ((data.partial || data.stale) && externalRefreshAttempts.current < 3) {
+            externalRefreshAttempts.current += 1;
+            refreshTimer = window.setTimeout(() => {
+              if (!cancelled) setExternalJobsLoaded(false);
+            }, data.cacheState === "cold" ? 12_000 : 5_000);
+          } else if (!data.partial && !data.stale) {
+            externalRefreshAttempts.current = 0;
+          }
         }
       })
       .catch(() => { if (!cancelled) setExternalJobsError("Não foi possível atualizar as vagas do GO Sergipe agora."); })
       .finally(() => { if (!cancelled) { setExternalJobsLoaded(true); setExternalJobsLoading(false); } });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; if (refreshTimer) window.clearTimeout(refreshTimer); };
   }, [activeFilter, activeView, externalJobsLoaded, selectedProfile]);
 
   useEffect(() => {

@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { listOpportunities } from "@/lib/db";
 import {
   fetchExternalJobs,
+  refreshExternalJobs,
   type ExternalJobsResult,
 } from "@/lib/connectors/external-jobs";
 import { internalToDiscoveryItem } from "@/lib/discovery";
@@ -27,6 +28,8 @@ function timedOutExternalJobs(): ExternalJobsResult {
     stale: true,
     partial: true,
     pages: 0,
+    cacheState: "stale",
+    refreshSuggested: false,
     error: "A coleta externa excedeu o prazo desta pesquisa.",
     sources: [
       ["GO_SERGIPE", "GO Sergipe"],
@@ -64,6 +67,7 @@ async function fetchExternalForResearch(): Promise<ExternalJobsResult> {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const external = await fetchExternalForResearch();
+  if (external.refreshSuggested) after(() => refreshExternalJobs({ source: "all" }));
   const internal = listOpportunities().formal.filter((opportunity) => !opportunity.ownerIsDemo).map(internalToDiscoveryItem);
   const requestedIbgeCode = url.searchParams.get("municipalityIbgeCode") ?? url.searchParams.get("ibgeCode") ?? undefined;
   const municipalityFromIbge = requestedIbgeCode

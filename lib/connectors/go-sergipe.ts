@@ -11,6 +11,7 @@ export const GO_SERGIPE_LIST_URL = `https://${GO_SERGIPE_HOST}${GO_SERGIPE_PATH}
 export const GO_SERGIPE_API_PATH = "/api/oportunidades";
 export const GO_SERGIPE_API_URL = `https://${GO_SERGIPE_HOST}${GO_SERGIPE_API_PATH}`;
 export const GO_SERGIPE_MAX_PAGES = 25;
+export const GO_SERGIPE_PAGE_CONCURRENCY = 4;
 export const GO_SERGIPE_TIMEOUT_MS = 7_000;
 export const GO_SERGIPE_CACHE_TTL_MS = 4 * 60 * 60 * 1000;
 export const GO_SERGIPE_CACHE_TTL_SECONDS = GO_SERGIPE_CACHE_TTL_MS / 1000;
@@ -19,6 +20,7 @@ export const GO_SERGIPE_USER_AGENT = "OFLIX/0.1 (+https://oflix-six.vercel.app)"
 type GoSergipePage = {
   items: DiscoveryItem[];
   nextUrl?: string;
+  totalCount?: number;
   sawOpportunityMarkup: boolean;
   ignoredOutsideState: number;
 };
@@ -41,6 +43,8 @@ type FetchGoSergipeOptions = {
   fetcher?: typeof fetch;
   timeoutMs?: number;
   now?: () => Date;
+  maxPages?: number;
+  bypassCache?: boolean;
 };
 
 type CacheEntry = { expiresAt: number; result: GoSergipeResult };
@@ -261,6 +265,7 @@ export function parseGoSergipePage(html: string, options: { pageUrl?: string; co
 export function parseGoSergipeApiResponse(payload: unknown, options: { collectedAt?: string } = {}): GoSergipePage {
   if (!isRecord(payload) || !Array.isArray(payload.results)) return { items: [], sawOpportunityMarkup: false, ignoredOutsideState: 0 };
   const collectedAt = options.collectedAt ?? new Date().toISOString();
+  const totalCount = typeof payload.count === "number" && Number.isFinite(payload.count) && payload.count >= 0 ? Math.trunc(payload.count) : undefined;
   const items: DiscoveryItem[] = [];
   let ignoredOutsideState = 0;
 
@@ -322,7 +327,7 @@ export function parseGoSergipeApiResponse(payload: unknown, options: { collected
     items.push(item);
   }
 
-  return { items: deduplicateGoSergipeItems(items), nextUrl: safeApiNextUrl(payload.next), sawOpportunityMarkup: true, ignoredOutsideState };
+  return { items: deduplicateGoSergipeItems(items), nextUrl: safeApiNextUrl(payload.next), totalCount, sawOpportunityMarkup: true, ignoredOutsideState };
 }
 
 export function deduplicateGoSergipeItems(items: DiscoveryItem[]) {
@@ -351,7 +356,9 @@ export function clearGoSergipeCache() {
 export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions = {}): Promise<GoSergipeResult> {
   const now = options.now ?? (() => new Date());
   const nowMs = now().getTime();
-  if (cacheEntry && cacheEntry.expiresAt > nowMs) return {
+  const maxPages = options.maxPages ?? GO_SERGIPE_MAX_PAGES;
+  const canUseFullCache = !options.bypassCache && maxPages >= GO_SERGIPE_MAX_PAGES;
+  if (canUseFullCache && cacheEntry && cacheEntry.expiresAt > nowMs) return {
     ...cacheEntry.result,
     collection: { ...cacheEntry.result.collection, servedFromCache: true, sourceFetched: false, durationMs: 0 },
   };
@@ -371,15 +378,12 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
   let requestCount = 0;
   const visited = new Set<string>();
 
-  console.info(`[go-sergipe] coleta iniciada url=${GO_SERGIPE_API_URL} state=SE`);
-  while (pages < GO_SERGIPE_MAX_PAGES && !visited.has(pageUrl)) {
-    visited.add(pageUrl);
-    pages += 1;
+  async function fetchPage(url: string) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       requestCount += 1;
-      const response = await fetcher(pageUrl, {
+      const response = await fetcher(url, {
         headers: { accept: "application/json", "user-agent": GO_SERGIPE_USER_AGENT },
         signal: controller.signal,
         cache: "no-store",
@@ -387,22 +391,78 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const page = parseGoSergipeApiResponse(await response.json(), { collectedAt });
       if (!page.sawOpportunityMarkup) throw new Error("Resposta JSON pública sem lista estruturada de oportunidades");
-      receivedValidResponse = true;
-      pagesSucceeded += 1;
-      items = deduplicateGoSergipeItems([...items, ...page.items]);
-      const nextUrl = page.nextUrl;
-      if (!nextUrl || nextUrl === pageUrl || page.items.length === 0) {
-        paginationComplete = true;
-        break;
-      }
-      pageUrl = nextUrl;
-    } catch (collectionError) {
-      partial = true;
-      error = collectionError instanceof Error ? collectionError.message : "Falha desconhecida na coleta";
-      break;
+      return page;
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  console.info(`[go-sergipe] coleta iniciada url=${GO_SERGIPE_API_URL} state=SE`);
+  try {
+    const firstPage = await fetchPage(pageUrl);
+    pages = 1;
+    pagesSucceeded = 1;
+    receivedValidResponse = true;
+    items = deduplicateGoSergipeItems(firstPage.items);
+    const nextUrl = firstPage.nextUrl;
+    if (!nextUrl || firstPage.items.length === 0) {
+      paginationComplete = true;
+    } else if (maxPages <= 1) {
+      partial = true;
+    } else {
+      const pageSize = firstPage.items.length;
+      const totalPages = firstPage.totalCount && pageSize > 0 ? Math.ceil(firstPage.totalCount / pageSize) : undefined;
+      if (totalPages && totalPages > 1) {
+        const pagesToRequest = Math.min(maxPages, totalPages);
+        for (let pageNumber = 2; pageNumber <= pagesToRequest; pageNumber += GO_SERGIPE_PAGE_CONCURRENCY) {
+          const batch = Array.from({ length: Math.min(GO_SERGIPE_PAGE_CONCURRENCY, pagesToRequest - pageNumber + 1) }, (_, index) => pageNumber + index);
+          const results = await Promise.all(batch.map(async (number) => {
+            try {
+              return { page: await fetchPage(apiPageUrl(number)) };
+            } catch (collectionError) {
+              return { error: collectionError instanceof Error ? collectionError.message : "Falha desconhecida na coleta" };
+            }
+          }));
+          pages += batch.length;
+          for (const result of results) {
+            if (result.page) {
+              pagesSucceeded += 1;
+              items = deduplicateGoSergipeItems([...items, ...result.page.items]);
+            } else {
+              partial = true;
+              error ??= result.error;
+            }
+          }
+        }
+        paginationComplete = !partial && pagesToRequest >= totalPages;
+        if (pagesToRequest < totalPages) partial = true;
+      } else {
+        while (pages < maxPages && !visited.has(pageUrl)) {
+          visited.add(pageUrl);
+          try {
+            const page = await fetchPage(pageUrl);
+            pages += 1;
+            pagesSucceeded += 1;
+            items = deduplicateGoSergipeItems([...items, ...page.items]);
+            const followingUrl = page.nextUrl;
+            if (!followingUrl || followingUrl === pageUrl || page.items.length === 0) {
+              paginationComplete = true;
+              break;
+            }
+            pageUrl = followingUrl;
+          } catch (collectionError) {
+            pages += 1;
+            partial = true;
+            error = collectionError instanceof Error ? collectionError.message : "Falha desconhecida na coleta";
+            break;
+          }
+        }
+        if (!paginationComplete && nextUrl && pages >= maxPages) partial = true;
+      }
+    }
+  } catch (collectionError) {
+    partial = true;
+    error = collectionError instanceof Error ? collectionError.message : "Falha desconhecida na coleta";
   }
 
   const durationMs = Date.now() - startedAt;
@@ -410,8 +470,10 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
   if (receivedValidResponse) {
     const collection: SourceCollectionMetadata = { startedAt: collectedAt, finishedAt: new Date().toISOString(), durationMs, requestCount, pagesRequested: pages, pagesSucceeded, paginationComplete, sourceFetched: true, servedFromCache: false, servedFromStale: false, success: true };
     const result = resultFrom(items, collectedAt, false, partial, pages, collection, error);
-    lastSuccessfulResult = result;
-    cacheEntry = { expiresAt: nowMs + GO_SERGIPE_CACHE_TTL_MS, result };
+    if (canUseFullCache && !partial && paginationComplete) {
+      lastSuccessfulResult = result;
+      cacheEntry = { expiresAt: nowMs + GO_SERGIPE_CACHE_TTL_MS, result };
+    }
     return result;
   }
 

@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { listProfiles } from "@/lib/db";
-import { fetchExternalJobs } from "@/lib/connectors/external-jobs";
+import { fetchExternalJobs, refreshExternalJobs } from "@/lib/connectors/external-jobs";
 import { takeTerritoryAiRateLimit, territoryAiClientKey } from "@/lib/ai/rate-limit";
 import { generateGeminiJson, geminiAvailable, geminiDiagnostics, GeminiProviderError, GeminiUnavailableError } from "@/lib/ai/gemini";
 import { buildDeterministicAssistantAnswer, buildGeminiAssistantPrompt, isSafeGeminiAssistantAnswer, profileFromInput } from "@/lib/ai/opportunities";
@@ -60,6 +60,7 @@ export async function POST(request: Request) {
     if (profile.type !== "PERSON") return NextResponse.json({ error: "person_required" }, { status: 403 });
     const intelligenceProfile = profileFromInput({ id: profile.id, municipality: profile.location.municipality, capabilities: profile.capabilities, activities: body.activities, workPreferences: body.workPreferences });
     const collected = await fetchExternalJobs({ source: "all" });
+    if (collected.refreshSuggested) after(() => refreshExternalJobs({ source: "all" }));
     const deterministic = buildDeterministicAssistantAnswer(body.question, collected.items, intelligenceProfile, sourceLimitations(collected.sources), {
       sources: collected.sources,
       collectedAt: collected.collectedAt,
@@ -100,6 +101,7 @@ export async function POST(request: Request) {
       gemini: { requested: body.useGemini, available: geminiAvailable(), used: mode === "gemini", reason: geminiReason, reasonLabel: reasonLabel(geminiReason) },
       sources: collected.sources,
       collectedAt: collected.collectedAt,
+      cacheState: collected.cacheState,
       stale: collected.stale,
       partial: collected.partial,
       ...(collected.error ? { error: collected.error } : {}),
