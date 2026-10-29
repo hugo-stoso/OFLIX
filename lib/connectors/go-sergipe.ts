@@ -382,7 +382,7 @@ export async function fetchGoSergipeOpportunities(options: FetchGoSergipeOptions
       const response = await fetcher(pageUrl, {
         headers: { accept: "application/json", "user-agent": GO_SERGIPE_USER_AGENT },
         signal: controller.signal,
-        next: { revalidate: GO_SERGIPE_CACHE_TTL_SECONDS },
+        cache: "no-store",
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const page = parseGoSergipeApiResponse(await response.json(), { collectedAt });

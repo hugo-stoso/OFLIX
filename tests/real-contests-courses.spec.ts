@@ -1,7 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { parseAracajuEditais, parseSeadContests } from "../lib/connectors/public-contests";
-import { parseEvgCourses, parseFundacaoBradescoCourses, parseSenaiCourses } from "../lib/connectors/training";
+import { fetchTrainingSources, parseEvgCourses, parseFundacaoBradescoCourses, parseSenaiCourses } from "../lib/connectors/training";
 import { demoDiscoveryItems } from "../lib/discovery";
+
+const originalFetch = globalThis.fetch;
+test.afterEach(() => { globalThis.fetch = originalFetch; });
 
 test("descoberta pública não expõe nem conta concursos, seleções ou cursos DEMO", () => {
   const publicDevelopment = demoDiscoveryItems.filter((item) => ["course", "public_exam", "public_selection"].includes(item.kind));
@@ -45,4 +48,19 @@ test("catálogos Bradesco e EV.G são online, sem prazo fictício e sem municíp
   expect(bradesco[0]).toMatchObject({ source: "FUNDACAO_BRADESCO_EV", modality: "Online", cost: "Gratuito", status: "Disponível no catálogo" });
   expect(bradesco[0]?.deadline).toBeUndefined();
   expect(evg[0]).toMatchObject({ source: "EVG", modality: "Online", location: { municipality: "Online" }, status: "Disponível no catálogo" });
+});
+
+test("falha isolada do SENAI não apaga catálogos oficiais das outras fontes", async () => {
+  globalThis.fetch = (async (input) => {
+    const url = String(input);
+    if (url.includes("senai.br")) throw new Error("SENAI indisponível");
+    if (url.includes("ev.org.br")) return new Response(`<a href="/Cursos/curso-de-excel">Excel na prática</a>`);
+    return new Response(`<a href="/curso/123">Gestão pública</a>`);
+  }) as typeof fetch;
+
+  const result = await fetchTrainingSources({ timeoutMs: 50 });
+  expect(result.sources.find((source) => source.source === "SENAI_SE")).toMatchObject({ count: 0, stale: true });
+  expect(result.sources.find((source) => source.source === "FUNDACAO_BRADESCO_EV")).toMatchObject({ count: 1, stale: false });
+  expect(result.sources.find((source) => source.source === "EVG")).toMatchObject({ count: 1, stale: false });
+  expect(result.items.every((item) => item.source !== "DEMO_DATA")).toBe(true);
 });

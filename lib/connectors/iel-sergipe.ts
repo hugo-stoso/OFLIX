@@ -152,10 +152,10 @@ export async function fetchIelSergipeOpportunities(options: FetchIelOptions = {}
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     requestCount += 1;
-    let response = await fetcher(IEL_SERGIPE_LIST_URL, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, next: { revalidate: IEL_SERGIPE_CACHE_TTL_SECONDS } });
+    let response = await fetcher(IEL_SERGIPE_LIST_URL, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, cache: "no-store" });
     if (response.status >= 500 && response.status < 600) {
       requestCount += 1;
-      response = await fetcher(IEL_SERGIPE_LIST_URL, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, next: { revalidate: IEL_SERGIPE_CACHE_TTL_SECONDS } });
+      response = await fetcher(IEL_SERGIPE_LIST_URL, { headers: { accept: "text/html", "user-agent": EXTERNAL_JOB_USER_AGENT }, signal: controller.signal, cache: "no-store" });
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const page = parseIelSergipePage(await response.text(), { collectedAt });

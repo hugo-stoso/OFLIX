@@ -12,6 +12,6 @@ export async function GET(request: Request) {
     const result = await fetchPncpOpportunities({ state: url.searchParams.get("state") ?? "SE", municipality: url.searchParams.get("municipality") ?? undefined, text: url.searchParams.get("text") ?? undefined });
     return NextResponse.json({ ...result, items: result.items.map((item) => ({ ...item, source: "PNCP" as const, demo: false })), provider: "PNCP", endpoint: pncpEndpoint(), fallback: false });
   } catch {
-    return NextResponse.json({ items: demoDiscoveryItems.filter((item) => item.kind === "public_procurement").map((item) => ({ ...item, source: "DEMO_DATA" as const, demo: true })), source: "DEMO_DATA", stale: true, fallback: true, error: "Fonte PNCP indisponível; exibindo registros DEMO DATA identificados.", provider: "PNCP", endpoint: pncpEndpoint() });
+    return NextResponse.json({ items: [], source: "PNCP", stale: true, fallback: false, unavailable: true, error: "Fonte PNCP indisponível; nenhum registro fictício foi exibido.", provider: "PNCP", endpoint: pncpEndpoint() }, { status: 503 });
   }
 }

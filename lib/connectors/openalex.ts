@@ -114,7 +114,7 @@ export async function getAcademicArticles({ topic, query }: { topic?: AcademicTo
     endpoint.searchParams.set("filter", "type:article");
     endpoint.searchParams.set("per-page", "12");
     if (process.env.OPENALEX_API_KEY) endpoint.searchParams.set("api_key", process.env.OPENALEX_API_KEY);
-    const response = await fetch(endpoint, { next: { revalidate: 600 }, headers: { Accept: "application/json", "User-Agent": "OFLIX-demo/0.1" } });
+    const response = await fetch(endpoint, { cache: "no-store", headers: { Accept: "application/json", "User-Agent": "OFLIX-demo/0.1" } });
     if (!response.ok) throw new Error(`OpenAlex ${response.status}`);
     const payload = await response.json() as { results?: Record<string, unknown>[] };
     const normalizedItems = (payload.results ?? []).map((record) => normalizeOpenAlexWork(record, search)).filter((item): item is AcademicArticle => Boolean(item));

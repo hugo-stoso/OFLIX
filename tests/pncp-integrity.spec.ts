@@ -22,12 +22,14 @@ test.describe("integridade PNCP live/DEMO", () => {
     expect(body.items).toEqual([]);
   });
 
-  test("unavailable live source exposes explicit DEMO fallback", async () => {
+  test("unavailable live source exposes empty verified response without DEMO fallback", async () => {
     globalThis.fetch = (async () => { throw new Error("upstream unavailable"); }) as typeof fetch;
     const response = await GET(new Request("http://localhost/api/public-opportunities?live=1&text=unavailable-test"));
     const body = await response.json();
-    expect(body.fallback).toBe(true);
-    expect(body.items.length).toBeGreaterThan(0);
-    expect(body.items.every((item: { source: string; demo?: boolean }) => item.source === "DEMO_DATA" && item.demo === true)).toBe(true);
+    expect(response.status).toBe(503);
+    expect(body.fallback).toBe(false);
+    expect(body.unavailable).toBe(true);
+    expect(body.items).toEqual([]);
+    expect(body.source).toBe("PNCP");
   });
 });
