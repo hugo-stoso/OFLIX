@@ -128,9 +128,23 @@ function itemText(item: DiscoveryItem) {
   ].filter(Boolean).join(" "));
 }
 
+function occupationText(item: DiscoveryItem) {
+  return normalized([
+    item.title,
+    item.occupationLabel,
+    item.category,
+    ...(item.tags ?? []),
+    item.occupationCode,
+  ].filter(Boolean).join(" "));
+}
+
+function itemMatchesOccupationGroup(item: DiscoveryItem, group: { itemTerms: string[] }) {
+  return group.itemTerms.some((term) => phraseInText(occupationText(item), term));
+}
+
 function itemMatchesSignal(item: DiscoveryItem, signal: string) {
   const group = occupationGroupForSignal(signal);
-  return group ? group.itemTerms.some((term) => phraseInText(itemText(item), term)) : phraseInText(itemText(item), signal);
+  return group ? itemMatchesOccupationGroup(item, group) : phraseInText(itemText(item), signal);
 }
 
 function dateFilterValue(value: string) {
@@ -183,7 +197,7 @@ export function matchesNaturalSearch(item: DiscoveryItem, interpretation: Natura
   const occupationGroups = occupationGroupsForQuery(interpretation.query);
   const occupationTerms = new Set(occupationGroups.flatMap((group) => group.queryTerms.flatMap((term) => tokens(term))));
   const nonOccupationTerms = interpretation.terms.filter((term) => !occupationTerms.has(term));
-  return occupationGroups.every((group) => group.itemTerms.some((term) => phraseInText(text, term))) && nonOccupationTerms.every((term) => phraseInText(text, term));
+  return occupationGroups.every((group) => itemMatchesOccupationGroup(item, group)) && nonOccupationTerms.every((term) => phraseInText(text, term));
 }
 
 function matchesPublishedPeriod(item: DiscoveryItem, interpretation: NaturalSearchInterpretation) {
@@ -328,13 +342,13 @@ function analyticalScope(question: string, interpretation: NaturalSearchInterpre
   const natural = temporal.filter((item) => matchesNaturalSearch(item, interpretation));
   const byMunicipality = temporal.filter((item) => !mentioned.length || mentioned.some((municipality) => normalized(item.location.municipality) === normalized(municipality)));
   if (intent === "compare_professions") {
-    return byMunicipality.filter((item) => occupationGroups.some((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term))));
+    return byMunicipality.filter((item) => occupationGroups.some((group) => itemMatchesOccupationGroup(item, group)));
   }
   if (intent === "compare_municipalities") {
     return byMunicipality;
   }
   if ((intent === "by_municipality" || intent === "by_profession") && occupationGroups.length) {
-    return byMunicipality.filter((item) => occupationGroups.some((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term))));
+    return byMunicipality.filter((item) => occupationGroups.some((group) => itemMatchesOccupationGroup(item, group)));
   }
   if (intent === "by_municipality" || intent === "by_profession") return byMunicipality;
   return natural;
@@ -382,7 +396,7 @@ function positionsForItem(item: DiscoveryItem) {
 }
 
 function occupationLabelForItem(item: DiscoveryItem) {
-  const matchedGroup = OCCUPATION_SEARCH_ALIASES.find((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term)));
+  const matchedGroup = OCCUPATION_SEARCH_ALIASES.find((group) => itemMatchesOccupationGroup(item, group));
   const canonicalLabel = matchedGroup?.queryTerms[0];
   return canonicalLabel ? canonicalLabel.charAt(0).toLocaleUpperCase("pt-BR") + canonicalLabel.slice(1) : item.occupationLabel ?? item.title;
 }
@@ -465,7 +479,7 @@ function buildAnalyticalAnswer(question: string, interpretation: NaturalSearchIn
   const groups = isMunicipalityAnalysis
     ? groupCounts(scope, (item) => [item.location.municipality])
     : intent === "compare_professions"
-      ? groupCounts(scope, (item) => occupationGroups.filter((group) => group.itemTerms.some((term) => phraseInText(itemText(item), term))).map((group) => group.queryTerms[0]))
+      ? groupCounts(scope, (item) => occupationGroups.filter((group) => itemMatchesOccupationGroup(item, group)).map((group) => group.queryTerms[0]))
       : groupCounts(scope, (item) => [occupationLabelForItem(item)]);
   const comparableGroups = groups.filter((group) => isMunicipalityAnalysis ? municipalities.length === 0 || municipalities.some((municipality) => normalized(municipality) === normalized(group.label)) : true);
   if (!comparableGroups.length) return { answer: "Não encontrei vagas verificáveis suficientes para fazer essa comparação.", matches: [], facts: ["Nenhum grupo comparável foi encontrado no recorte."], limitations, analysis: { intent, scopeCount: scope.length, groups: [] } satisfies AssistantAnalysis };
@@ -495,9 +509,10 @@ export function buildDeterministicAssistantAnswer(question: string, items: Disco
   let answer: string;
   const facts: string[] = [];
   if (matches.length) {
+    const opportunityLabel = matches.length === 1 ? "oportunidade verificável" : "oportunidades verificáveis";
     answer = careerQuestion
-      ? `Encontrei ${matches.length} oportunidade${matches.length === 1 ? "" : "s"} verificável${matches.length === 1 ? "" : "is"} no recorte. Compare os requisitos publicados antes de se candidatar; a fonte oficial é a referência final.`
-      : `Encontrei ${matches.length} oportunidade${matches.length === 1 ? "" : "s"} verificável${matches.length === 1 ? "" : "is"} para esta busca. A lista abaixo preserva a fonte original e não inclui registros demonstrativos.`;
+      ? `Encontrei ${matches.length} ${opportunityLabel} no recorte. Compare os requisitos publicados antes de se candidatar; a fonte oficial é a referência final.`
+      : `Encontrei ${matches.length} ${opportunityLabel} para esta busca. A lista abaixo preserva a fonte original e não inclui registros demonstrativos.`;
     facts.push(...matches.slice(0, 5).map((item) => `${item.title} · ${item.location.municipality} · ${item.sourceLabel}.`));
   } else if (careerQuestion) {
     answer = "Não encontrei uma oportunidade verificável que responda a esse recorte. Posso comparar somente requisitos publicados pelas fontes integradas; não vou sugerir qualificações ou vagas sem evidência.";

@@ -92,6 +92,14 @@ test("busca e recomendações mantêm a profissão específica, CBO, sinônimos 
   const noResults = buildDeterministicAssistantAnswer("há vagas de astrofísico nuclear em Aracaju?", occupations, { ...profile, capabilities: "astrofísico nuclear", activities: ["astrofísico nuclear"] });
   expect(noResults.matches).toHaveLength(0);
   expect(noResults.answer).toMatch(/Não encontrei/i);
+
+  const contadorWithoutMunicipality = [
+    occupations[0],
+    { ...occupations[4], description: "Vendas B2B para empresas de contabilidade e consultorias." },
+  ];
+  const contadorQuestion = buildDeterministicAssistantAnswer("Quais vagas existem para contador?", contadorWithoutMunicipality, profile);
+  expect(contadorQuestion.matches.map((item) => item.id)).toEqual(["contador-aracaju"]);
+  expect(contadorQuestion.answer).toContain("oportunidade verificável");
 });
 
 test("responde maior salário somente com remunerações mensais comparáveis e sem exigir filtro", async () => {
