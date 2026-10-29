@@ -10,7 +10,13 @@ const interactionSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const parsed = interactionSchema.safeParse(await request.json());
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Dados de interação inválidos.", code: "EMPTY_BODY" }, { status: 400 });
+  }
+  const parsed = interactionSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Dados de interação inválidos." }, { status: 400 });
   const data = parsed.data;
   try {

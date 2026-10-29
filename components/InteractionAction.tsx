@@ -13,11 +13,17 @@ export function InteractionAction({ targetId, kind, ownerId }: { targetId: strin
   async function submit() {
     if (!profileId) { setStatus("error"); return; }
     setStatus("loading");
+    const body = JSON.stringify({ actorProfileId: profileId, targetType: kind === "formal" ? "FORMAL" : kind === "service" ? "SERVICE" : "VOLUNTEER", targetId, action });
     try {
-      const response = await fetch("/api/interactions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ actorProfileId: profileId, targetType: kind === "formal" ? "FORMAL" : kind === "service" ? "SERVICE" : "VOLUNTEER", targetId, action }) });
-      if (!response.ok) throw new Error("interaction");
-      const result = await response.json();
-      setStatus(result.selfOwned ? "self" : result.duplicate ? "duplicate" : "success");
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const response = await fetch("/api/interactions", { method: "POST", headers: { "Content-Type": "application/json" }, body });
+        const result = await response.json().catch(() => null) as { code?: string; duplicate?: boolean; selfOwned?: boolean } | null;
+        if (response.ok) {
+          setStatus(result?.selfOwned ? "self" : result?.duplicate ? "duplicate" : "success");
+          return;
+        }
+        if (result?.code !== "EMPTY_BODY" || attempt > 0) throw new Error("interaction");
+      }
     } catch { setStatus("error"); }
   }
   if (profileId === ownerId) return <div className="rounded-lg border border-[#ecd9ae] bg-[#fff9ec] p-4 text-sm leading-6 text-[#775d25]">Esta é uma oportunidade publicada por você. Para encontrar trabalho, selecione suas atividades de interesse e acompanhe novas oportunidades.</div>;
