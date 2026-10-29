@@ -254,13 +254,15 @@ async function refreshSource(config: SourceConfig, allConfigs: SourceConfig[]) {
     if (existing?.state === "fresh") return;
     const lease = await acquireRefreshLease(key);
     if (!lease) return;
+    let keepLeaseForRetryWindow = false;
     try {
       const [result] = await collectConfigs([config], allConfigs, { mode: "full", bypassCache: true });
       await writeSharedSource(key, result);
       processCache.clear();
+      keepLeaseForRetryWindow = result.partial || Boolean(result.error);
       console.info(`[external-jobs] atualização concluída source=${key} pages=${result.pages} items=${result.items.length} partial=${result.partial}`);
     } finally {
-      await releaseRefreshLease(lease);
+      if (!keepLeaseForRetryWindow) await releaseRefreshLease(lease);
     }
   })().finally(() => refreshInFlight.delete(key));
   refreshInFlight.set(key, request);
